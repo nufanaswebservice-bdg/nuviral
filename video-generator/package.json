@@ -1,0 +1,12 @@
+{
+  "name": "@viralai/video-generator",
+  "version": "1.0.0",
+  "description": "Simple video generator using OpenAI TTS + FFmpeg",
+  "scripts": {
+    "generate": "node generate-video.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "openai": "^4.104.0"
+  }
+}

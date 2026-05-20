@@ -1,0 +1,45 @@
+{
+  "name": "viralai",
+  "version": "1.0.0",
+  "description": "AI Content Generator SaaS Platform for Short Video",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "worker",
+    "ai-engine",
+    "ffmpeg-engine",
+    "uploader-service",
+    "analytics-service",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run dev:worker\"",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "dev:backend": "npm run start:dev --workspace=backend",
+    "dev:worker": "npm run start:dev --workspace=worker",
+    "build": "npm run build --workspaces",
+    "build:frontend": "npm run build --workspace=frontend",
+    "build:backend": "npm run build --workspace=backend",
+    "lint": "npm run lint --workspaces",
+    "test": "npm run test --workspaces",
+    "db:migrate": "npx prisma migrate dev",
+    "db:generate": "npx prisma generate",
+    "db:seed": "npx prisma db seed",
+    "db:studio": "npx prisma studio",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:build": "docker-compose build"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "prisma": "^5.10.0",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.10.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
