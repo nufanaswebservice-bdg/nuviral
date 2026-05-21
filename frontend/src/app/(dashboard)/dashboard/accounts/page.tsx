@@ -12,6 +12,7 @@ import {
   ExternalLink,
   Shield,
   X,
+  Loader2,
 } from 'lucide-react';
 
 interface SocialAccount {
