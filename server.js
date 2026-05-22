@@ -79,61 +79,103 @@ app.post('/render', async (req, res) => {
       const probe = execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${audioFile}"`, { encoding: 'utf-8' }).trim();
       actualDuration = parseFloat(probe) || duration;
     } catch (e) {
-      console.log('[render] ffprobe not available, using estimated duration');
-      // Estimate: ~150 words per minute
       const wordCount = script.split(/\s+/).length;
       actualDuration = Math.max((wordCount / 150) * 60, duration);
     }
 
-    // Check if FFmpeg is available
-    let hasFFmpeg = false;
-    try {
-      execSync('ffmpeg -version', { stdio: 'pipe' });
-      hasFFmpeg = true;
-    } catch (e) {
-      console.log('[render] FFmpeg not available, returning audio only');
-    }
+    // Step 3: Download stock images from Pexels (free, no API key needed for small use)
+    console.log('[render] Downloading stock footage...');
+    const keywords = title.split(' ').slice(0, 3).join(' ');
+    const imageFiles = [];
 
-    if (!hasFFmpeg) {
-      // Return audio file directly as MP3
-      res.set({
-        'Content-Type': 'audio/mpeg',
-        'Content-Disposition': `attachment; filename="nuviral-${timestamp}.mp3"`,
-        'Content-Length': audioBuffer.length,
-      });
-      try { fs.unlinkSync(audioFile); } catch (e) {}
-      return res.send(audioBuffer);
-    }
-
-    // Step 3: Build subtitle filters
+    // Download 3-5 stock images related to the topic
+    const searchTerms = ['technology', 'business', 'social media', 'digital', 'creative'];
     const sentences = script.split(/[.\n!?]+/).filter(s => s.trim().length > 2);
-    const segDuration = actualDuration / Math.max(sentences.length, 1);
 
-    let textFilters = '';
-    const safeTitle = title.replace(/'/g, "\\'").replace(/:/g, '\\:');
-    textFilters += `,drawtext=text='${safeTitle}':fontsize=48:fontcolor=white:borderw=3:bordercolor=black:x=(w-text_w)/2:y=100`;
-    textFilters += `,drawtext=text='NuViral AI':fontsize=20:fontcolor=0x7c3aed:borderw=1:bordercolor=black:x=(w-text_w)/2:y=170`;
+    for (let i = 0; i < Math.min(5, sentences.length); i++) {
+      const term = searchTerms[i % searchTerms.length];
+      const imgFile = path.join(outputDir, `img-${timestamp}-${i}.jpg`);
 
-    sentences.forEach((sentence, i) => {
-      const start = (i * segDuration).toFixed(2);
-      const end = ((i + 1) * segDuration).toFixed(2);
-      const text = sentence.trim().replace(/'/g, "\\'").replace(/:/g, '\\:');
-      textFilters += `,drawtext=text='${text}':fontsize=34:fontcolor=white:borderw=3:bordercolor=black:x=(w-text_w)/2:y=h-350:enable='between(t,${start},${end})'`;
-    });
+      try {
+        // Use picsum.photos for random high-quality images (no API key needed)
+        const imgResponse = await fetch(`https://picsum.photos/1080/1920?random=${timestamp + i}`);
+        if (imgResponse.ok) {
+          const imgBuffer = Buffer.from(await imgResponse.arrayBuffer());
+          fs.writeFileSync(imgFile, imgBuffer);
+          imageFiles.push(imgFile);
+        }
+      } catch (e) {
+        console.log(`[render] Image ${i} download failed, skipping`);
+      }
+    }
 
-    textFilters += `,drawbox=x=0:y=1880:w='iw*t/${actualDuration}':h=6:color=0x7c3aed@0.9:t=fill`;
+    console.log(`[render] Downloaded ${imageFiles.length} images`);
 
-    // Step 4: Render with FFmpeg
-    console.log('[render] Rendering video...');
-    const cmd = `ffmpeg -y -f lavfi -i "color=c=0x0f0a2e:s=1080x1920:d=${Math.ceil(actualDuration)}:r=24,format=yuv420p" -i "${audioFile}" -filter_complex "[0:v]vignette=PI/4${textFilters}[v]" -map "[v]" -map 1:a -c:v libx264 -preset fast -crf 26 -pix_fmt yuv420p -c:a aac -b:a 128k -shortest -movflags +faststart "${videoFile}"`;
+    // Step 4: Build video with images + subtitles + voiceover
+    console.log('[render] Rendering video with FFmpeg...');
 
-    execSync(cmd, { stdio: 'pipe', timeout: 120000 });
-    console.log('[render] Done!');
+    const segDuration = actualDuration / Math.max(imageFiles.length, 1);
 
-    // Step 5: Send video
+    if (imageFiles.length > 0) {
+      // Create video from images with Ken Burns effect + subtitles
+      let inputArgs = '';
+      let filterParts = [];
+
+      // Add each image as input with duration
+      imageFiles.forEach((img, i) => {
+        inputArgs += ` -loop 1 -t ${segDuration.toFixed(2)} -i "${img}"`;
+        // Apply zoom effect on each image
+        filterParts.push(`[${i}:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,zoompan=z='min(zoom+0.001,1.3)':d=${Math.ceil(segDuration * 25)}:s=1080x1920:fps=25[v${i}]`);
+      });
+
+      // Concatenate all video segments
+      const concatInputs = imageFiles.map((_, i) => `[v${i}]`).join('');
+      const concatFilter = `${concatInputs}concat=n=${imageFiles.length}:v=1:a=0[base]`;
+
+      // Add subtitle overlay
+      let subtitleFilter = '[base]';
+      const safeTitle = title.replace(/'/g, "\\'").replace(/:/g, '\\:').replace(/"/g, '\\"');
+      subtitleFilter += `drawtext=text='${safeTitle}':fontsize=42:fontcolor=white:borderw=3:bordercolor=black:x=(w-text_w)/2:y=80`;
+
+      sentences.forEach((sentence, i) => {
+        const start = (i * (actualDuration / sentences.length)).toFixed(2);
+        const end = ((i + 1) * (actualDuration / sentences.length)).toFixed(2);
+        const text = sentence.trim().replace(/'/g, "\\'").replace(/:/g, '\\:').replace(/"/g, '\\"');
+        if (text.length > 0) {
+          subtitleFilter += `,drawtext=text='${text}':fontsize=32:fontcolor=white:borderw=3:bordercolor=black:x=(w-text_w)/2:y=h-300:enable='between(t\\,${start}\\,${end})'`;
+        }
+      });
+
+      // Progress bar
+      subtitleFilter += `,drawbox=x=0:y=1890:w='iw*t/${actualDuration.toFixed(2)}':h=6:color=0x7c3aed@0.9:t=fill`;
+      subtitleFilter += '[outv]';
+
+      const fullFilter = filterParts.join(';') + ';' + concatFilter + ';' + subtitleFilter;
+
+      const cmd = `ffmpeg -y${inputArgs} -i "${audioFile}" -filter_complex "${fullFilter}" -map "[outv]" -map ${imageFiles.length}:a -c:v libx264 -preset fast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -shortest -movflags +faststart "${videoFile}"`;
+
+      try {
+        execSync(cmd, { stdio: 'pipe', timeout: 120000 });
+      } catch (ffmpegErr) {
+        console.log('[render] Complex render failed, trying simple version...');
+        // Fallback: simpler render with just first image + audio
+        const simpleCmd = `ffmpeg -y -loop 1 -i "${imageFiles[0]}" -i "${audioFile}" -filter_complex "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,zoompan=z='min(zoom+0.0005,1.2)':d=${Math.ceil(actualDuration * 25)}:s=1080x1920:fps=25,drawtext=text='${safeTitle}':fontsize=42:fontcolor=white:borderw=3:bordercolor=black:x=(w-text_w)/2:y=80[outv]" -map "[outv]" -map 1:a -c:v libx264 -preset fast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -shortest -movflags +faststart "${videoFile}"`;
+        execSync(simpleCmd, { stdio: 'pipe', timeout: 120000 });
+      }
+    } else {
+      // No images available - use color background
+      const safeTitle = title.replace(/'/g, "\\'").replace(/:/g, '\\:');
+      const cmd = `ffmpeg -y -f lavfi -i "color=c=0x0f0a2e:s=1080x1920:d=${Math.ceil(actualDuration)}:r=24,format=yuv420p" -i "${audioFile}" -filter_complex "[0:v]vignette=PI/4,drawtext=text='${safeTitle}':fontsize=42:fontcolor=white:borderw=3:bordercolor=black:x=(w-text_w)/2:y=100[outv]" -map "[outv]" -map 1:a -c:v libx264 -preset fast -crf 26 -pix_fmt yuv420p -c:a aac -b:a 128k -shortest -movflags +faststart "${videoFile}"`;
+      execSync(cmd, { stdio: 'pipe', timeout: 120000 });
+    }
+
+    console.log('[render] Video rendered!');
+
+    // Cleanup images
+    imageFiles.forEach(f => { try { fs.unlinkSync(f); } catch (e) {} });
+
+    // Send video
     const videoBuffer = fs.readFileSync(videoFile);
-
-    // Cleanup
     try { fs.unlinkSync(audioFile); } catch (e) {}
     try { fs.unlinkSync(videoFile); } catch (e) {}
 
