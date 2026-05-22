@@ -26,7 +26,7 @@ app.get('/', (req, res) => {
 
 app.post('/render', async (req, res) => {
   try {
-    const { title = '', script = '', voice = 'nova', prompt = '' } = req.body;
+    const { title = '', script = '', voice = 'nova', prompt = '', format = 'portrait' } = req.body;
     const videoPrompt = prompt || title || script.split('.')[0] || 'cinematic video';
     console.log(`[render] Start: "${videoPrompt}"`);
 
@@ -53,10 +53,11 @@ app.post('/render', async (req, res) => {
 
     // STEP 2: Generate video with minimax/video-01
     console.log('[render] Calling minimax/video-01...');
+    const aspectRatio = format === 'portrait' ? '9:16' : '16:9';
     const createRes = await fetch('https://api.replicate.com/v1/models/minimax/video-01/predictions', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ input: { prompt: englishPrompt, prompt_optimizer: true } }),
+      body: JSON.stringify({ input: { prompt: englishPrompt, prompt_optimizer: true, aspect_ratio: aspectRatio } }),
     });
 
     if (!createRes.ok) {
@@ -67,7 +68,7 @@ app.post('/render', async (req, res) => {
       const wanRes = await fetch('https://api.replicate.com/v1/models/wan-ai/wan2.1-t2v-480p/predictions', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input: { prompt: englishPrompt, num_frames: 41, num_inference_steps: 20, fps: 16 } }),
+        body: JSON.stringify({ input: { prompt: englishPrompt, num_frames: 41, num_inference_steps: 20, fps: 16, aspect_ratio: aspectRatio } }),
       });
       if (!wanRes.ok) throw new Error('All video models failed');
       var prediction = await wanRes.json();
