@@ -43,11 +43,12 @@ app.post('/render', async (req, res) => {
         const tr = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: 'Translate to English for AI video. Make visual & cinematic. Max 40 words. Output ONLY the prompt.' }, { role: 'user', content: videoPrompt }], max_tokens: 80 }),
+          body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: 'Translate to English for AI video. Keep SHORT (max 15 words). Visual & cinematic. Output ONLY the prompt.' }, { role: 'user', content: videoPrompt.substring(0, 150) }], max_tokens: 40 }),
         });
         if (tr.ok) { const d = await tr.json(); englishPrompt = d.choices?.[0]?.message?.content?.trim() || videoPrompt; }
       } catch (e) {}
     }
+    englishPrompt = englishPrompt.substring(0, 120);
     console.log(`[render] Prompt: "${englishPrompt}"`);
 
     // STEP 2: Generate video with minimax/video-01
@@ -78,10 +79,10 @@ app.post('/render', async (req, res) => {
 
     // Poll
     const pollUrl = prediction.urls?.get || `https://api.replicate.com/v1/predictions/${prediction.id}`;
-    const maxWait = 300000;
+    const maxWait = 600000;
     const t0 = Date.now();
     while (prediction.status !== 'succeeded' && prediction.status !== 'failed' && prediction.status !== 'canceled') {
-      if (Date.now() - t0 > maxWait) throw new Error('Timeout (5min)');
+      if (Date.now() - t0 > maxWait) throw new Error('Timeout (10min). Coba prompt lebih pendek.');
       await new Promise(r => setTimeout(r, 4000));
       const p = await fetch(pollUrl, { headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}` } });
       prediction = await p.json();
