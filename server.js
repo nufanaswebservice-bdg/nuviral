@@ -58,7 +58,7 @@ app.post('/render', async (req, res) => {
       headers: {
         'Authorization': `Bearer ${REPLICATE_API_TOKEN}`,
         'Content-Type': 'application/json',
-        'Prefer': 'wait=120',
+        'Prefer': 'wait=60',
       },
       body: JSON.stringify({
         version: '847dfa8b01e739637fc76f480ede0c1d76408e1d694b830b5dfb8e547bf98405',
