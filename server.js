@@ -76,7 +76,7 @@ app.post('/render', async (req, res) => {
 
     // Duration: minimax only does 5s, use wan2.1 for longer videos
     const useMinimax = duration === 'short'; // Only use minimax for 5s
-    const numFrames = duration === 'short' ? 41 : duration === 'long' ? 161 : 81; // wan2.1 frames
+    const numFrames = duration === 'short' ? 41 : duration === 'long' ? 81 : 81; // wan2.1 max reliable is 81
 
     let prediction;
 
@@ -102,11 +102,11 @@ app.post('/render', async (req, res) => {
       }
     } else {
       // 10s or 20s: use wan2.1 directly (supports duration control)
-      console.log(`[render] Using wan2.1 (${numFrames} frames = ~${numFrames/16}s)...`);
+      console.log(`[render] Using wan2.1 (${numFrames} frames)...`);
       const wanRes = await fetch('https://api.replicate.com/v1/models/wan-ai/wan2.1-t2v-480p/predictions', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input: { prompt: englishPrompt, num_frames: numFrames, num_inference_steps: 25, fps: 16, aspect_ratio: aspectRatio } }),
+        body: JSON.stringify({ input: { prompt: englishPrompt.substring(0, 80), num_frames: numFrames, num_inference_steps: 20, fps: 16, aspect_ratio: aspectRatio } }),
       });
       if (!wanRes.ok) {
         // Fallback to minimax (will be 5s but at least works)
@@ -114,7 +114,7 @@ app.post('/render', async (req, res) => {
         const mmRes = await fetch('https://api.replicate.com/v1/models/minimax/video-01/predictions', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ input: { prompt: englishPrompt, prompt_optimizer: true, aspect_ratio: aspectRatio } }),
+          body: JSON.stringify({ input: { prompt: englishPrompt.substring(0, 80), prompt_optimizer: true, aspect_ratio: aspectRatio } }),
         });
         if (!mmRes.ok) throw new Error('All models failed');
         prediction = await mmRes.json();
