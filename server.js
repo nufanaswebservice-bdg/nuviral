@@ -6,7 +6,11 @@ const path = require('path');
 const OpenAI = require('openai');
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: ['https://nuviral.cloud', 'https://www.nuviral.cloud', 'http://localhost:3000'],
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type'],
+}));
 app.use(express.json());
 
 const PORT = process.env.PORT || 3001;
