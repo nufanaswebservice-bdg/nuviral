@@ -102,6 +102,8 @@ export default function QuickVideoPage() {
           prompt: `${title.trim()}, ${selectedStyle.prompt}`,
           voice,
           format,
+          duration,
+          style: selectedStyle.id,
         }),
       });
 
