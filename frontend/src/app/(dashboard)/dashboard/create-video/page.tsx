@@ -153,12 +153,14 @@ export default function CreateVideoPage() {
                 if (btn) { btn.textContent = '⏳ Rendering...'; btn.disabled = true; }
 
                 try {
-                  const response = await fetch('/api/render-video', {
+                  const response = await fetch('https://nuviral-production.up.railway.app/render', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                      title: scriptData?.title || 'ViralAI Video',
-                      duration: 12,
+                      title: scriptData?.title || 'NuViral Video',
+                      script: scriptData?.script || 'Welcome to NuViral AI. Create viral videos automatically.',
+                      duration: 15,
+                      voice: 'nova',
                     }),
                   });
 

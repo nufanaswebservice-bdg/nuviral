@@ -76,15 +76,14 @@ export default function QuickVideoPage() {
     }, 1000);
 
     try {
-      const response = await fetch('/api/render-video', {
+      const response = await fetch('https://nuviral-production.up.railway.app/render', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: title.trim(),
           script: script.trim(),
           duration,
-          bgColor: selectedBg.color,
-          accentColor: selectedBg.accent,
+          voice: 'nova',
         }),
       });
 
