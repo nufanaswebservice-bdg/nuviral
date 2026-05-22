@@ -68,7 +68,32 @@ app.post('/render', async (req, res) => {
     try {
       const probe = execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${audioFile}"`, { encoding: 'utf-8' }).trim();
       actualDuration = parseFloat(probe) || duration;
-    } catch (e) {}
+    } catch (e) {
+      console.log('[render] ffprobe not available, using estimated duration');
+      // Estimate: ~150 words per minute
+      const wordCount = script.split(/\s+/).length;
+      actualDuration = Math.max((wordCount / 150) * 60, duration);
+    }
+
+    // Check if FFmpeg is available
+    let hasFFmpeg = false;
+    try {
+      execSync('ffmpeg -version', { stdio: 'pipe' });
+      hasFFmpeg = true;
+    } catch (e) {
+      console.log('[render] FFmpeg not available, returning audio only');
+    }
+
+    if (!hasFFmpeg) {
+      // Return audio file directly as MP3
+      res.set({
+        'Content-Type': 'audio/mpeg',
+        'Content-Disposition': `attachment; filename="nuviral-${timestamp}.mp3"`,
+        'Content-Length': audioBuffer.length,
+      });
+      try { fs.unlinkSync(audioFile); } catch (e) {}
+      return res.send(audioBuffer);
+    }
 
     // Step 3: Build subtitle filters
     const sentences = script.split(/[.\n!?]+/).filter(s => s.trim().length > 2);
