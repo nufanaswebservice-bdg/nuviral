@@ -44,13 +44,15 @@ app.post('/render', async (req, res) => {
 
     // Call Replicate API
     console.log('[render] Calling Replicate AI...');
-    const createResponse = await fetch('https://api.replicate.com/v1/models/wan-ai/wan2.1-t2v-480p/predictions', {
+    const createResponse = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${REPLICATE_API_TOKEN}`,
         'Content-Type': 'application/json',
+        'Prefer': 'wait=60',
       },
       body: JSON.stringify({
+        version: '847dfa8b01e739637fc76f480ede0c1d76408e1d694b830b5dfb8e547bf98405',
         input: {
           prompt: enhancedPrompt,
           num_frames: 81,
