@@ -16,29 +16,19 @@ const PORT = process.env.PORT || 3001;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || process.env.OPENAI_KEY || '';
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || process.env.REPLICATE_TOKEN || '';
 
-function checkFfmpeg() {
+function hasFfmpeg() {
   try { execSync('ffmpeg -version', { stdio: 'pipe' }); return true; } catch { return false; }
 }
 
 app.get('/', (req, res) => {
-  res.json({
-    status: 'ok',
-    service: 'NuViral AI Video Generator v2',
-    model: 'minimax/video-01 (cheaper & fast)',
-    voice: 'OpenAI TTS (Indonesian support)',
-    hasOpenAI: !!OPENAI_API_KEY,
-    hasReplicate: !!REPLICATE_API_TOKEN,
-    hasFfmpeg: checkFfmpeg(),
-  });
+  res.json({ status: 'ok', service: 'NuViral v3', replicate: !!REPLICATE_API_TOKEN, openai: !!OPENAI_API_KEY, ffmpeg: hasFfmpeg() });
 });
 
 app.post('/render', async (req, res) => {
   try {
-    const { title = 'NuViral Video', script = '', duration = 15, voice = 'nova', prompt = '' } = req.body;
-
+    const { title = '', script = '', voice = 'nova', prompt = '' } = req.body;
     const videoPrompt = prompt || title || script.split('.')[0] || 'cinematic video';
-    console.log(`[render] === START ===`);
-    console.log(`[render] Input: "${videoPrompt}"`);
+    console.log(`[render] Start: "${videoPrompt}"`);
 
     if (!REPLICATE_API_TOKEN) throw new Error('REPLICATE_API_TOKEN not set');
 
@@ -46,205 +36,110 @@ app.post('/render', async (req, res) => {
     if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
     const ts = Date.now();
 
-    // ============================================
-    // STEP 1: Translate prompt to English + enhance
-    // ============================================
+    // STEP 1: Translate + enhance prompt
     let englishPrompt = videoPrompt;
     if (OPENAI_API_KEY) {
       try {
-        console.log('[render] Translating & enhancing prompt...');
-        const trRes = await fetch('https://api.openai.com/v1/chat/completions', {
+        const tr = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [
-              { role: 'system', content: 'You are a video prompt engineer. Translate the input to English and enhance it for AI video generation. Make it highly visual, cinematic, and descriptive. Include camera angles, lighting, and motion details. Output ONLY the enhanced English prompt (max 50 words).' },
-              { role: 'user', content: videoPrompt }
-            ],
-            max_tokens: 100,
-          }),
+          body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: 'Translate to English for AI video. Make visual & cinematic. Max 40 words. Output ONLY the prompt.' }, { role: 'user', content: videoPrompt }], max_tokens: 80 }),
         });
-        if (trRes.ok) {
-          const trData = await trRes.json();
-          englishPrompt = trData.choices?.[0]?.message?.content?.trim() || videoPrompt;
-        }
-      } catch (e) { /* use original */ }
+        if (tr.ok) { const d = await tr.json(); englishPrompt = d.choices?.[0]?.message?.content?.trim() || videoPrompt; }
+      } catch (e) {}
     }
     console.log(`[render] Prompt: "${englishPrompt}"`);
 
-    // ============================================
-    // STEP 2: Generate video with Minimax (cheaper model)
-    // ============================================
-    console.log('[render] Generating AI video (minimax)...');
-
-    const createRes = await fetch('https://api.replicate.com/v1/predictions', {
+    // STEP 2: Generate video with minimax/video-01
+    console.log('[render] Calling minimax/video-01...');
+    const createRes = await fetch('https://api.replicate.com/v1/models/minimax/video-01/predictions', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${REPLICATE_API_TOKEN}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'wait=60',
-      },
-      body: JSON.stringify({
-        version: 'c8bcc4751328608bb75043b3af7bed52fc62ed5a7f2195bd2dcb4c8b3e7b3585',
-        input: {
-          prompt: englishPrompt,
-          prompt_optimizer: true,
-        },
-      }),
+      headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ input: { prompt: englishPrompt, prompt_optimizer: true } }),
     });
 
     if (!createRes.ok) {
-      const errText = await createRes.text();
-      console.log(`[render] Minimax failed (${createRes.status}), trying LTX-Video...`);
-
-      // Fallback: LTX-Video (even cheaper)
-      const ltxRes = await fetch('https://api.replicate.com/v1/predictions', {
+      const err = await createRes.text();
+      console.log(`[render] minimax failed: ${err.substring(0, 100)}`);
+      // Fallback: wan2.1
+      console.log('[render] Trying wan2.1...');
+      const wanRes = await fetch('https://api.replicate.com/v1/models/wan-ai/wan2.1-t2v-480p/predictions', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${REPLICATE_API_TOKEN}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'wait=60',
-        },
-        body: JSON.stringify({
-          version: '8b67e5fbae4f0f22b3b5b9d7f5a6aa0e1cde4f1fa2c5e0e2f3a4b5c6d7e8f9a0',
-          input: {
-            prompt: englishPrompt,
-            num_frames: 49,
-            fps: 12,
-          },
-        }),
+        headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input: { prompt: englishPrompt, num_frames: 41, num_inference_steps: 20, fps: 16 } }),
       });
-
-      if (!ltxRes.ok) {
-        // Final fallback: use original Wan2.1 with fewer frames (cheaper)
-        console.log('[render] LTX failed, using Wan2.1 lite...');
-        const wanRes = await fetch('https://api.replicate.com/v1/predictions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${REPLICATE_API_TOKEN}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'wait=60',
-          },
-          body: JSON.stringify({
-            version: '847dfa8b01e739637fc76f480ede0c1d76408e1d694b830b5dfb8e547bf98405',
-            input: {
-              prompt: englishPrompt,
-              num_frames: 41,
-              num_inference_steps: 20,
-              guidance_scale: 5.0,
-              fps: 16,
-            },
-          }),
-        });
-        if (!wanRes.ok) throw new Error(`All models failed: ${errText.substring(0, 100)}`);
-        var prediction = await wanRes.json();
-      } else {
-        var prediction = await ltxRes.json();
-      }
+      if (!wanRes.ok) throw new Error('All video models failed');
+      var prediction = await wanRes.json();
     } else {
       var prediction = await createRes.json();
     }
 
     console.log(`[render] Prediction: ${prediction.id} (${prediction.status})`);
 
-    // Poll until done
+    // Poll
     const pollUrl = prediction.urls?.get || `https://api.replicate.com/v1/predictions/${prediction.id}`;
     const maxWait = 300000;
-    const startTime = Date.now();
-
+    const t0 = Date.now();
     while (prediction.status !== 'succeeded' && prediction.status !== 'failed' && prediction.status !== 'canceled') {
-      if (Date.now() - startTime > maxWait) throw new Error('Timeout');
-      await new Promise(r => setTimeout(r, 3000));
-      const pollRes = await fetch(pollUrl, { headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}` } });
-      prediction = await pollRes.json();
+      if (Date.now() - t0 > maxWait) throw new Error('Timeout (5min)');
+      await new Promise(r => setTimeout(r, 4000));
+      const p = await fetch(pollUrl, { headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}` } });
+      prediction = await p.json();
       console.log(`[render] ${prediction.status}`);
     }
+    if (prediction.status !== 'succeeded') throw new Error('Generation failed');
 
-    if (prediction.status !== 'succeeded') throw new Error('Video generation failed');
+    const videoUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+    if (!videoUrl) throw new Error('No output URL');
 
-    const aiVideoUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
-    if (!aiVideoUrl) throw new Error('No video URL');
+    // Download video
+    const vr = await fetch(videoUrl);
+    const vb = Buffer.from(await vr.arrayBuffer());
+    const videoFile = path.join(outputDir, `v-${ts}.mp4`);
+    fs.writeFileSync(videoFile, vb);
+    console.log(`[render] Video: ${(vb.length/1024/1024).toFixed(1)}MB`);
 
-    // Download AI video
-    console.log('[render] Downloading AI video...');
-    const vidRes = await fetch(aiVideoUrl);
-    const vidBuffer = Buffer.from(await vidRes.arrayBuffer());
-    const aiVideoFile = path.join(outputDir, `ai-${ts}.mp4`);
-    fs.writeFileSync(aiVideoFile, vidBuffer);
-    console.log(`[render] Video: ${(vidBuffer.length / 1024 / 1024).toFixed(1)} MB`);
-
-    // ============================================
-    // STEP 3: Generate Indonesian voiceover with OpenAI TTS
-    // ============================================
+    // STEP 3: Generate voiceover
     let audioFile = null;
     const voiceText = script || title || videoPrompt;
-
     if (OPENAI_API_KEY && voiceText.trim()) {
-      console.log('[render] Generating Indonesian voiceover...');
-      const ttsRes = await fetch('https://api.openai.com/v1/audio/speech', {
+      console.log('[render] TTS...');
+      const tts = await fetch('https://api.openai.com/v1/audio/speech', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'tts-1-hd',
-          voice: voice,
-          input: voiceText,
-          speed: 1.0,
-        }),
+        body: JSON.stringify({ model: 'tts-1-hd', voice, input: voiceText, speed: 1.0 }),
       });
-
-      if (ttsRes.ok) {
-        const audioBuffer = Buffer.from(await ttsRes.arrayBuffer());
-        audioFile = path.join(outputDir, `voice-${ts}.mp3`);
-        fs.writeFileSync(audioFile, audioBuffer);
-        console.log(`[render] Voice: ${(audioBuffer.length / 1024).toFixed(0)} KB`);
+      if (tts.ok) {
+        const ab = Buffer.from(await tts.arrayBuffer());
+        audioFile = path.join(outputDir, `a-${ts}.mp3`);
+        fs.writeFileSync(audioFile, ab);
+        console.log(`[render] Voice: ${(ab.length/1024).toFixed(0)}KB`);
       }
     }
 
-    // ============================================
-    // STEP 4: Merge video + voiceover with FFmpeg
-    // ============================================
-    let finalFile = aiVideoFile;
-
-    if (audioFile && checkFfmpeg()) {
-      console.log('[render] Merging video + voiceover...');
-      finalFile = path.join(outputDir, `final-${ts}.mp4`);
+    // STEP 4: Merge
+    let finalFile = videoFile;
+    if (audioFile && hasFfmpeg()) {
+      console.log('[render] Merging...');
+      finalFile = path.join(outputDir, `f-${ts}.mp4`);
       try {
-        execSync(`ffmpeg -y -i "${aiVideoFile}" -i "${audioFile}" -c:v copy -c:a aac -b:a 192k -shortest -movflags +faststart "${finalFile}"`, { stdio: 'pipe', timeout: 30000 });
-        console.log('[render] Merge OK!');
-      } catch (e) {
-        console.log('[render] Merge failed, returning video only');
-        finalFile = aiVideoFile;
-      }
+        execSync(`ffmpeg -y -i "${videoFile}" -i "${audioFile}" -c:v copy -c:a aac -b:a 192k -shortest -movflags +faststart "${finalFile}"`, { stdio: 'pipe', timeout: 30000 });
+      } catch (e) { finalFile = videoFile; }
     }
 
-    // ============================================
-    // STEP 5: Return final video
-    // ============================================
-    const finalBuffer = fs.readFileSync(finalFile);
-    console.log(`[render] === DONE! ${(finalBuffer.length / 1024 / 1024).toFixed(1)} MB ===`);
+    // Send
+    const buf = fs.readFileSync(finalFile);
+    console.log(`[render] Done! ${(buf.length/1024/1024).toFixed(1)}MB`);
+    try { fs.unlinkSync(videoFile); } catch(e){}
+    try { if(audioFile) fs.unlinkSync(audioFile); } catch(e){}
+    try { if(finalFile!==videoFile) fs.unlinkSync(finalFile); } catch(e){}
 
-    // Cleanup
-    try { fs.unlinkSync(aiVideoFile); } catch (e) {}
-    try { if (audioFile) fs.unlinkSync(audioFile); } catch (e) {}
-    try { if (finalFile !== aiVideoFile) fs.unlinkSync(finalFile); } catch (e) {}
-
-    res.set({
-      'Content-Type': 'video/mp4',
-      'Content-Disposition': `attachment; filename="nuviral-${ts}.mp4"`,
-      'Content-Length': finalBuffer.length,
-    });
-    res.send(finalBuffer);
-
+    res.set({ 'Content-Type': 'video/mp4', 'Content-Disposition': `attachment; filename="nuviral-${ts}.mp4"`, 'Content-Length': buf.length });
+    res.send(buf);
   } catch (error) {
     console.error('[render] ERROR:', error.message);
     res.status(500).json({ error: 'Render failed', detail: error.message });
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`🎬 NuViral AI v2 on port ${PORT}`);
-  console.log(`   Replicate: ${REPLICATE_API_TOKEN ? '✅' : '❌'} (minimax/video-01)`);
-  console.log(`   OpenAI: ${OPENAI_API_KEY ? '✅' : '❌'} (TTS-HD Indonesian)`);
-  console.log(`   FFmpeg: ${checkFfmpeg() ? '✅' : '❌'} (merge)`);
-});
+app.listen(PORT, () => console.log(`🎬 NuViral v3 | port ${PORT} | Replicate:${!!REPLICATE_API_TOKEN} | OpenAI:${!!OPENAI_API_KEY} | FFmpeg:${hasFfmpeg()}`));
