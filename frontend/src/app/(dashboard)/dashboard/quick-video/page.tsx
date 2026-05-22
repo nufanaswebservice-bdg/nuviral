@@ -70,10 +70,15 @@ export default function QuickVideoPage() {
     setRenderProgress(10);
     setVideoUrl(null);
 
-    // Simulate progress
+    // Simulate progress (AI generation takes 2-5 minutes)
     const progressInterval = setInterval(() => {
-      setRenderProgress(prev => Math.min(prev + 5, 85));
-    }, 1000);
+      setRenderProgress(prev => {
+        if (prev < 30) return prev + 3;      // Fast at start
+        if (prev < 60) return prev + 1.5;    // Slower in middle
+        if (prev < 80) return prev + 0.5;    // Very slow near end
+        return prev;                          // Stop at 80, wait for real completion
+      });
+    }, 2000);
 
     try {
       const response = await fetch('https://nuviral-production.up.railway.app/render', {
@@ -262,7 +267,7 @@ export default function QuickVideoPage() {
             {isRendering ? (
               <>
                 <Loader2 className="h-5 w-5 animate-spin" />
-                Rendering Video... {renderProgress}%
+                {renderProgress < 30 ? 'Starting AI...' : renderProgress < 60 ? 'AI Generating Video...' : renderProgress < 80 ? 'Almost done (2-5 min total)...' : 'Downloading video...'} {renderProgress}%
               </>
             ) : (
               <>
