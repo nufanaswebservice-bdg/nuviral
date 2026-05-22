@@ -20,7 +20,13 @@ const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 // Health check
 app.get('/', (req, res) => {
-  res.json({ status: 'ok', service: 'NuViral Video Render', ffmpeg: true });
+  res.json({
+    status: 'ok',
+    service: 'NuViral Video Render',
+    ffmpeg: true,
+    hasApiKey: !!OPENAI_API_KEY,
+    keyPrefix: OPENAI_API_KEY ? OPENAI_API_KEY.substring(0, 10) + '...' : 'NOT SET',
+  });
 });
 
 // Render video endpoint
@@ -43,6 +49,9 @@ app.post('/render', async (req, res) => {
 
     // Step 1: Generate AI Voiceover
     console.log('[render] Generating voiceover...');
+    if (!OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY not configured');
+    }
     const mp3 = await openai.audio.speech.create({
       model: 'tts-1',
       voice: voice,
