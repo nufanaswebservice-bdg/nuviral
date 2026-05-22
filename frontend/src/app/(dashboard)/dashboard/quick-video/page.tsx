@@ -8,75 +8,55 @@ import {
   Download,
   Loader2,
   Sparkles,
-  Play,
   RotateCcw,
-  Clock,
   Type,
-  Palette,
+  Mic,
+  Film,
+  Smartphone,
+  Monitor,
+  Wand2,
 } from 'lucide-react';
 
-const bgPresets = [
-  { id: 'dark_purple', label: 'Dark Purple', color: '0x0f0a2e', accent: '0x7c3aed' },
-  { id: 'dark_blue', label: 'Dark Blue', color: '0x0a1628', accent: '0x3b82f6' },
-  { id: 'dark_green', label: 'Dark Green', color: '0x0a1f0a', accent: '0x22c55e' },
-  { id: 'dark_red', label: 'Dark Red', color: '0x1f0a0a', accent: '0xef4444' },
-  { id: 'pure_black', label: 'Pure Black', color: '0x000000', accent: '0xffffff' },
-  { id: 'midnight', label: 'Midnight', color: '0x0f172a', accent: '0xf59e0b' },
+const voiceOptions = [
+  { id: 'nova', label: 'Nova', desc: 'Female, warm' },
+  { id: 'alloy', label: 'Alloy', desc: 'Neutral' },
+  { id: 'echo', label: 'Echo', desc: 'Male, clear' },
+  { id: 'onyx', label: 'Onyx', desc: 'Male, deep' },
+  { id: 'shimmer', label: 'Shimmer', desc: 'Female, soft' },
 ];
 
-const durationOptions = [10, 15, 20, 30];
-
-const scriptTemplates = [
-  {
-    label: '🔥 AI Tools',
-    title: '5 AI Tools That Will Replace You',
-    script: 'Stop scrolling.\nThese 5 AI tools will change everything.\n1. ChatGPT builds websites in seconds.\n2. Midjourney creates photorealistic images.\n3. ElevenLabs clones any voice.\n4. Runway ML makes Hollywood videos.\n5. The scariest one can replace your job.\nFollow for more AI updates.',
-  },
-  {
-    label: '💪 Motivation',
-    title: "You're Not Lazy, You're Scared",
-    script: "You're not lazy.\nI need you to hear this.\nThat thing you've been putting off?\nYou're not avoiding it because you're lazy.\nYou're scared of what happens if you try.\nBut fear and excitement feel the same.\nSo maybe you're not scared.\nMaybe you're excited.\nGo do the thing. Now.",
-  },
-  {
-    label: '💰 Business',
-    title: 'I Made $10K in 30 Days',
-    script: "I made $10,000 last month.\nNo dropshipping. No crypto.\nIt's AI automation services.\nStep 1: Learn ChatGPT and Zapier.\nStep 2: Reach out to 50 businesses.\nStep 3: Offer to automate their work.\nI charge $2,000 per client.\nGot 5 clients in month one.\nThe opportunity is massive.",
-  },
-  {
-    label: '📚 Study Tips',
-    title: 'Remember Everything You Read',
-    script: "You're studying wrong.\nHere's how to remember 90% of what you read.\nIt's called the Feynman Technique.\nStep 1: Read the topic once.\nStep 2: Explain it like teaching a 5 year old.\nStep 3: Find where you got stuck.\nStep 4: Go back and fill the gaps.\nThis changed my grades forever.",
-  },
+const templates = [
+  { label: '🔥 AI Tools', title: '5 AI Tools Yang Akan Mengubah Hidupmu', script: 'Stop scrolling.\nIni 5 AI tools yang akan mengubah hidupmu.\nNomor 1: ChatGPT bisa buat website dalam hitungan detik.\nNomor 2: Midjourney buat gambar fotorealistis.\nNomor 3: ElevenLabs bisa kloning suara siapapun.\nNomor 4: Runway ML buat video kualitas Hollywood.\nNomor 5: Yang paling menakutkan, bisa menggantikan pekerjaanmu.\nFollow untuk update AI terbaru.' },
+  { label: '💪 Motivasi', title: 'Kamu Bukan Malas, Kamu Takut', script: 'Kamu bukan malas.\nDengarkan ini baik-baik.\nHal yang selama ini kamu tunda?\nBukan karena kamu malas.\nTapi karena kamu takut.\nTakut gagal. Takut berhasil. Takut berubah.\nTapi tahukah kamu?\nRasa takut dan semangat itu rasanya sama.\nJadi mungkin kamu bukan takut.\nMungkin kamu sedang bersemangat.\nLakukan sekarang.' },
+  { label: '💰 Bisnis', title: 'Cara Dapat 10 Juta Dalam 30 Hari', script: 'Saya dapat 10 juta bulan lalu.\nBukan dropship. Bukan crypto.\nIni jasa AI automation.\nLangkah 1: Pelajari ChatGPT dan Zapier.\nLangkah 2: Hubungi 50 bisnis lokal.\nLangkah 3: Tawarkan otomasi email dan customer service mereka.\nSaya charge 2 juta per klien.\nDapat 5 klien di bulan pertama.\nPeluangnya masih sangat besar.' },
+  { label: '🎬 Cinematic', title: 'Cyberpunk City at Night', script: 'A futuristic cyberpunk city at night.\nNeon lights reflecting on wet streets.\nFlying cars passing between massive skyscrapers.\nRain falling through holographic advertisements.\nA lone figure walking through the crowd.\nThe future is here.' },
 ];
 
 export default function QuickVideoPage() {
   const [title, setTitle] = useState('');
   const [script, setScript] = useState('');
-  const [duration, setDuration] = useState(15);
-  const [bgPreset, setBgPreset] = useState('dark_purple');
+  const [voice, setVoice] = useState('nova');
+  const [format, setFormat] = useState<'portrait' | 'landscape'>('portrait');
   const [isRendering, setIsRendering] = useState(false);
   const [renderProgress, setRenderProgress] = useState(0);
+  const [renderStage, setRenderStage] = useState('');
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
-  const selectedBg = bgPresets.find(b => b.id === bgPreset) || bgPresets[0];
-
   const handleRender = async () => {
-    if (!title.trim() || !script.trim()) {
-      toast.error('Isi judul dan script terlebih dahulu');
-      return;
-    }
+    if (!title.trim()) { toast.error('Masukkan judul video'); return; }
 
     setIsRendering(true);
-    setRenderProgress(10);
+    setRenderProgress(5);
+    setRenderStage('Translating prompt...');
     setVideoUrl(null);
 
-    // Simulate progress (AI generation takes 2-5 minutes)
     const progressInterval = setInterval(() => {
       setRenderProgress(prev => {
-        if (prev < 30) return prev + 3;      // Fast at start
-        if (prev < 60) return prev + 1.5;    // Slower in middle
-        if (prev < 80) return prev + 0.5;    // Very slow near end
-        return prev;                          // Stop at 80, wait for real completion
+        if (prev < 20) { setRenderStage('🌐 Translating & enhancing prompt...'); return prev + 2; }
+        if (prev < 50) { setRenderStage('🎬 AI generating video frames...'); return prev + 0.8; }
+        if (prev < 70) { setRenderStage('🎙️ Generating voiceover...'); return prev + 1; }
+        if (prev < 80) { setRenderStage('🔗 Merging video + audio...'); return prev + 0.5; }
+        return prev;
       });
     }, 2000);
 
@@ -86,9 +66,10 @@ export default function QuickVideoPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: title.trim(),
-          script: script.trim(),
-          duration,
-          voice: 'nova',
+          script: script.trim() || title.trim(),
+          prompt: title.trim(),
+          voice,
+          format,
         }),
       });
 
@@ -100,17 +81,19 @@ export default function QuickVideoPage() {
       }
 
       setRenderProgress(95);
+      setRenderStage('📥 Downloading video...');
 
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       setVideoUrl(url);
       setRenderProgress(100);
-      const isAudio = (response.headers.get('content-type') || '').includes('audio');
-      toast.success(isAudio ? 'AI Voiceover berhasil dibuat! 🎙️' : 'Video berhasil dibuat! 🎬');
+      setRenderStage('✅ Done!');
+      toast.success('Video AI berhasil dibuat! 🎬');
     } catch (err: any) {
       clearInterval(progressInterval);
       toast.error(`Gagal: ${err.message}`);
       setRenderProgress(0);
+      setRenderStage('');
     } finally {
       setIsRendering(false);
     }
@@ -120,17 +103,17 @@ export default function QuickVideoPage() {
     if (!videoUrl) return;
     const link = document.createElement('a');
     link.href = videoUrl;
-    link.download = `${title.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '-')}.mp4`;
+    link.download = `nuviral-${title.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '-')}.mp4`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     toast.success('Video downloaded!');
   };
 
-  const handleTemplate = (template: typeof scriptTemplates[0]) => {
-    setTitle(template.title);
-    setScript(template.script);
-    toast.success(`Template "${template.label}" loaded`);
+  const handleTemplate = (t: typeof templates[0]) => {
+    setTitle(t.title);
+    setScript(t.script);
+    toast.success('Template loaded');
   };
 
   const handleReset = () => {
@@ -138,120 +121,109 @@ export default function QuickVideoPage() {
     setScript('');
     setVideoUrl(null);
     setRenderProgress(0);
+    setRenderStage('');
   };
-
-  // Count sentences for preview
-  const sentences = script.split(/[.\n!?]+/).filter(s => s.trim().length > 2);
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Video className="h-6 w-6 text-primary" />
-          Quick Video Creator
+          <Wand2 className="h-6 w-6 text-primary" />
+          AI Video Studio
         </h1>
-        <p className="text-muted-foreground mt-1">Ketik judul dan script, langsung jadi video siap upload</p>
+        <p className="text-muted-foreground mt-1">Generate video AI realistis dari teks. Ketik prompt → AI buat video + voiceover otomatis.</p>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Left: Input */}
-        <div className="space-y-4">
-          {/* Templates */}
-          <div className="p-4 rounded-2xl border border-border bg-card">
-            <p className="text-sm font-medium mb-2">Quick Templates:</p>
-            <div className="flex flex-wrap gap-2">
-              {scriptTemplates.map((t) => (
-                <button
-                  key={t.label}
-                  onClick={() => handleTemplate(t)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium border border-border hover:border-primary/50 hover:bg-primary/5 transition"
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          </div>
+      {/* Templates */}
+      <div className="flex flex-wrap gap-2">
+        {templates.map((t) => (
+          <button key={t.label} onClick={() => handleTemplate(t)} className="px-3 py-1.5 rounded-lg text-xs font-medium border border-border hover:border-primary/50 hover:bg-primary/5 transition">
+            {t.label}
+          </button>
+        ))}
+      </div>
 
-          {/* Title Input */}
+      <div className="grid lg:grid-cols-5 gap-6">
+        {/* Left: Input (3 cols) */}
+        <div className="lg:col-span-3 space-y-4">
+          {/* Prompt / Title */}
           <div className="p-5 rounded-2xl border border-border bg-card">
-            <label className="text-sm font-medium mb-2 block flex items-center gap-2">
-              <Type className="h-4 w-4 text-primary" />
-              Judul Video
+            <label className="text-sm font-semibold mb-2 block flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Video Prompt
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Contoh: 5 AI Tools That Will Replace You"
-              className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:border-primary focus:ring-1 focus:ring-primary outline-none transition"
-              maxLength={80}
+              placeholder="Deskripsikan video yang ingin dibuat... (contoh: sate kambing terbakar di atas bara api)"
+              className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-sm"
             />
-            <p className="text-xs text-muted-foreground mt-1">{title.length}/80 karakter</p>
+            <p className="text-xs text-muted-foreground mt-1.5">AI akan menerjemahkan ke English dan generate video realistis</p>
           </div>
 
-          {/* Script Input */}
+          {/* Script / Voiceover Text */}
           <div className="p-5 rounded-2xl border border-border bg-card">
-            <label className="text-sm font-medium mb-2 block flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              Script / Teks Video
+            <label className="text-sm font-semibold mb-2 block flex items-center gap-2">
+              <Mic className="h-4 w-4 text-primary" />
+              Script Narasi (Voiceover)
             </label>
             <textarea
               value={script}
               onChange={(e) => setScript(e.target.value)}
-              placeholder={"Tulis script video kamu di sini.\nSetiap kalimat/baris akan muncul sebagai subtitle.\n\nContoh:\nStop scrolling.\nIni 5 AI tools yang akan mengubah hidupmu.\n1. ChatGPT bisa buat website.\n2. Midjourney buat gambar realistis.\nFollow untuk tips AI lainnya."}
-              rows={8}
-              className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:border-primary focus:ring-1 focus:ring-primary outline-none transition resize-none"
+              placeholder="Tulis narasi yang akan dibacakan AI...\nKosongkan jika tidak perlu voiceover.\n\nContoh:\nIni adalah sate kambing terbakar.\nDipanggang di atas bara api selama 30 menit.\nBumbu kacang melimpah."
+              rows={6}
+              className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:border-primary focus:ring-1 focus:ring-primary outline-none transition resize-none text-sm"
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              {sentences.length} subtitle segments • Pisahkan dengan titik atau enter
-            </p>
+            <p className="text-xs text-muted-foreground mt-1.5">Narasi akan dibacakan dalam bahasa Indonesia dengan suara AI natural</p>
           </div>
 
-          {/* Settings */}
-          <div className="p-5 rounded-2xl border border-border bg-card">
-            <div className="grid grid-cols-2 gap-4">
-              {/* Duration */}
-              <div>
-                <label className="text-sm font-medium mb-2 block flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-primary" />
-                  Durasi
-                </label>
-                <div className="flex gap-1.5">
-                  {durationOptions.map((d) => (
-                    <button
-                      key={d}
-                      onClick={() => setDuration(d)}
-                      className={`flex-1 py-2 rounded-lg text-xs font-medium transition ${
-                        duration === d
-                          ? 'bg-primary text-white'
-                          : 'border border-border hover:border-primary/50'
-                      }`}
-                    >
-                      {d}s
-                    </button>
-                  ))}
-                </div>
+          {/* Settings Row */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Format */}
+            <div className="p-4 rounded-2xl border border-border bg-card">
+              <label className="text-xs font-semibold mb-2 block flex items-center gap-2">
+                <Film className="h-3.5 w-3.5 text-primary" />
+                Format Video
+              </label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setFormat('portrait')}
+                  className={`flex-1 flex flex-col items-center gap-1 p-3 rounded-xl border transition ${format === 'portrait' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30'}`}
+                >
+                  <Smartphone className="h-5 w-5" />
+                  <span className="text-[10px] font-medium">Portrait 9:16</span>
+                  <span className="text-[9px] text-muted-foreground">TikTok, Reels</span>
+                </button>
+                <button
+                  onClick={() => setFormat('landscape')}
+                  className={`flex-1 flex flex-col items-center gap-1 p-3 rounded-xl border transition ${format === 'landscape' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30'}`}
+                >
+                  <Monitor className="h-5 w-5" />
+                  <span className="text-[10px] font-medium">Landscape 16:9</span>
+                  <span className="text-[9px] text-muted-foreground">YouTube</span>
+                </button>
               </div>
+            </div>
 
-              {/* Background */}
-              <div>
-                <label className="text-sm font-medium mb-2 block flex items-center gap-2">
-                  <Palette className="h-4 w-4 text-primary" />
-                  Background
-                </label>
-                <div className="flex gap-1.5 flex-wrap">
-                  {bgPresets.map((bg) => (
-                    <button
-                      key={bg.id}
-                      onClick={() => setBgPreset(bg.id)}
-                      title={bg.label}
-                      className={`w-7 h-7 rounded-lg border-2 transition ${
-                        bgPreset === bg.id ? 'border-primary scale-110' : 'border-border'
-                      }`}
-                      style={{ backgroundColor: `#${bg.color.replace('0x', '')}` }}
-                    />
-                  ))}
-                </div>
+            {/* Voice */}
+            <div className="p-4 rounded-2xl border border-border bg-card">
+              <label className="text-xs font-semibold mb-2 block flex items-center gap-2">
+                <Mic className="h-3.5 w-3.5 text-primary" />
+                Suara AI
+              </label>
+              <div className="space-y-1">
+                {voiceOptions.map((v) => (
+                  <button
+                    key={v.id}
+                    onClick={() => setVoice(v.id)}
+                    className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs transition ${voice === v.id ? 'bg-primary/10 border border-primary/30 text-primary font-medium' : 'hover:bg-muted/50'}`}
+                  >
+                    <span>{v.label}</span>
+                    <span className="text-[10px] text-muted-foreground">{v.desc}</span>
+                  </button>
+                ))}
               </div>
             </div>
           </div>
@@ -261,122 +233,83 @@ export default function QuickVideoPage() {
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
             onClick={handleRender}
-            disabled={isRendering || !title.trim() || !script.trim()}
+            disabled={isRendering || !title.trim()}
             className="w-full flex items-center justify-center gap-2 py-4 rounded-xl gradient-primary text-white font-semibold text-lg hover:opacity-90 transition disabled:opacity-50"
           >
             {isRendering ? (
               <>
                 <Loader2 className="h-5 w-5 animate-spin" />
-                {renderProgress < 30 ? 'Starting AI...' : renderProgress < 60 ? 'AI Generating Video...' : renderProgress < 80 ? 'Almost done (2-5 min total)...' : 'Downloading video...'} {renderProgress}%
+                <span className="text-sm">{renderStage} ({renderProgress}%)</span>
               </>
             ) : (
               <>
                 <Video className="h-5 w-5" />
-                Render Video
+                Generate AI Video
               </>
             )}
           </motion.button>
 
-          {/* Progress Bar */}
+          {/* Progress */}
           {isRendering && (
-            <div className="h-2 rounded-full bg-muted overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${renderProgress}%` }}
-                className="h-full rounded-full gradient-primary"
-              />
+            <div className="space-y-2">
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <motion.div animate={{ width: `${renderProgress}%` }} className="h-full rounded-full gradient-primary transition-all" />
+              </div>
+              <p className="text-xs text-muted-foreground text-center">AI video generation membutuhkan 2-5 menit</p>
             </div>
           )}
         </div>
 
-        {/* Right: Preview & Result */}
-        <div className="space-y-4">
-          {videoUrl ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-4"
-            >
-              {/* Video Player */}
-              <div className="rounded-2xl border border-border bg-card overflow-hidden">
-                <video
-                  src={videoUrl}
-                  controls
-                  autoPlay
-                  className="w-full aspect-[9/16] max-h-[500px] object-contain bg-black"
-                />
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-3">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleDownload}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl gradient-primary text-white font-medium hover:opacity-90 transition"
-                >
-                  <Download className="h-4 w-4" />
-                  Download MP4
-                </motion.button>
-                <button
-                  onClick={handleReset}
-                  className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-border hover:bg-accent transition"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                </button>
-              </div>
-
-              {/* Video Info */}
-              <div className="p-4 rounded-xl bg-muted/50 text-xs space-y-1">
-                <p><span className="text-muted-foreground">Format:</span> MP4 (H.264) • 1080x1920 • 9:16</p>
-                <p><span className="text-muted-foreground">Durasi:</span> {duration} detik</p>
-                <p><span className="text-muted-foreground">Subtitle:</span> {sentences.length} segments</p>
-                <p><span className="text-muted-foreground">Ready for:</span> TikTok, YouTube Shorts, Instagram Reels</p>
-              </div>
-            </motion.div>
-          ) : (
-            /* Preview Mockup */
-            <div className="rounded-2xl border border-border bg-card overflow-hidden">
-              <div
-                className="aspect-[9/16] max-h-[500px] relative flex flex-col items-center justify-center p-6"
-                style={{ backgroundColor: `#${selectedBg.color.replace('0x', '')}` }}
-              >
-                {/* Vignette overlay */}
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(0,0,0,0.6)_100%)]" />
-
-                {/* Title preview */}
-                <div className="relative z-10 text-center">
-                  <p className="text-white font-bold text-lg mb-2">
-                    {title || 'Judul Video Kamu'}
-                  </p>
-                  <p className="text-xs mb-8" style={{ color: `#${selectedBg.accent.replace('0x', '')}` }}>
-                    ViralAI
-                  </p>
+        {/* Right: Video Preview (2 cols) */}
+        <div className="lg:col-span-2">
+          <div className="sticky top-20">
+            {videoUrl ? (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+                {/* Video Player */}
+                <div className="rounded-2xl overflow-hidden border border-border bg-black">
+                  <video
+                    src={videoUrl}
+                    controls
+                    autoPlay
+                    className={`w-full ${format === 'portrait' ? 'aspect-[9/16] max-h-[500px]' : 'aspect-video'} object-contain bg-black`}
+                  />
                 </div>
 
-                {/* Subtitle preview */}
-                <div className="relative z-10 absolute bottom-20 left-4 right-4 text-center">
-                  <p className="text-white font-bold text-sm bg-black/40 inline-block px-3 py-1 rounded-lg">
-                    {sentences[0] || 'Subtitle akan muncul di sini...'}
-                  </p>
+                {/* Actions */}
+                <div className="flex gap-2">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleDownload}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl gradient-primary text-white font-medium text-sm"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download MP4
+                  </motion.button>
+                  <button onClick={handleReset} className="p-3 rounded-xl border border-border hover:bg-accent transition">
+                    <RotateCcw className="h-4 w-4" />
+                  </button>
                 </div>
 
-                {/* Progress bar preview */}
-                <div className="absolute bottom-4 left-0 right-0 h-1 bg-white/10">
-                  <div className="h-full w-1/3" style={{ backgroundColor: `#${selectedBg.accent.replace('0x', '')}` }} />
+                {/* Info */}
+                <div className="p-3 rounded-xl bg-muted/30 text-[11px] space-y-0.5 text-muted-foreground">
+                  <p>Format: MP4 • {format === 'portrait' ? '1080x1920 (9:16)' : '1920x1080 (16:9)'}</p>
+                  <p>AI Model: Minimax Video-01</p>
+                  <p>Voice: OpenAI TTS-HD ({voice})</p>
+                  <p>Ready for: {format === 'portrait' ? 'TikTok, Instagram Reels, YouTube Shorts' : 'YouTube, Facebook'}</p>
                 </div>
-
-                {/* Counter */}
-                <div className="absolute top-4 left-4 text-white/50 text-xs">
-                  1/{sentences.length || 1}
+              </motion.div>
+            ) : (
+              /* Empty State */
+              <div className="rounded-2xl border border-border bg-card p-8 text-center">
+                <div className={`mx-auto mb-4 rounded-xl bg-muted/50 flex items-center justify-center ${format === 'portrait' ? 'w-32 h-56' : 'w-56 h-32'}`}>
+                  <Video className="h-8 w-8 text-muted-foreground/40" />
                 </div>
+                <p className="text-sm font-medium text-muted-foreground">Video AI akan muncul di sini</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">Ketik prompt lalu klik Generate</p>
               </div>
-
-              <div className="p-3 border-t border-border text-center">
-                <p className="text-xs text-muted-foreground">Preview • Klik "Render Video" untuk membuat</p>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>
