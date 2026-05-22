@@ -51,7 +51,32 @@ app.post('/render', async (req, res) => {
     console.log('[render] STEP 1: Generating AI video with Replicate...');
     if (!REPLICATE_API_TOKEN) throw new Error('REPLICATE_API_TOKEN not set');
 
-    const enhancedPrompt = `${videoPrompt}, cinematic, high quality, smooth motion, professional lighting, detailed`;
+    // Auto-translate to English (Replicate only understands English prompts)
+    let englishPrompt = videoPrompt;
+    if (OPENAI_API_KEY) {
+      try {
+        console.log('[render] Translating prompt to English...');
+        const trRes = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: 'Translate to English for AI video generation. Make it visual and descriptive. Output ONLY the English prompt.' },
+              { role: 'user', content: videoPrompt }
+            ],
+            max_tokens: 150,
+          }),
+        });
+        if (trRes.ok) {
+          const trData = await trRes.json();
+          englishPrompt = trData.choices?.[0]?.message?.content?.trim() || videoPrompt;
+          console.log(`[render] English: "${englishPrompt}"`);
+        }
+      } catch (e) { /* use original */ }
+    }
+
+    const enhancedPrompt = `${englishPrompt}, cinematic, high quality, smooth motion, professional lighting, realistic, detailed`;
 
     const createRes = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
