@@ -46,6 +46,74 @@ const musicCategories = [
 
 type RenderStatus = 'idle' | 'preparing' | 'voiceover' | 'footage' | 'rendering' | 'subtitles' | 'finalizing' | 'completed';
 
+// Video Player component that generates and plays AI video
+function VideoPlayer({ scriptData }: { scriptData: any }) {
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const generateVideo = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await fetch('https://nuviral-production.up.railway.app/render', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: scriptData?.title || 'AI Generated Video',
+          script: scriptData?.script || scriptData?.title || 'cinematic video',
+          prompt: scriptData?.title || 'cinematic professional video',
+        }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || 'Generation failed');
+      }
+      const blob = await response.blob();
+      setVideoUrl(URL.createObjectURL(blob));
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (videoUrl) {
+    return (
+      <div className="rounded-2xl overflow-hidden border border-border">
+        <video src={videoUrl} controls autoPlay className="w-full aspect-[9/16] max-h-[400px] object-contain bg-black" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-6 text-center">
+      {loading ? (
+        <div className="py-8">
+          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-3" />
+          <p className="text-sm font-medium">Generating AI Video...</p>
+          <p className="text-xs text-muted-foreground mt-1">This may take 1-3 minutes</p>
+        </div>
+      ) : error ? (
+        <div className="py-6">
+          <p className="text-sm text-red-500 mb-3">{error}</p>
+          <button onClick={generateVideo} className="px-4 py-2 rounded-lg gradient-primary text-white text-sm font-medium">
+            Retry
+          </button>
+        </div>
+      ) : (
+        <div className="py-6">
+          <Play className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground mb-3">Click to generate AI video</p>
+          <button onClick={generateVideo} className="px-6 py-2.5 rounded-xl gradient-primary text-white font-medium">
+            🎬 Generate AI Video
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CreateVideoPage() {
   const router = useRouter();
   const [scriptData, setScriptData] = useState<any>(null);
@@ -134,16 +202,9 @@ export default function CreateVideoPage() {
             Your video has been rendered in {resolution} with {selectedTemplate} template.
           </p>
 
-          {/* Video Preview */}
-          <div className="w-48 h-[340px] mx-auto rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-border flex items-center justify-center mb-8 relative overflow-hidden">
-            <div className="absolute inset-0 bg-black/40" />
-            <Play className="h-12 w-12 text-white relative z-10" />
-            <div className="absolute bottom-4 left-4 right-4 z-10">
-              <div className="h-1 rounded-full bg-white/30 overflow-hidden">
-                <div className="h-full w-full rounded-full bg-white" />
-              </div>
-              <p className="text-white text-xs mt-1">0:32</p>
-            </div>
+          {/* Real Video Player */}
+          <div className="w-full max-w-sm mx-auto mb-8">
+            <VideoPlayer scriptData={scriptData} />
           </div>
 
           <div className="flex gap-3 justify-center">
