@@ -74,37 +74,53 @@ app.post('/render', async (req, res) => {
     console.log('[render] Generating video...');
     const aspectRatio = format === 'portrait' ? '9:16' : '16:9';
 
-    // Duration mapping: minimax video-01 uses "length" parameter
-    // short=5s, medium=10s (not directly supported, we'll request longer)
-    // minimax default is 5s, no direct duration control — but we can try
+    // Duration: minimax only does 5s, use wan2.1 for longer videos
+    const useMinimax = duration === 'short'; // Only use minimax for 5s
+    const numFrames = duration === 'short' ? 41 : duration === 'long' ? 161 : 81; // wan2.1 frames
 
-    const createRes = await fetch('https://api.replicate.com/v1/models/minimax/video-01/predictions', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        input: {
-          prompt: englishPrompt,
-          prompt_optimizer: true,
-          aspect_ratio: aspectRatio,
-        },
-      }),
-    });
+    let prediction;
 
-    if (!createRes.ok) {
-      const err = await createRes.text();
-      console.log(`[render] minimax failed: ${err.substring(0, 100)}`);
-      // Fallback: wan2.1 (supports num_frames for duration control)
-      const numFrames = duration === 'short' ? 41 : duration === 'long' ? 161 : 81;
-      console.log(`[render] Trying wan2.1 (${numFrames} frames)...`);
+    if (useMinimax) {
+      console.log('[render] Using minimax/video-01 (5s)...');
+      const createRes = await fetch('https://api.replicate.com/v1/models/minimax/video-01/predictions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input: { prompt: englishPrompt, prompt_optimizer: true, aspect_ratio: aspectRatio } }),
+      });
+      if (createRes.ok) {
+        prediction = await createRes.json();
+      } else {
+        // Fallback to wan2.1
+        console.log('[render] minimax failed, fallback to wan2.1...');
+        const wanRes = await fetch('https://api.replicate.com/v1/models/wan-ai/wan2.1-t2v-480p/predictions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ input: { prompt: englishPrompt, num_frames: numFrames, num_inference_steps: 25, fps: 16, aspect_ratio: aspectRatio } }),
+        });
+        if (!wanRes.ok) throw new Error('Video generation failed');
+        prediction = await wanRes.json();
+      }
+    } else {
+      // 10s or 20s: use wan2.1 directly (supports duration control)
+      console.log(`[render] Using wan2.1 (${numFrames} frames = ~${numFrames/16}s)...`);
       const wanRes = await fetch('https://api.replicate.com/v1/models/wan-ai/wan2.1-t2v-480p/predictions', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ input: { prompt: englishPrompt, num_frames: numFrames, num_inference_steps: 25, fps: 16, aspect_ratio: aspectRatio } }),
       });
-      if (!wanRes.ok) throw new Error('All video models failed');
-      var prediction = await wanRes.json();
-    } else {
-      var prediction = await createRes.json();
+      if (!wanRes.ok) {
+        // Fallback to minimax (will be 5s but at least works)
+        console.log('[render] wan2.1 failed, fallback to minimax...');
+        const mmRes = await fetch('https://api.replicate.com/v1/models/minimax/video-01/predictions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ input: { prompt: englishPrompt, prompt_optimizer: true, aspect_ratio: aspectRatio } }),
+        });
+        if (!mmRes.ok) throw new Error('All models failed');
+        prediction = await mmRes.json();
+      } else {
+        prediction = await wanRes.json();
+      }
     }
 
     console.log(`[render] Prediction: ${prediction.id} (${prediction.status})`);
