@@ -3,7 +3,6 @@ const cors = require('cors');
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const OpenAI = require('openai');
 
 const app = express();
 app.use(cors({
@@ -15,8 +14,6 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3001;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || process.env.OPENAI_KEY || '';
-
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 // Health check
 app.get('/', (req, res) => {
@@ -52,14 +49,27 @@ app.post('/render', async (req, res) => {
     if (!OPENAI_API_KEY) {
       throw new Error('OPENAI_API_KEY not configured');
     }
-    const mp3 = await openai.audio.speech.create({
-      model: 'tts-1',
-      voice: voice,
-      input: script,
-      speed: 1.0,
+
+    const ttsResponse = await fetch('https://api.openai.com/v1/audio/speech', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'tts-1',
+        voice: voice,
+        input: script,
+        speed: 1.0,
+      }),
     });
 
-    const audioBuffer = Buffer.from(await mp3.arrayBuffer());
+    if (!ttsResponse.ok) {
+      const errText = await ttsResponse.text();
+      throw new Error(`TTS failed: ${ttsResponse.status} ${errText.substring(0, 200)}`);
+    }
+
+    const audioBuffer = Buffer.from(await ttsResponse.arrayBuffer());
     fs.writeFileSync(audioFile, audioBuffer);
     console.log(`[render] Voiceover: ${(audioBuffer.length / 1024).toFixed(0)} KB`);
 
