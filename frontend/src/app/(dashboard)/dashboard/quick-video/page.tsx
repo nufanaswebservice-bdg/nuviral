@@ -90,7 +90,7 @@ export default function QuickVideoPage() {
       clearInterval(progressInterval);
 
       if (!response.ok) {
-        const err = await response.json();
+        const err = await response.json().catch(() => ({ detail: 'Server error' }));
         throw new Error(err.detail || 'Render failed');
       }
 
@@ -100,7 +100,8 @@ export default function QuickVideoPage() {
       const url = URL.createObjectURL(blob);
       setVideoUrl(url);
       setRenderProgress(100);
-      toast.success('Video berhasil dibuat!');
+      const isAudio = (response.headers.get('content-type') || '').includes('audio');
+      toast.success(isAudio ? 'AI Voiceover berhasil dibuat! 🎙️' : 'Video berhasil dibuat! 🎬');
     } catch (err: any) {
       clearInterval(progressInterval);
       toast.error(`Gagal: ${err.message}`);
