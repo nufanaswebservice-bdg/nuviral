@@ -380,8 +380,37 @@ app.get('/api/v1/subscription/health', (req, res) => {
 
 // Get current subscription (returns data based on user's actual plan)
 app.get('/api/v1/subscription/current', (req, res) => {
-  // Default: user has no plan yet (needs to subscribe)
-  // Credits are 0/0 so billing popup will trigger
+  // Check if admin via Authorization header (decode JWT payload)
+  let userEmail = '';
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    try {
+      const token = authHeader.split(' ')[1];
+      const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+      userEmail = payload.email || '';
+    } catch (e) { /* ignore */ }
+  }
+
+  // Admin emails get unlimited access
+  const ADMIN_EMAILS = ['rufanaswebservice@gmail.com', 'baranashira01@gmail.com'];
+  if (ADMIN_EMAILS.includes(userEmail)) {
+    return res.json({
+      plan: 'AGENCY',
+      status: 'ACTIVE',
+      videoRenderLimit: 9999,
+      videoRenderUsed: 0,
+      aiCreditsLimit: 99999,
+      aiCreditsUsed: 0,
+      storageLimit: 214748364800,
+      storageUsed: 0,
+      teamMemberLimit: 100,
+      apiAccessEnabled: true,
+      currentPeriodStart: new Date().toISOString(),
+      currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+    });
+  }
+
+  // Regular users: no plan (needs to subscribe)
   res.json({
     plan: null,
     status: 'INACTIVE',
