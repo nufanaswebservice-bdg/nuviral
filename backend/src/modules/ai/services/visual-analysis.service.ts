@@ -1,6 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
+
+const MAX_IMAGES_PER_REQUEST = 20;
+const MAX_FRAMES_PER_REQUEST = 4;
 
 @Injectable()
 export class VisualAnalysisService {
@@ -10,6 +13,19 @@ export class VisualAnalysisService {
     this.openai = new OpenAI({
       apiKey: this.configService.get('OPENAI_API_KEY'),
     });
+  }
+
+  /**
+   * Validate the number of images before sending to OpenAI API
+   * OpenAI has a limit of 100 images+documents per request
+   */
+  private validateImageCount(images: string[], maxAllowed: number = MAX_IMAGES_PER_REQUEST): string[] {
+    if (images.length > maxAllowed) {
+      throw new BadRequestException(
+        `Too many images: ${images.length} exceeds maximum of ${maxAllowed} per request`,
+      );
+    }
+    return images;
   }
 
   /**
@@ -57,6 +73,10 @@ export class VisualAnalysisService {
    * Analyze video reference style
    */
   async analyzeVideoStyle(frames: string[]) {
+    // Validate and limit frames to prevent exceeding OpenAI API limits
+    const limitedFrames = frames.slice(0, MAX_FRAMES_PER_REQUEST);
+    this.validateImageCount(limitedFrames, MAX_FRAMES_PER_REQUEST);
+
     const prompt = `Analyze these video frames and determine the editing style. Return JSON:
 {
   "style": "overall editing style",
@@ -70,7 +90,7 @@ export class VisualAnalysisService {
   "recommendations": ["how to replicate this style"]
 }`;
 
-    const imageContent = frames.slice(0, 4).map((frame) => ({
+    const imageContent = limitedFrames.map((frame) => ({
       type: 'image_url' as const,
       image_url: { url: frame },
     }));
@@ -101,6 +121,10 @@ export class VisualAnalysisService {
     style: string;
     duration: number;
   }) {
+    // Validate image count if images are provided
+    if (input.images && input.images.length > 0) {
+      this.validateImageCount(input.images, MAX_IMAGES_PER_REQUEST);
+    }
     const prompt = `Create a video storyboard based on this script and style.
 
 Script: ${input.script}
