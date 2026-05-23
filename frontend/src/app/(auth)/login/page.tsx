@@ -7,8 +7,6 @@ import { motion } from 'framer-motion';
 import { Sparkles, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
-import { signInWithPopup } from 'firebase/auth';
-import { auth, googleProvider } from '@/lib/firebase';
 
 export default function LoginPage() {
   const router = useRouter();
