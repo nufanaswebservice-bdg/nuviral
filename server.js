@@ -47,10 +47,14 @@ app.post('/render', async (req, res) => {
     const videoPrompt = prompt || title || 'cinematic video';
     const voiceoverText = script || title || ''; // Keep original language for voiceover
 
+    // Determine aspect ratio from format
+    const aspectRatio = format === 'landscape' ? '16:9' : '9:16';
+    const isPortrait = format !== 'landscape';
+
     console.log(`[render] === START ===`);
-    console.log(`[render] Prompt: "${videoPrompt.substring(0, 80)}"`);
+    console.log(`[render] Prompt: "${videoPrompt.substring(0, 100)}"`);
     console.log(`[render] Voice text: "${voiceoverText.substring(0, 50)}"`);
-    console.log(`[render] Format: ${format} | Duration: ${duration}`);
+    console.log(`[render] Format: ${format} | Aspect: ${aspectRatio} | Duration: ${duration}`);
 
     if (!REPLICATE_API_TOKEN) throw new Error('REPLICATE_API_TOKEN not set');
 
@@ -58,7 +62,7 @@ app.post('/render', async (req, res) => {
     if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
     const ts = Date.now();
 
-    // STEP 1: Translate VIDEO PROMPT to English (NOT the voiceover script)
+    // STEP 1: Translate & enhance VIDEO PROMPT to English while keeping visual context
     let englishPrompt = videoPrompt;
     if (OPENAI_API_KEY) {
       try {
@@ -68,72 +72,61 @@ app.post('/render', async (req, res) => {
           body: JSON.stringify({
             model: 'gpt-4o-mini',
             messages: [
-              { role: 'system', content: 'You translate video prompts to English for AI video generation. Keep the style keywords intact. Output max 25 words. Output ONLY the English prompt, nothing else.' },
-              { role: 'user', content: videoPrompt.substring(0, 200) }
+              { role: 'system', content: `You are a video prompt translator for AI video generation. 
+Rules:
+- Translate the user prompt to English for AI video generation
+- KEEP the cultural/visual context (Indonesian food, Asian people, local scenery, etc.)
+- If the prompt mentions Indonesian food (sate, nasi goreng, rendang, etc.), describe it visually in English but keep it as Indonesian/Asian food
+- If the prompt mentions Indonesian places (Bali, Jakarta, etc.), keep the location context
+- Add visual details: lighting, camera angle, movement, atmosphere
+- Output 30-50 words maximum
+- Output ONLY the English video prompt, nothing else
+- Include the style keywords if provided` },
+              { role: 'user', content: videoPrompt.substring(0, 300) }
             ],
-            max_tokens: 60,
+            max_tokens: 100,
           }),
         });
         if (tr.ok) {
           const d = await tr.json();
           englishPrompt = d.choices?.[0]?.message?.content?.trim() || videoPrompt;
         }
-      } catch (e) {}
+      } catch (e) {
+        console.log('[render] Translation failed, using original prompt');
+      }
     }
-    englishPrompt = englishPrompt.substring(0, 150);
+    englishPrompt = englishPrompt.substring(0, 200);
     console.log(`[render] English prompt: "${englishPrompt}"`);
 
-    // STEP 2: Generate video
-    console.log('[render] Generating video...');
-    const aspectRatio = format === 'portrait' ? '9:16' : '16:9';
+    // STEP 2: Generate video with correct aspect ratio
+    console.log(`[render] Generating video (${aspectRatio})...`);
 
-    // Duration: minimax only does 5s, use wan2.1 for longer videos
-    const useMinimax = duration === 'short'; // Only use minimax for 5s
-    const numFrames = duration === 'short' ? 41 : duration === 'long' ? 81 : 81; // wan2.1 max reliable is 81
+    // Duration mapping: short=5s, medium=10s, long=20s
+    const numFrames = duration === 'short' ? 41 : duration === 'long' ? 81 : 61;
+    const useMinimax = true; // Minimax handles aspect ratio better
 
     let prediction;
 
-    if (useMinimax) {
-      console.log('[render] Using minimax/video-01 (5s)...');
-      const createRes = await fetch('https://api.replicate.com/v1/models/minimax/video-01/predictions', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input: { prompt: englishPrompt, prompt_optimizer: true, aspect_ratio: aspectRatio } }),
-      });
-      if (createRes.ok) {
-        prediction = await createRes.json();
-      } else {
-        // Fallback to wan2.1
-        console.log('[render] minimax failed, fallback to wan2.1...');
-        const wanRes = await fetch('https://api.replicate.com/v1/models/wan-ai/wan2.1-t2v-480p/predictions', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ input: { prompt: englishPrompt, num_frames: numFrames, num_inference_steps: 25, fps: 16, aspect_ratio: aspectRatio } }),
-        });
-        if (!wanRes.ok) throw new Error('Video generation failed');
-        prediction = await wanRes.json();
-      }
+    // Try minimax first (better quality and aspect ratio support)
+    console.log(`[render] Using minimax/video-01 (aspect: ${aspectRatio})...`);
+    const createRes = await fetch('https://api.replicate.com/v1/models/minimax/video-01/predictions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ input: { prompt: englishPrompt, prompt_optimizer: true, aspect_ratio: aspectRatio } }),
+    });
+
+    if (createRes.ok) {
+      prediction = await createRes.json();
     } else {
-      // 10s or 20s: use wan2.1 directly (supports duration control)
-      console.log(`[render] Using wan2.1 (${numFrames} frames)...`);
+      // Fallback to wan2.1
+      console.log('[render] minimax failed, fallback to wan2.1...');
       const wanRes = await fetch('https://api.replicate.com/v1/models/wan-ai/wan2.1-t2v-480p/predictions', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input: { prompt: englishPrompt.substring(0, 80), num_frames: numFrames, num_inference_steps: 20, fps: 16, aspect_ratio: aspectRatio } }),
+        body: JSON.stringify({ input: { prompt: englishPrompt, num_frames: numFrames, num_inference_steps: 25, fps: 16, aspect_ratio: aspectRatio } }),
       });
-      if (!wanRes.ok) {
-        // Fallback to minimax (will be 5s but at least works)
-        console.log('[render] wan2.1 failed, fallback to minimax...');
-        const mmRes = await fetch('https://api.replicate.com/v1/models/minimax/video-01/predictions', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ input: { prompt: englishPrompt.substring(0, 80), prompt_optimizer: true, aspect_ratio: aspectRatio } }),
-        });
-        if (!mmRes.ok) throw new Error('All models failed');
-        prediction = await mmRes.json();
-      } else {
-        prediction = await wanRes.json();
-      }
+      if (!wanRes.ok) throw new Error('Video generation failed - all models unavailable');
+      prediction = await wanRes.json();
     }
 
     console.log(`[render] Prediction: ${prediction.id} (${prediction.status})`);
