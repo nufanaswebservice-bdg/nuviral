@@ -41,7 +41,7 @@ const plans = [
   {
     name: 'Starter',
     key: 'STARTER',
-    priceIdr: 449000,
+    priceIdr: 225000,
     icon: Zap,
     popular: false,
     features: [
@@ -57,7 +57,7 @@ const plans = [
   {
     name: 'Pro',
     key: 'PRO',
-    priceIdr: 1225000,
+    priceIdr: 449000,
     icon: CreditCard,
     popular: true,
     features: [
@@ -76,7 +76,7 @@ const plans = [
   {
     name: 'Agency',
     key: 'AGENCY',
-    priceIdr: 3085000,
+    priceIdr: 1225000,
     icon: Building2,
     popular: false,
     features: [

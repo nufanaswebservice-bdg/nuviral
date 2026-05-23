@@ -17,7 +17,7 @@ const SUBSCRIPTION_PLANS = {
   },
   STARTER: {
     name: 'Starter',
-    price: 449000,
+    price: 225000,
     videoRenderLimit: 50,
     aiCreditsLimit: 500,
     storageLimit: 10 * 1024 * 1024 * 1024,
@@ -26,7 +26,7 @@ const SUBSCRIPTION_PLANS = {
   },
   PRO: {
     name: 'Pro',
-    price: 1225000,
+    price: 449000,
     videoRenderLimit: 200,
     aiCreditsLimit: 2000,
     storageLimit: 50 * 1024 * 1024 * 1024,
@@ -35,7 +35,7 @@ const SUBSCRIPTION_PLANS = {
   },
   AGENCY: {
     name: 'Agency',
-    price: 3085000,
+    price: 1225000,
     videoRenderLimit: 1000,
     aiCreditsLimit: 10000,
     storageLimit: 200 * 1024 * 1024 * 1024,

@@ -1,9 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bell, Search, Menu, Plus, X, Video, Sparkles, LogOut, Settings, User } from 'lucide-react';
+import { Bell, Search, Menu, Plus, X, Video, Sparkles, LogOut, Settings, User, CreditCard, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import axios from 'axios';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nuviral-production.up.railway.app/api/v1';
 
 interface TopBarProps {
   onMenuToggle: () => void;
@@ -14,6 +17,22 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
+  const [credits, setCredits] = useState<{ aiCreditsUsed: number; aiCreditsLimit: number; plan: string } | null>(null);
+
+  useEffect(() => {
+    fetchCredits();
+  }, []);
+
+  const fetchCredits = async () => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      if (!token) return;
+      const res = await axios.get(`${API_URL}/subscription/current`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setCredits(res.data);
+    } catch { /* ignore */ }
+  };
 
   const notifications = [
     { id: 1, title: 'Video berhasil di-render', message: 'Video "Sate Kambing" siap download', time: '2 menit lalu', read: false },
@@ -42,6 +61,23 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
       </div>
 
       <div className="flex items-center gap-2">
+        {/* Billing Credits Badge */}
+        {credits && (
+          <button
+            onClick={() => router.push('/dashboard/billing')}
+            className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl border border-border hover:border-primary/30 transition"
+            title="Lihat billing"
+          >
+            <Zap className="h-4 w-4 text-primary" />
+            <div className="text-left">
+              <p className="text-[10px] text-muted-foreground leading-none">{credits.plan || 'FREE'} Plan</p>
+              <p className="text-xs font-semibold leading-tight">
+                {credits.aiCreditsUsed || 0}/{credits.aiCreditsLimit || 50} credits
+              </p>
+            </div>
+          </button>
+        )}
+
         {/* Quick Create Button */}
         <div className="relative">
           <motion.button

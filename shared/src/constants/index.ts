@@ -37,8 +37,8 @@ export const SUBSCRIPTION_PLANS = {
   },
   STARTER: {
     name: 'Starter',
-    price: 449000,
-    priceIdr: 449000,
+    price: 225000,
+    priceIdr: 225000,
     currency: 'IDR',
     videoRenderLimit: 50,
     aiCreditsLimit: 500,
@@ -57,8 +57,8 @@ export const SUBSCRIPTION_PLANS = {
   },
   PRO: {
     name: 'Pro',
-    price: 1225000,
-    priceIdr: 1225000,
+    price: 449000,
+    priceIdr: 449000,
     currency: 'IDR',
     videoRenderLimit: 200,
     aiCreditsLimit: 2000,
@@ -80,8 +80,8 @@ export const SUBSCRIPTION_PLANS = {
   },
   AGENCY: {
     name: 'Agency',
-    price: 3085000,
-    priceIdr: 3085000,
+    price: 1225000,
+    priceIdr: 1225000,
     currency: 'IDR',
     videoRenderLimit: 1000,
     aiCreditsLimit: 10000,

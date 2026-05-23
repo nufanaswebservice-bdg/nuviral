@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -22,6 +22,10 @@ import {
 import { ImageUploader } from '@/components/ai-generator/image-uploader';
 import { VideoReferenceUploader } from '@/components/ai-generator/video-reference-uploader';
 import { AdvancedSettings, type AdvancedVideoSettings } from '@/components/ai-generator/advanced-settings';
+import { BillingPopup } from '@/components/billing-popup';
+import axios from 'axios';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nuviral-production.up.railway.app/api/v1';
 
 const niches = [
   'Business', 'Motivation', 'Anime', 'Gaming', 'Crypto',
@@ -165,6 +169,8 @@ export default function AiGeneratorPage() {
   const [uploadedImages, setUploadedImages] = useState<any[]>([]);
   const [referenceVideo, setReferenceVideo] = useState<any>(null);
   const [activeInputTab, setActiveInputTab] = useState<'text' | 'visual'>('text');
+  const [showBillingPopup, setShowBillingPopup] = useState(false);
+  const [credits, setCredits] = useState<{ aiCreditsUsed: number; aiCreditsLimit: number }>({ aiCreditsUsed: 0, aiCreditsLimit: 50 });
   const [advancedSettings, setAdvancedSettings] = useState<AdvancedVideoSettings>({
     videoStyle: 'cinematic',
     cameraMotion: 'smooth_zoom',
@@ -183,6 +189,26 @@ export default function AiGeneratorPage() {
     autoTransition: true,
     autoHook: true,
   });
+
+  // Fetch user credits on mount
+  useEffect(() => {
+    const fetchCredits = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        if (!token) return;
+        const res = await axios.get(`${API_URL}/subscription/current`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.data) {
+          setCredits({
+            aiCreditsUsed: res.data.aiCreditsUsed || 0,
+            aiCreditsLimit: res.data.aiCreditsLimit || 50,
+          });
+        }
+      } catch { /* ignore */ }
+    };
+    fetchCredits();
+  }, []);
 
   const getVariations = () => {
     if (!selectedNiche) {
@@ -213,6 +239,12 @@ export default function AiGeneratorPage() {
   };
 
   const handleGenerate = async () => {
+    // Check if user has credits
+    if (credits.aiCreditsUsed >= credits.aiCreditsLimit) {
+      setShowBillingPopup(true);
+      return;
+    }
+
     setIsGenerating(true);
 
     // Simulate AI generation delay
@@ -287,6 +319,14 @@ export default function AiGeneratorPage() {
         </h1>
         <p className="text-muted-foreground mt-1">Generate viral scripts, hooks, captions, and hashtags with AI</p>
       </div>
+
+      {/* Billing Popup */}
+      <BillingPopup
+        isOpen={showBillingPopup}
+        onClose={() => setShowBillingPopup(false)}
+        creditsUsed={credits.aiCreditsUsed}
+        creditsLimit={credits.aiCreditsLimit}
+      />
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Input Panel */}

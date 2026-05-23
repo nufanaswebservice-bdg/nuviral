@@ -362,9 +362,9 @@ app.post('/upload/youtube', async (req, res) => {
 // ============================================
 
 const PLANS = {
-  STARTER: { name: 'Starter', price: 449000 },
-  PRO: { name: 'Pro', price: 1225000 },
-  AGENCY: { name: 'Agency', price: 3085000 },
+  STARTER: { name: 'Starter', price: 225000 },
+  PRO: { name: 'Pro', price: 449000 },
+  AGENCY: { name: 'Agency', price: 1225000 },
 };
 
 // Health check for subscription
