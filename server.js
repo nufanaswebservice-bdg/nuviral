@@ -119,8 +119,6 @@ Rules:
 
       console.log(`[render] Generating clip ${clipIndex + 1}/${clipsNeeded} (${klingDuration}s)...`);
 
-      let prediction;
-
       // Use Kling v2.1 (text-to-video, supports duration and aspect_ratio)
       // Try standard first (more reliable), then master, then minimax fallback
       const klingModels = [
