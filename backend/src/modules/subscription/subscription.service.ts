@@ -1,9 +1,48 @@
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
-import { SUBSCRIPTION_PLANS } from '@viralai/shared';
 import { MidtransService } from './midtrans.service';
 import { v4 as uuidv4 } from 'uuid';
+
+// Define plans directly to avoid @viralai/shared import issues in production
+const SUBSCRIPTION_PLANS = {
+  FREE: {
+    name: 'Free',
+    price: 0,
+    videoRenderLimit: 5,
+    aiCreditsLimit: 50,
+    storageLimit: 1 * 1024 * 1024 * 1024,
+    teamMemberLimit: 1,
+    apiAccess: false,
+  },
+  STARTER: {
+    name: 'Starter',
+    price: 449000,
+    videoRenderLimit: 50,
+    aiCreditsLimit: 500,
+    storageLimit: 10 * 1024 * 1024 * 1024,
+    teamMemberLimit: 2,
+    apiAccess: false,
+  },
+  PRO: {
+    name: 'Pro',
+    price: 1225000,
+    videoRenderLimit: 200,
+    aiCreditsLimit: 2000,
+    storageLimit: 50 * 1024 * 1024 * 1024,
+    teamMemberLimit: 5,
+    apiAccess: true,
+  },
+  AGENCY: {
+    name: 'Agency',
+    price: 3085000,
+    videoRenderLimit: 1000,
+    aiCreditsLimit: 10000,
+    storageLimit: 200 * 1024 * 1024 * 1024,
+    teamMemberLimit: 20,
+    apiAccess: true,
+  },
+} as const;
 
 @Injectable()
 export class SubscriptionService {
@@ -29,45 +68,64 @@ export class SubscriptionService {
       throw new BadRequestException('Invalid plan');
     }
 
+    // Validate Midtrans keys are configured
+    const serverKey = this.configService.get('MIDTRANS_SERVER_KEY');
+    if (!serverKey) {
+      this.logger.error('MIDTRANS_SERVER_KEY is not configured');
+      throw new InternalServerErrorException('Payment system is not configured');
+    }
+
     // Harga dalam Rupiah langsung dari plan config
     const amountInIdr = planConfig.price;
 
-    const orderId = `NUVIRAL-${planKey}-${userId.slice(0, 8)}-${Date.now()}`;
+    const orderId = `NUVIRAL-${String(planKey)}-${userId.slice(0, 8)}-${Date.now()}`;
 
-    // Save pending transaction
-    await this.prisma.subscription.upsert({
-      where: { userId },
-      update: {
-        pendingPlan: planKey,
-        pendingOrderId: orderId,
-      },
-      create: {
-        userId,
-        plan: 'FREE',
-        status: 'ACTIVE',
-        pendingPlan: planKey,
-        pendingOrderId: orderId,
-        videoRenderLimit: SUBSCRIPTION_PLANS.FREE.videoRenderLimit,
-        aiCreditsLimit: SUBSCRIPTION_PLANS.FREE.aiCreditsLimit,
-        storageLimit: BigInt(SUBSCRIPTION_PLANS.FREE.storageLimit),
-        teamMemberLimit: SUBSCRIPTION_PLANS.FREE.teamMemberLimit,
-        apiAccessEnabled: SUBSCRIPTION_PLANS.FREE.apiAccess,
-      },
-    });
+    try {
+      // Save pending transaction
+      await this.prisma.subscription.upsert({
+        where: { userId },
+        update: {
+          pendingPlan: String(planKey),
+          pendingOrderId: orderId,
+        },
+        create: {
+          userId,
+          plan: 'FREE' as any,
+          status: 'ACTIVE' as any,
+          pendingPlan: String(planKey),
+          pendingOrderId: orderId,
+          videoRenderLimit: SUBSCRIPTION_PLANS.FREE.videoRenderLimit,
+          aiCreditsLimit: SUBSCRIPTION_PLANS.FREE.aiCreditsLimit,
+          storageLimit: BigInt(SUBSCRIPTION_PLANS.FREE.storageLimit),
+          teamMemberLimit: SUBSCRIPTION_PLANS.FREE.teamMemberLimit,
+          apiAccessEnabled: SUBSCRIPTION_PLANS.FREE.apiAccess,
+        },
+      });
+    } catch (dbError: any) {
+      this.logger.error(`Database error: ${dbError.message}`);
+      throw new InternalServerErrorException('Failed to save transaction to database');
+    }
 
-    const transaction = await this.midtransService.createTransaction({
-      orderId,
-      amount: amountInIdr,
-      customerName: user.name || 'Customer',
-      customerEmail: user.email,
-      planName: planConfig.name,
-    });
+    try {
+      const transaction = await this.midtransService.createTransaction({
+        orderId,
+        amount: amountInIdr,
+        customerName: user.name || 'Customer',
+        customerEmail: user.email,
+        planName: planConfig.name,
+      });
 
-    return {
-      token: transaction.token,
-      redirectUrl: transaction.redirectUrl,
-      orderId,
-    };
+      return {
+        token: transaction.token,
+        redirectUrl: transaction.redirectUrl,
+        orderId,
+      };
+    } catch (midtransError: any) {
+      this.logger.error(`Midtrans error: ${midtransError.message}`, midtransError.stack);
+      throw new InternalServerErrorException(
+        `Failed to create payment transaction: ${midtransError.message}`,
+      );
+    }
   }
 
   async handleNotification(notification: any) {
@@ -209,7 +267,7 @@ export class SubscriptionService {
     await this.prisma.subscription.update({
       where: { userId },
       data: {
-        plan: planKey as any,
+        plan: String(planKey),
         status: 'ACTIVE',
         pendingPlan: null,
         pendingOrderId: null,
@@ -223,7 +281,7 @@ export class SubscriptionService {
       },
     });
 
-    this.logger.log(`Subscription activated for user ${userId} - Plan: ${planKey}`);
+    this.logger.log(`Subscription activated for user ${userId} - Plan: ${String(planKey)}`);
   }
 
   async cancelSubscription(userId: string) {

@@ -9,6 +9,17 @@ import { SubscriptionService } from './subscription.service';
 export class SubscriptionController {
   constructor(private subscriptionService: SubscriptionService) {}
 
+  @Get('health')
+  @ApiOperation({ summary: 'Health check for subscription service' })
+  async healthCheck() {
+    return {
+      status: 'ok',
+      service: 'subscription',
+      timestamp: new Date().toISOString(),
+      midtransConfigured: !!process.env.MIDTRANS_SERVER_KEY,
+    };
+  }
+
   @Get('current')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
