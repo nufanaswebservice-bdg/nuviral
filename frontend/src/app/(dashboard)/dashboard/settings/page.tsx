@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { useTheme } from 'next-themes';
 import {
   Settings,
   User,
@@ -29,6 +30,7 @@ const tabs = [
 ];
 
 export default function SettingsPage() {
+  const { theme: currentTheme, setTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('profile');
   const [profile, setProfile] = useState({
     name: 'Demo User',
@@ -47,7 +49,7 @@ export default function SettingsPage() {
     pushNotifications: false,
   });
   const [appearance, setAppearance] = useState({
-    theme: 'dark',
+    theme: currentTheme || 'light',
     sidebarCompact: false,
     animationsEnabled: true,
   });
@@ -304,7 +306,10 @@ export default function SettingsPage() {
                 </div>
 
                 <button
-                  onClick={handleSave}
+                  onClick={() => {
+                    setTheme(appearance.theme);
+                    toast.success('Theme updated!');
+                  }}
                   className="flex items-center gap-2 px-6 py-2.5 rounded-xl gradient-primary text-white font-medium hover:opacity-90 transition"
                 >
                   <Save className="h-4 w-4" />
