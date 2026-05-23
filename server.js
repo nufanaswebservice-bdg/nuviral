@@ -15,6 +15,9 @@ app.use(express.json());
 const PORT = process.env.PORT || 3001;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || process.env.OPENAI_KEY || '';
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || process.env.REPLICATE_TOKEN || '';
+const YOUTUBE_CLIENT_ID = process.env.YOUTUBE_CLIENT_ID || '';
+const YOUTUBE_CLIENT_SECRET = process.env.YOUTUBE_CLIENT_SECRET || '';
+const YOUTUBE_REDIRECT_URI = 'https://nuviral-production.up.railway.app/auth/youtube/callback';
 
 function hasFfmpeg() {
   try { execSync('ffmpeg -version', { stdio: 'pipe' }); return true; } catch { return false; }
@@ -205,4 +208,143 @@ app.post('/render', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`🎬 NuViral v4 | port ${PORT} | Replicate:${!!REPLICATE_API_TOKEN} | OpenAI:${!!OPENAI_API_KEY} | FFmpeg:${hasFfmpeg()}`));
+// ============================================
+// YOUTUBE OAUTH + UPLOAD
+// ============================================
+
+// Step 1: Redirect user to Google OAuth
+app.get('/auth/youtube', (req, res) => {
+  const scopes = [
+    'https://www.googleapis.com/auth/youtube.upload',
+    'https://www.googleapis.com/auth/youtube.readonly',
+    'https://www.googleapis.com/auth/userinfo.profile',
+    'https://www.googleapis.com/auth/userinfo.email',
+  ];
+  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${YOUTUBE_CLIENT_ID}&redirect_uri=${encodeURIComponent(YOUTUBE_REDIRECT_URI)}&response_type=code&scope=${encodeURIComponent(scopes.join(' '))}&access_type=offline&prompt=consent`;
+  res.redirect(url);
+});
+
+// Step 2: Handle OAuth callback
+app.get('/auth/youtube/callback', async (req, res) => {
+  const { code } = req.query;
+  if (!code) return res.redirect('https://nuviral.cloud/dashboard/accounts?error=no_code');
+
+  try {
+    // Exchange code for tokens
+    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: YOUTUBE_CLIENT_ID,
+        client_secret: YOUTUBE_CLIENT_SECRET,
+        code,
+        grant_type: 'authorization_code',
+        redirect_uri: YOUTUBE_REDIRECT_URI,
+      }),
+    });
+    const tokens = await tokenRes.json();
+
+    if (!tokens.access_token) {
+      return res.redirect('https://nuviral.cloud/dashboard/accounts?error=token_failed');
+    }
+
+    // Get user info
+    const userRes = await fetch('https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true', {
+      headers: { 'Authorization': `Bearer ${tokens.access_token}` },
+    });
+    const userData = await userRes.json();
+    const channel = userData.items?.[0];
+
+    // Redirect back to frontend with token (stored in URL hash for security)
+    const accountData = encodeURIComponent(JSON.stringify({
+      platform: 'YouTube',
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      channelId: channel?.id,
+      channelName: channel?.snippet?.title,
+      avatar: channel?.snippet?.thumbnails?.default?.url,
+    }));
+
+    res.redirect(`https://nuviral.cloud/dashboard/accounts?youtube_connected=true&data=${accountData}`);
+  } catch (err) {
+    console.error('[youtube] OAuth error:', err.message);
+    res.redirect('https://nuviral.cloud/dashboard/accounts?error=oauth_failed');
+  }
+});
+
+// Step 3: Upload video to YouTube
+app.post('/upload/youtube', async (req, res) => {
+  try {
+    const { accessToken, title, description, videoUrl, tags = [] } = req.body;
+
+    if (!accessToken || !videoUrl) {
+      return res.status(400).json({ error: 'accessToken and videoUrl required' });
+    }
+
+    console.log(`[youtube] Uploading: "${title}"`);
+
+    // Download video first
+    const vidRes = await fetch(videoUrl);
+    const videoBuffer = Buffer.from(await vidRes.arrayBuffer());
+
+    // Initialize resumable upload
+    const initRes = await fetch('https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'X-Upload-Content-Type': 'video/mp4',
+        'X-Upload-Content-Length': videoBuffer.length.toString(),
+      },
+      body: JSON.stringify({
+        snippet: {
+          title: title || 'NuViral AI Video',
+          description: description || 'Created with NuViral AI - nuviral.cloud',
+          tags: [...tags, 'NuViral', 'AI', 'Shorts'],
+          categoryId: '22',
+        },
+        status: {
+          privacyStatus: 'public',
+          selfDeclaredMadeForKids: false,
+        },
+      }),
+    });
+
+    if (!initRes.ok) {
+      const err = await initRes.text();
+      throw new Error(`YouTube init failed: ${err.substring(0, 200)}`);
+    }
+
+    const uploadUrl = initRes.headers.get('location');
+    if (!uploadUrl) throw new Error('No upload URL returned');
+
+    // Upload video binary
+    const uploadRes = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'video/mp4',
+        'Content-Length': videoBuffer.length.toString(),
+      },
+      body: videoBuffer,
+    });
+
+    if (!uploadRes.ok) {
+      const err = await uploadRes.text();
+      throw new Error(`YouTube upload failed: ${err.substring(0, 200)}`);
+    }
+
+    const result = await uploadRes.json();
+    console.log(`[youtube] Uploaded! ID: ${result.id}`);
+
+    res.json({
+      success: true,
+      videoId: result.id,
+      url: `https://youtube.com/shorts/${result.id}`,
+    });
+  } catch (error) {
+    console.error('[youtube] Upload error:', error.message);
+    res.status(500).json({ error: 'Upload failed', detail: error.message });
+  }
+});
+
+app.listen(PORT, () => console.log(`🎬 NuViral v4 | port ${PORT} | Replicate:${!!REPLICATE_API_TOKEN} | OpenAI:${!!OPENAI_API_KEY} | YouTube:${!!YOUTUBE_CLIENT_ID} | FFmpeg:${hasFfmpeg()}`));
