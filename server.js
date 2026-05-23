@@ -392,7 +392,7 @@ app.get('/api/v1/subscription/current', (req, res) => {
   }
 
   // Admin emails get unlimited access
-  const ADMIN_EMAILS = ['rufanaswebservice@gmail.com', 'baranashira01@gmail.com'];
+  const ADMIN_EMAILS = ['nufanaswebservice@gmail.com', 'baranashira01@gmail.com', 'rufanaswebservice@gmail.com'];
   if (ADMIN_EMAILS.includes(userEmail)) {
     return res.json({
       plan: 'AGENCY',
