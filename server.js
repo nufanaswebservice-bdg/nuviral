@@ -98,68 +98,75 @@ Rules:
     englishPrompt = englishPrompt.substring(0, 200);
     console.log(`[render] English prompt: "${englishPrompt}"`);
 
-    // STEP 2: Generate video with correct aspect ratio and duration
-    console.log(`[render] Generating video (${aspectRatio}, duration: ${duration})...`);
+    // STEP 2: Generate video with Kling v2.1 Master (supports 5s and 10s native)
+    console.log(`[render] Generating video with Kling v2.1 (${aspectRatio}, duration: ${duration})...`);
 
-    // Duration mapping: short=5s, medium=10s, long=20s
-    // Minimax generates ~5s per clip, so we need multiple clips for longer durations
+    // Kling v2.1 supports 5s and 10s natively
+    // For 20s, we generate 2x 10s clips and concatenate
     const targetDurationSec = duration === 'short' ? 5 : duration === 'long' ? 20 : 10;
-    const clipsNeeded = Math.ceil(targetDurationSec / 5); // Each minimax clip is ~5s
+    const klingDuration = targetDurationSec <= 10 ? targetDurationSec : 10; // Max 10s per Kling call
+    const clipsNeeded = Math.ceil(targetDurationSec / 10); // 5s=1, 10s=1, 20s=2
 
-    console.log(`[render] Target: ${targetDurationSec}s, clips needed: ${clipsNeeded}`);
+    console.log(`[render] Target: ${targetDurationSec}s, Kling duration: ${klingDuration}s, clips: ${clipsNeeded}`);
 
     const clipFiles = [];
 
     for (let clipIndex = 0; clipIndex < clipsNeeded; clipIndex++) {
-      // Vary the prompt slightly for each clip to get different scenes
       let clipPrompt = englishPrompt;
       if (clipsNeeded > 1 && clipIndex > 0) {
-        const variations = [
-          'different angle, continuous motion',
-          'close-up shot, smooth transition',
-          'wide shot, new perspective',
-        ];
-        clipPrompt = `${englishPrompt}, ${variations[clipIndex % variations.length]}`;
+        clipPrompt = `${englishPrompt}, continuation, different angle, smooth transition`;
       }
 
-      console.log(`[render] Generating clip ${clipIndex + 1}/${clipsNeeded}...`);
+      console.log(`[render] Generating clip ${clipIndex + 1}/${clipsNeeded} (${klingDuration}s)...`);
 
       let prediction;
 
-      // Try minimax first
-      const createRes = await fetch('https://api.replicate.com/v1/models/minimax/video-01/predictions', {
+      // Use Kling v2.1 Master (text-to-video, supports duration and aspect_ratio)
+      const klingRes = await fetch('https://api.replicate.com/v1/models/kwaivgi/kling-v2.1-master/predictions', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input: { prompt: clipPrompt, prompt_optimizer: true, aspect_ratio: aspectRatio } }),
+        body: JSON.stringify({
+          input: {
+            prompt: clipPrompt,
+            duration: klingDuration,
+            aspect_ratio: aspectRatio,
+          }
+        }),
       });
 
-      if (createRes.ok) {
-        prediction = await createRes.json();
+      if (klingRes.ok) {
+        prediction = await klingRes.json();
+        console.log(`[render] Kling v2.1 prediction created: ${prediction.id}`);
       } else {
-        // Fallback to wan2.1
-        console.log(`[render] minimax failed for clip ${clipIndex + 1}, trying wan2.1...`);
-        const wanRes = await fetch('https://api.replicate.com/v1/models/wan-ai/wan2.1-t2v-480p/predictions', {
+        // Fallback to minimax if Kling fails
+        console.log(`[render] Kling failed (${klingRes.status}), fallback to minimax...`);
+        const mmRes = await fetch('https://api.replicate.com/v1/models/minimax/video-01/predictions', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ input: { prompt: clipPrompt, num_frames: 81, num_inference_steps: 25, fps: 16, aspect_ratio: aspectRatio } }),
+          body: JSON.stringify({ input: { prompt: clipPrompt, prompt_optimizer: true, aspect_ratio: aspectRatio } }),
         });
-        if (!wanRes.ok) throw new Error(`Video generation failed for clip ${clipIndex + 1}`);
-        prediction = await wanRes.json();
+        if (!mmRes.ok) throw new Error(`Video generation failed for clip ${clipIndex + 1}`);
+        prediction = await mmRes.json();
+        console.log(`[render] Minimax fallback prediction: ${prediction.id}`);
       }
-
-      console.log(`[render] Clip ${clipIndex + 1} prediction: ${prediction.id} (${prediction.status})`);
 
       // Poll for completion
       const pollUrl = prediction.urls?.get || `https://api.replicate.com/v1/predictions/${prediction.id}`;
       const maxWait = 600000;
-      const t0 = Date.now();
+      const t0clip = Date.now();
       while (prediction.status !== 'succeeded' && prediction.status !== 'failed' && prediction.status !== 'canceled') {
-        if (Date.now() - t0 > maxWait) throw new Error('Timeout (10min). Coba prompt lebih pendek.');
-        await new Promise(r => setTimeout(r, 4000));
+        if (Date.now() - t0clip > maxWait) throw new Error('Timeout (10min). Coba prompt lebih pendek.');
+        await new Promise(r => setTimeout(r, 5000));
         const p = await fetch(pollUrl, { headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}` } });
         prediction = await p.json();
+        if (prediction.status === 'processing') {
+          console.log(`[render] Clip ${clipIndex + 1} processing...`);
+        }
       }
-      if (prediction.status !== 'succeeded') throw new Error(`Clip ${clipIndex + 1} generation failed`);
+      if (prediction.status !== 'succeeded') {
+        console.error(`[render] Clip ${clipIndex + 1} failed:`, prediction.error || 'unknown error');
+        throw new Error(`Video generation failed: ${prediction.error || 'model error'}`);
+      }
 
       const clipUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
       if (!clipUrl) throw new Error(`No output URL for clip ${clipIndex + 1}`);
@@ -170,7 +177,7 @@ Rules:
       const clipFile = path.join(outputDir, `clip-${ts}-${clipIndex}.mp4`);
       fs.writeFileSync(clipFile, clipBuf);
       clipFiles.push(clipFile);
-      console.log(`[render] Clip ${clipIndex + 1} downloaded: ${(clipBuf.length / 1024 / 1024).toFixed(1)}MB`);
+      console.log(`[render] Clip ${clipIndex + 1} done: ${(clipBuf.length / 1024 / 1024).toFixed(1)}MB`);
     }
 
     // Concatenate clips if multiple
@@ -178,7 +185,6 @@ Rules:
     if (clipFiles.length === 1) {
       videoFile = clipFiles[0];
     } else if (hasFfmpeg()) {
-      // Create concat file list
       const concatListFile = path.join(outputDir, `concat-${ts}.txt`);
       const concatContent = clipFiles.map(f => `file '${f}'`).join('\n');
       fs.writeFileSync(concatListFile, concatContent);
@@ -186,12 +192,11 @@ Rules:
       videoFile = path.join(outputDir, `v-${ts}.mp4`);
       try {
         execSync(`ffmpeg -y -f concat -safe 0 -i "${concatListFile}" -c copy -movflags +faststart "${videoFile}"`, { stdio: 'pipe', timeout: 60000 });
-        console.log(`[render] ${clipFiles.length} clips concatenated successfully`);
+        console.log(`[render] ${clipFiles.length} clips concatenated`);
       } catch (e) {
-        console.log(`[render] Concat failed, using first clip only: ${e.message}`);
+        console.log(`[render] Concat failed, using first clip: ${e.message}`);
         videoFile = clipFiles[0];
       }
-      // Cleanup concat list
       try { fs.unlinkSync(concatListFile); } catch (e) {}
     } else {
       videoFile = clipFiles[0];
