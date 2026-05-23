@@ -24,7 +24,7 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <header className="h-16 border-b border-border bg-white/80 backdrop-blur-xl sticky top-0 z-30 flex items-center justify-between px-6">
+    <header className="h-16 border-b border-border bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl sticky top-0 z-30 flex items-center justify-between px-6">
       <div className="flex items-center gap-4">
         <button onClick={onMenuToggle} className="p-2 rounded-lg hover:bg-accent transition md:hidden">
           <Menu className="h-5 w-5" />
@@ -61,7 +61,7 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
                 initial={{ opacity: 0, y: 5, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 5, scale: 0.95 }}
-                className="absolute right-0 top-12 w-56 rounded-xl border border-border bg-white shadow-lg p-2 z-50"
+                className="absolute right-0 top-12 w-56 rounded-xl border border-border bg-white dark:bg-gray-900 shadow-lg p-2 z-50"
               >
                 <button
                   onClick={() => { router.push('/dashboard/quick-video'); setShowCreateMenu(false); }}
@@ -109,7 +109,7 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
                 initial={{ opacity: 0, y: 5, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 5, scale: 0.95 }}
-                className="absolute right-0 top-12 w-80 rounded-xl border border-border bg-white shadow-lg z-50"
+                className="absolute right-0 top-12 w-80 rounded-xl border border-border bg-white dark:bg-gray-900 shadow-lg z-50"
               >
                 <div className="p-3 border-b border-border flex items-center justify-between">
                   <h3 className="text-sm font-semibold">Notifikasi</h3>
@@ -160,7 +160,7 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
                 initial={{ opacity: 0, y: 5, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 5, scale: 0.95 }}
-                className="absolute right-0 top-12 w-56 rounded-xl border border-border bg-white shadow-lg p-2 z-50"
+                className="absolute right-0 top-12 w-56 rounded-xl border border-border bg-white dark:bg-gray-900 shadow-lg p-2 z-50"
               >
                 <div className="px-3 py-2 border-b border-border mb-1">
                   <p className="text-sm font-semibold">Demo User</p>

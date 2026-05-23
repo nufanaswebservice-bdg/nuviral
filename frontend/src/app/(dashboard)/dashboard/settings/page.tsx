@@ -263,7 +263,7 @@ export default function SettingsPage() {
                       return (
                         <button
                           key={theme.id}
-                          onClick={() => setAppearance({ ...appearance, theme: theme.id })}
+                          onClick={() => { setAppearance({ ...appearance, theme: theme.id }); setTheme(theme.id); }}
                           className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition ${
                             appearance.theme === theme.id
                               ? 'border-primary bg-primary/5'
