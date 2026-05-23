@@ -1,50 +1,73 @@
 'use client';
 
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { CreditCard, Check, Sparkles, Zap, Building2 } from 'lucide-react';
+import { CreditCard, Check, Sparkles, Zap, Building2, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import axios from 'axios';
+
+declare global {
+  interface Window {
+    snap: {
+      pay: (
+        token: string,
+        options: {
+          onSuccess?: (result: any) => void;
+          onPending?: (result: any) => void;
+          onError?: (result: any) => void;
+          onClose?: () => void;
+        },
+      ) => void;
+      embed: (token: string, options: { embedId: string }) => void;
+    };
+  }
+}
 
 const plans = [
   {
     name: 'Free',
-    price: 0,
+    key: 'FREE',
+    priceIdr: 0,
     icon: Sparkles,
     popular: false,
     features: [
-      '5 video renders/month',
-      '50 AI credits/month',
+      '5 video renders/bulan',
+      '50 AI credits/bulan',
       '1GB storage',
-      'Basic templates',
-      'Watermark on videos',
+      'Template dasar',
+      'Watermark di video',
     ],
   },
   {
     name: 'Starter',
-    price: 29,
+    key: 'STARTER',
+    priceIdr: 449000,
     icon: Zap,
     popular: false,
     features: [
-      '50 video renders/month',
-      '500 AI credits/month',
+      '50 video renders/bulan',
+      '500 AI credits/bulan',
       '10GB storage',
-      'All templates',
-      'No watermark',
-      '2 social accounts',
-      'Basic analytics',
+      'Semua template',
+      'Tanpa watermark',
+      '2 akun sosial media',
+      'Analitik dasar',
     ],
   },
   {
     name: 'Pro',
-    price: 79,
+    key: 'PRO',
+    priceIdr: 1225000,
     icon: CreditCard,
     popular: true,
     features: [
-      '200 video renders/month',
-      '2000 AI credits/month',
+      '200 video renders/bulan',
+      '2000 AI credits/bulan',
       '50GB storage',
-      'Premium templates',
-      'No watermark',
-      '10 social accounts',
-      'Advanced analytics',
+      'Template premium',
+      'Tanpa watermark',
+      '10 akun sosial media',
+      'Analitik lanjutan',
       'AI workflow automation',
       'Priority rendering',
       'API access',
@@ -52,15 +75,16 @@ const plans = [
   },
   {
     name: 'Agency',
-    price: 199,
+    key: 'AGENCY',
+    priceIdr: 3085000,
     icon: Building2,
     popular: false,
     features: [
-      '1000 video renders/month',
-      '10000 AI credits/month',
+      '1000 video renders/bulan',
+      '10000 AI credits/bulan',
       '200GB storage',
-      'All templates + custom',
-      'Unlimited social accounts',
+      'Semua template + custom',
+      'Unlimited akun sosial media',
       'Full analytics suite',
       'White-label option',
       'Dedicated support',
@@ -70,7 +94,125 @@ const plans = [
   },
 ];
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+const MIDTRANS_CLIENT_KEY = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || '';
+const MIDTRANS_IS_PRODUCTION = process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === 'true';
+
+function formatRupiah(amount: number): string {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+  }).format(amount);
+}
+
 export default function BillingPage() {
+  const [currentPlan, setCurrentPlan] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [processingPlan, setProcessingPlan] = useState<string | null>(null);
+
+  // Load Midtrans Snap.js
+  useEffect(() => {
+    const snapUrl = MIDTRANS_IS_PRODUCTION
+      ? 'https://app.midtrans.com/snap/snap.js'
+      : 'https://app.sandbox.midtrans.com/snap/snap.js';
+
+    const existingScript = document.querySelector(`script[src="${snapUrl}"]`);
+    if (!existingScript) {
+      const script = document.createElement('script');
+      script.src = snapUrl;
+      script.setAttribute('data-client-key', MIDTRANS_CLIENT_KEY);
+      script.async = true;
+      document.head.appendChild(script);
+    }
+  }, []);
+
+  // Fetch current subscription
+  useEffect(() => {
+    fetchCurrentPlan();
+  }, []);
+
+  const fetchCurrentPlan = async () => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await axios.get(`${API_URL}/subscription/current`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setCurrentPlan(response.data);
+    } catch (error) {
+      console.error('Failed to fetch current plan:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpgrade = useCallback(async (planKey: string) => {
+    if (planKey === 'FREE') return;
+
+    setProcessingPlan(planKey);
+
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await axios.post(
+        `${API_URL}/subscription/create-transaction`,
+        { plan: planKey },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+
+      const { token: snapToken } = response.data;
+
+      if (!window.snap) {
+        toast.error('Payment system is loading, please try again in a moment.');
+        setProcessingPlan(null);
+        return;
+      }
+
+      // Open Midtrans Snap payment popup
+      window.snap.pay(snapToken, {
+        onSuccess: (result: any) => {
+          toast.success('Payment successful! Your plan has been upgraded.');
+          fetchCurrentPlan();
+          setProcessingPlan(null);
+        },
+        onPending: (result: any) => {
+          toast.info('Payment is pending. We will notify you once confirmed.');
+          setProcessingPlan(null);
+        },
+        onError: (result: any) => {
+          toast.error('Payment failed. Please try again.');
+          setProcessingPlan(null);
+        },
+        onClose: () => {
+          toast.info('Payment window closed.');
+          setProcessingPlan(null);
+        },
+      });
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to create transaction');
+      setProcessingPlan(null);
+    }
+  }, []);
+
+  // Check URL params for payment status (redirect from Midtrans)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get('payment');
+
+    if (paymentStatus === 'success') {
+      toast.success('Payment successful! Your plan has been upgraded.');
+      fetchCurrentPlan();
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (paymentStatus === 'pending') {
+      toast.info('Payment is pending. We will notify you once confirmed.');
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (paymentStatus === 'error') {
+      toast.error('Payment failed. Please try again.');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
+  const currentPlanName = currentPlan?.plan || 'FREE';
+
   return (
     <div className="space-y-6">
       <div>
@@ -82,41 +224,89 @@ export default function BillingPage() {
       </div>
 
       {/* Current Plan */}
-      <div className="p-6 rounded-2xl border border-primary/30 bg-primary/5">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-muted-foreground">Current Plan</p>
-            <p className="text-2xl font-bold">Pro Plan</p>
-            <p className="text-sm text-muted-foreground mt-1">Renews on April 15, 2024</p>
+      {loading ? (
+        <div className="p-6 rounded-2xl border border-border bg-card flex items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <span className="ml-2 text-muted-foreground">Loading subscription...</span>
+        </div>
+      ) : currentPlan && currentPlanName !== 'FREE' ? (
+        <div className="p-6 rounded-2xl border border-primary/30 bg-primary/5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Current Plan</p>
+              <p className="text-2xl font-bold">{currentPlan.plan} Plan</p>
+              {currentPlan.currentPeriodEnd && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  Renews on {new Date(currentPlan.currentPeriodEnd).toLocaleDateString('id-ID', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })}
+                </p>
+              )}
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-bold">
+                {formatRupiah(plans.find(p => p.key === currentPlanName)?.priceIdr || 0)}
+                <span className="text-sm font-normal text-muted-foreground">/bln</span>
+              </p>
+            </div>
           </div>
-          <div className="text-right">
-            <p className="text-3xl font-bold">$79<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
+          <div className="mt-4 grid grid-cols-3 gap-4">
+            <div className="p-3 rounded-xl bg-card border border-border">
+              <p className="text-xs text-muted-foreground">Videos Used</p>
+              <p className="text-lg font-bold">
+                {currentPlan.videoRenderUsed || 0}/{currentPlan.videoRenderLimit}
+              </p>
+              <div className="mt-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full gradient-primary"
+                  style={{
+                    width: `${Math.min(((currentPlan.videoRenderUsed || 0) / currentPlan.videoRenderLimit) * 100, 100)}%`,
+                  }}
+                />
+              </div>
+            </div>
+            <div className="p-3 rounded-xl bg-card border border-border">
+              <p className="text-xs text-muted-foreground">AI Credits</p>
+              <p className="text-lg font-bold">
+                {currentPlan.aiCreditsUsed || 0}/{currentPlan.aiCreditsLimit}
+              </p>
+              <div className="mt-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full gradient-primary"
+                  style={{
+                    width: `${Math.min(((currentPlan.aiCreditsUsed || 0) / currentPlan.aiCreditsLimit) * 100, 100)}%`,
+                  }}
+                />
+              </div>
+            </div>
+            <div className="p-3 rounded-xl bg-card border border-border">
+              <p className="text-xs text-muted-foreground">Storage</p>
+              <p className="text-lg font-bold">
+                {((currentPlan.storageUsed || 0) / (1024 * 1024 * 1024)).toFixed(1)}/
+                {(Number(currentPlan.storageLimit) / (1024 * 1024 * 1024)).toFixed(0)} GB
+              </p>
+              <div className="mt-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full gradient-primary"
+                  style={{
+                    width: `${Math.min(((currentPlan.storageUsed || 0) / Number(currentPlan.storageLimit)) * 100, 100)}%`,
+                  }}
+                />
+              </div>
+            </div>
           </div>
         </div>
-        <div className="mt-4 grid grid-cols-3 gap-4">
-          <div className="p-3 rounded-xl bg-card border border-border">
-            <p className="text-xs text-muted-foreground">Videos Used</p>
-            <p className="text-lg font-bold">45/200</p>
-            <div className="mt-1 h-1.5 rounded-full bg-muted overflow-hidden">
-              <div className="h-full w-[22%] rounded-full gradient-primary" />
-            </div>
-          </div>
-          <div className="p-3 rounded-xl bg-card border border-border">
-            <p className="text-xs text-muted-foreground">AI Credits</p>
-            <p className="text-lg font-bold">823/2000</p>
-            <div className="mt-1 h-1.5 rounded-full bg-muted overflow-hidden">
-              <div className="h-full w-[41%] rounded-full gradient-primary" />
-            </div>
-          </div>
-          <div className="p-3 rounded-xl bg-card border border-border">
-            <p className="text-xs text-muted-foreground">Storage</p>
-            <p className="text-lg font-bold">12.4/50 GB</p>
-            <div className="mt-1 h-1.5 rounded-full bg-muted overflow-hidden">
-              <div className="h-full w-[25%] rounded-full gradient-primary" />
-            </div>
-          </div>
+      ) : (
+        <div className="p-6 rounded-2xl border border-border bg-card">
+          <p className="text-sm text-muted-foreground">Current Plan</p>
+          <p className="text-2xl font-bold">Free Plan</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Upgrade to unlock more features
+          </p>
         </div>
-      </div>
+      )}
 
       {/* Plans */}
       <div>
@@ -134,15 +324,17 @@ export default function BillingPage() {
             >
               {plan.popular && (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full gradient-primary text-white text-xs font-medium">
-                  Most Popular
+                  Paling Populer
                 </span>
               )}
               <div className="mb-4">
                 <plan.icon className="h-8 w-8 text-primary mb-2" />
                 <h3 className="text-lg font-bold">{plan.name}</h3>
-                <p className="text-3xl font-bold mt-2">
-                  ${plan.price}
-                  <span className="text-sm font-normal text-muted-foreground">/mo</span>
+                <p className="text-2xl font-bold mt-2">
+                  {plan.priceIdr === 0 ? 'Gratis' : formatRupiah(plan.priceIdr)}
+                  {plan.priceIdr > 0 && (
+                    <span className="text-sm font-normal text-muted-foreground">/bln</span>
+                  )}
                 </p>
               </div>
               <ul className="space-y-2 mb-6">
@@ -154,17 +346,38 @@ export default function BillingPage() {
                 ))}
               </ul>
               <button
-                className={`w-full py-2.5 rounded-xl font-medium transition ${
+                onClick={() => handleUpgrade(plan.key)}
+                disabled={currentPlanName === plan.key || plan.key === 'FREE' || processingPlan !== null}
+                className={`w-full py-2.5 rounded-xl font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${
                   plan.popular
                     ? 'gradient-primary text-white hover:opacity-90'
                     : 'border border-border hover:bg-accent'
                 }`}
               >
-                {plan.name === 'Pro' ? 'Current Plan' : 'Upgrade'}
+                {processingPlan === plan.key ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Processing...
+                  </span>
+                ) : currentPlanName === plan.key ? (
+                  'Current Plan'
+                ) : plan.key === 'FREE' ? (
+                  'Free'
+                ) : (
+                  'Upgrade'
+                )}
               </button>
             </motion.div>
           ))}
         </div>
+      </div>
+
+      {/* Payment Info */}
+      <div className="p-4 rounded-xl border border-border bg-card">
+        <p className="text-sm text-muted-foreground">
+          💳 Pembayaran diproses melalui <strong>Midtrans</strong> — mendukung transfer bank,
+          e-wallet (GoPay, OVO, Dana, ShopeePay), kartu kredit/debit, dan virtual account.
+        </p>
       </div>
     </div>
   );

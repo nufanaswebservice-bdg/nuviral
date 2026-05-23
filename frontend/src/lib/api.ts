@@ -119,5 +119,8 @@ export const socialApi = {
 // Subscription API
 export const subscriptionApi = {
   getCurrent: () => api.get('/subscription/current'),
-  checkout: (plan: string) => api.post('/subscription/checkout', { plan }),
+  createTransaction: (plan: string) => api.post('/subscription/create-transaction', { plan }),
+  checkStatus: (orderId: string) => api.get(`/subscription/status?orderId=${orderId}`),
+  cancel: () => api.post('/subscription/cancel'),
+  getHistory: () => api.get('/subscription/history'),
 };

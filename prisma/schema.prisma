@@ -41,6 +41,7 @@ model User {
   mediaAssets       MediaAsset[]
   aiJobs            AiJob[]
   billing           Billing[]
+  paymentHistory    PaymentHistory[]
   logs              Log[]
   teamMemberships   TeamMember[]
 
@@ -62,8 +63,9 @@ model Subscription {
   userId            String             @unique
   plan              SubscriptionPlan   @default(FREE)
   status            SubscriptionStatus @default(ACTIVE)
-  stripeCustomerId  String?
-  stripeSubscriptionId String?
+  pendingPlan       String?
+  pendingOrderId    String?
+  midtransOrderId   String?
   currentPeriodStart DateTime?
   currentPeriodEnd   DateTime?
   videoRenderLimit  Int                @default(5)
@@ -82,6 +84,15 @@ model Subscription {
   @@map("subscriptions")
 }
 
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  PAST_DUE
+  PENDING
+  TRIALING
+  EXPIRED
+}
+
 enum SubscriptionPlan {
   FREE
   STARTER
@@ -89,21 +100,43 @@ enum SubscriptionPlan {
   AGENCY
 }
 
-enum SubscriptionStatus {
-  ACTIVE
-  CANCELLED
-  PAST_DUE
-  TRIALING
+model PaymentHistory {
+  id              String        @id @default(cuid())
+  userId          String
+  orderId         String        @unique
+  plan            String
+  amount          Decimal       @db.Decimal(12, 2)
+  currency        String        @default("IDR")
+  status          PaymentStatus @default(PENDING)
+  paymentType     String?       // bank_transfer, gopay, credit_card, etc.
+  transactionId   String?
+  paidAt          DateTime?
+  metadata        Json?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("payment_history")
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
   EXPIRED
+  REFUNDED
 }
 
 model Billing {
   id              String        @id @default(cuid())
   userId          String
-  amount          Decimal       @db.Decimal(10, 2)
-  currency        String        @default("USD")
+  amount          Decimal       @db.Decimal(12, 2)
+  currency        String        @default("IDR")
   status          BillingStatus @default(PENDING)
-  stripePaymentId String?
+  midtransOrderId String?
+  paymentType     String?
   invoiceUrl      String?
   description     String?
   createdAt       DateTime      @default(now())

@@ -5,20 +5,31 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    rawBody: true, // Enable raw body for webhook signature verification
+  });
 
-  // Security
-  app.use(helmet());
+  // Security - allow Midtrans webhook requests
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  }));
   app.enableCors({
-    origin: process.env.APP_URL || 'http://localhost:3000',
+    origin: [
+      process.env.APP_URL || 'http://localhost:3000',
+      'https://nuviral.cloud',
+      'https://www.nuviral.cloud',
+      'https://api.midtrans.com',
+      'https://api.sandbox.midtrans.com',
+    ],
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   });
 
   // Validation
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
-      forbidNonWhitelisted: true,
+      forbidNonWhitelisted: false, // Allow extra fields for Midtrans webhook
       transform: true,
     }),
   );

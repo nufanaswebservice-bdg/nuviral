@@ -293,9 +293,9 @@ export default function LandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Simple, Transparent Pricing</h2>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Harga Simpel & Transparan</h2>
               <p className="text-gray-500 text-lg max-w-2xl mx-auto">
-                Start free, upgrade when you need more. No hidden fees, cancel anytime.
+                Mulai gratis, upgrade kapan saja. Tanpa biaya tersembunyi, bisa batal kapan saja.
               </p>
             </motion.div>
           </div>
@@ -316,15 +316,15 @@ export default function LandingPage() {
               >
                 {plan.popular && (
                   <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full gradient-primary text-white text-xs font-semibold shadow-premium">
-                    Most Popular
+                    Paling Populer
                   </span>
                 )}
                 <div className="mb-6">
                   <h3 className="text-lg font-bold text-gray-900">{plan.name}</h3>
                   <p className="text-sm text-gray-500 mt-1">{plan.description}</p>
                   <div className="mt-4">
-                    <span className="text-4xl font-bold text-gray-900">${plan.price}</span>
-                    {plan.price > 0 && <span className="text-gray-400">/month</span>}
+                    <span className="text-3xl font-bold text-gray-900">{plan.priceLabel}</span>
+                    {plan.price > 0 && <span className="text-gray-400">/bulan</span>}
                   </div>
                 </div>
                 <ul className="space-y-3 mb-6">
@@ -343,14 +343,14 @@ export default function LandingPage() {
                       : 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100'
                   }`}
                 >
-                  {plan.price === 0 ? 'Start Free' : 'Get Started'}
+                  {plan.price === 0 ? 'Mulai Gratis' : 'Pilih Paket'}
                 </Link>
               </motion.div>
             ))}
           </div>
 
           <p className="text-center text-sm text-gray-400 mt-10">
-            All plans include 14-day money-back guarantee. No credit card required for Free plan.
+            Semua paket termasuk garansi 14 hari uang kembali. Tidak perlu kartu kredit untuk paket Free.
           </p>
         </div>
       </section>
@@ -592,10 +592,10 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
 
 // Pricing Data
 const pricingPlans = [
-  { name: 'Free', description: 'Perfect for trying out', price: 0, popular: false, features: ['5 video renders/month', '50 AI credits/month', '1GB storage', 'Basic templates', 'Watermark on videos', '1 social account'] },
-  { name: 'Starter', description: 'For individual creators', price: 29, popular: false, features: ['50 video renders/month', '500 AI credits/month', '10GB storage', 'All templates', 'No watermark', '3 social accounts', 'Basic analytics', 'Email support'] },
-  { name: 'Pro', description: 'For serious creators', price: 79, popular: true, features: ['200 video renders/month', '2,000 AI credits/month', '50GB storage', 'Premium templates', 'No watermark', '10 social accounts', 'Advanced analytics', 'AI workflow automation', 'Priority rendering', 'API access'] },
-  { name: 'Agency', description: 'For teams & agencies', price: 199, popular: false, features: ['1,000 video renders/month', '10,000 AI credits/month', '200GB storage', 'Custom templates', 'Unlimited accounts', 'Full analytics suite', 'White-label option', '20 team members', 'Dedicated support'] },
+  { name: 'Free', description: 'Cocok untuk mencoba', price: 0, priceLabel: 'Gratis', popular: false, features: ['5 video renders/bulan', '50 AI credits/bulan', '1GB storage', 'Template dasar', 'Watermark di video', '1 akun sosial media'] },
+  { name: 'Starter', description: 'Untuk kreator individu', price: 449000, priceLabel: 'Rp 449.000', popular: false, features: ['50 video renders/bulan', '500 AI credits/bulan', '10GB storage', 'Semua template', 'Tanpa watermark', '3 akun sosial media', 'Analitik dasar', 'Email support'] },
+  { name: 'Pro', description: 'Untuk kreator serius', price: 1225000, priceLabel: 'Rp 1.225.000', popular: true, features: ['200 video renders/bulan', '2.000 AI credits/bulan', '50GB storage', 'Template premium', 'Tanpa watermark', '10 akun sosial media', 'Analitik lanjutan', 'AI workflow automation', 'Priority rendering', 'API access'] },
+  { name: 'Agency', description: 'Untuk tim & agensi', price: 3085000, priceLabel: 'Rp 3.085.000', popular: false, features: ['1.000 video renders/bulan', '10.000 AI credits/bulan', '200GB storage', 'Custom template', 'Unlimited akun', 'Full analytics suite', 'White-label option', '20 team members', 'Dedicated support'] },
 ];
 
 // FAQ Data
