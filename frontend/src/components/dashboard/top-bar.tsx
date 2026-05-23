@@ -149,7 +149,7 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
             className="flex items-center gap-2 p-1 rounded-xl hover:bg-accent transition"
           >
             <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-              <span className="text-white text-sm font-bold">U</span>
+              <span className="text-white text-sm font-bold">{(() => { try { const u = JSON.parse(localStorage.getItem('user') || '{}'); return (u.name || u.email || 'U').charAt(0).toUpperCase(); } catch { return 'U'; } })()}</span>
             </div>
           </button>
 
@@ -163,8 +163,8 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
                 className="absolute right-0 top-12 w-56 rounded-xl border border-border bg-white dark:bg-gray-900 shadow-lg p-2 z-50"
               >
                 <div className="px-3 py-2 border-b border-border mb-1">
-                  <p className="text-sm font-semibold">Demo User</p>
-                  <p className="text-xs text-muted-foreground">demo@viralai.com</p>
+                  <p className="text-sm font-semibold">{(() => { try { const u = JSON.parse(localStorage.getItem('user') || '{}'); return u.name || 'User'; } catch { return 'User'; } })()}</p>
+                  <p className="text-xs text-muted-foreground">{(() => { try { const u = JSON.parse(localStorage.getItem('user') || '{}'); return u.email || ''; } catch { return ''; } })()}</p>
                 </div>
                 <button
                   onClick={() => { router.push('/dashboard/settings'); setShowUserMenu(false); }}
@@ -181,7 +181,7 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
                   <span className="text-sm">Settings</span>
                 </button>
                 <button
-                  onClick={() => { router.push('/login'); setShowUserMenu(false); }}
+                  onClick={() => { localStorage.removeItem('accessToken'); localStorage.removeItem('user'); router.push('/login'); setShowUserMenu(false); }}
                   className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-50 transition text-left text-red-600"
                 >
                   <LogOut className="h-4 w-4" />
