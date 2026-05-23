@@ -98,61 +98,106 @@ Rules:
     englishPrompt = englishPrompt.substring(0, 200);
     console.log(`[render] English prompt: "${englishPrompt}"`);
 
-    // STEP 2: Generate video with correct aspect ratio
-    console.log(`[render] Generating video (${aspectRatio})...`);
+    // STEP 2: Generate video with correct aspect ratio and duration
+    console.log(`[render] Generating video (${aspectRatio}, duration: ${duration})...`);
 
     // Duration mapping: short=5s, medium=10s, long=20s
-    const numFrames = duration === 'short' ? 41 : duration === 'long' ? 81 : 61;
-    const useMinimax = true; // Minimax handles aspect ratio better
+    // Minimax generates ~5s per clip, so we need multiple clips for longer durations
+    const targetDurationSec = duration === 'short' ? 5 : duration === 'long' ? 20 : 10;
+    const clipsNeeded = Math.ceil(targetDurationSec / 5); // Each minimax clip is ~5s
 
-    let prediction;
+    console.log(`[render] Target: ${targetDurationSec}s, clips needed: ${clipsNeeded}`);
 
-    // Try minimax first (better quality and aspect ratio support)
-    console.log(`[render] Using minimax/video-01 (aspect: ${aspectRatio})...`);
-    const createRes = await fetch('https://api.replicate.com/v1/models/minimax/video-01/predictions', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ input: { prompt: englishPrompt, prompt_optimizer: true, aspect_ratio: aspectRatio } }),
-    });
+    const clipFiles = [];
 
-    if (createRes.ok) {
-      prediction = await createRes.json();
-    } else {
-      // Fallback to wan2.1
-      console.log('[render] minimax failed, fallback to wan2.1...');
-      const wanRes = await fetch('https://api.replicate.com/v1/models/wan-ai/wan2.1-t2v-480p/predictions', {
+    for (let clipIndex = 0; clipIndex < clipsNeeded; clipIndex++) {
+      // Vary the prompt slightly for each clip to get different scenes
+      let clipPrompt = englishPrompt;
+      if (clipsNeeded > 1 && clipIndex > 0) {
+        const variations = [
+          'different angle, continuous motion',
+          'close-up shot, smooth transition',
+          'wide shot, new perspective',
+        ];
+        clipPrompt = `${englishPrompt}, ${variations[clipIndex % variations.length]}`;
+      }
+
+      console.log(`[render] Generating clip ${clipIndex + 1}/${clipsNeeded}...`);
+
+      let prediction;
+
+      // Try minimax first
+      const createRes = await fetch('https://api.replicate.com/v1/models/minimax/video-01/predictions', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input: { prompt: englishPrompt, num_frames: numFrames, num_inference_steps: 25, fps: 16, aspect_ratio: aspectRatio } }),
+        body: JSON.stringify({ input: { prompt: clipPrompt, prompt_optimizer: true, aspect_ratio: aspectRatio } }),
       });
-      if (!wanRes.ok) throw new Error('Video generation failed - all models unavailable');
-      prediction = await wanRes.json();
+
+      if (createRes.ok) {
+        prediction = await createRes.json();
+      } else {
+        // Fallback to wan2.1
+        console.log(`[render] minimax failed for clip ${clipIndex + 1}, trying wan2.1...`);
+        const wanRes = await fetch('https://api.replicate.com/v1/models/wan-ai/wan2.1-t2v-480p/predictions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ input: { prompt: clipPrompt, num_frames: 81, num_inference_steps: 25, fps: 16, aspect_ratio: aspectRatio } }),
+        });
+        if (!wanRes.ok) throw new Error(`Video generation failed for clip ${clipIndex + 1}`);
+        prediction = await wanRes.json();
+      }
+
+      console.log(`[render] Clip ${clipIndex + 1} prediction: ${prediction.id} (${prediction.status})`);
+
+      // Poll for completion
+      const pollUrl = prediction.urls?.get || `https://api.replicate.com/v1/predictions/${prediction.id}`;
+      const maxWait = 600000;
+      const t0 = Date.now();
+      while (prediction.status !== 'succeeded' && prediction.status !== 'failed' && prediction.status !== 'canceled') {
+        if (Date.now() - t0 > maxWait) throw new Error('Timeout (10min). Coba prompt lebih pendek.');
+        await new Promise(r => setTimeout(r, 4000));
+        const p = await fetch(pollUrl, { headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}` } });
+        prediction = await p.json();
+      }
+      if (prediction.status !== 'succeeded') throw new Error(`Clip ${clipIndex + 1} generation failed`);
+
+      const clipUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+      if (!clipUrl) throw new Error(`No output URL for clip ${clipIndex + 1}`);
+
+      // Download clip
+      const clipRes = await fetch(clipUrl);
+      const clipBuf = Buffer.from(await clipRes.arrayBuffer());
+      const clipFile = path.join(outputDir, `clip-${ts}-${clipIndex}.mp4`);
+      fs.writeFileSync(clipFile, clipBuf);
+      clipFiles.push(clipFile);
+      console.log(`[render] Clip ${clipIndex + 1} downloaded: ${(clipBuf.length / 1024 / 1024).toFixed(1)}MB`);
     }
 
-    console.log(`[render] Prediction: ${prediction.id} (${prediction.status})`);
+    // Concatenate clips if multiple
+    let videoFile;
+    if (clipFiles.length === 1) {
+      videoFile = clipFiles[0];
+    } else if (hasFfmpeg()) {
+      // Create concat file list
+      const concatListFile = path.join(outputDir, `concat-${ts}.txt`);
+      const concatContent = clipFiles.map(f => `file '${f}'`).join('\n');
+      fs.writeFileSync(concatListFile, concatContent);
 
-    // Poll
-    const pollUrl = prediction.urls?.get || `https://api.replicate.com/v1/predictions/${prediction.id}`;
-    const maxWait = 600000;
-    const t0 = Date.now();
-    while (prediction.status !== 'succeeded' && prediction.status !== 'failed' && prediction.status !== 'canceled') {
-      if (Date.now() - t0 > maxWait) throw new Error('Timeout (10min). Coba prompt lebih pendek.');
-      await new Promise(r => setTimeout(r, 4000));
-      const p = await fetch(pollUrl, { headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}` } });
-      prediction = await p.json();
-      console.log(`[render] ${prediction.status}`);
+      videoFile = path.join(outputDir, `v-${ts}.mp4`);
+      try {
+        execSync(`ffmpeg -y -f concat -safe 0 -i "${concatListFile}" -c copy -movflags +faststart "${videoFile}"`, { stdio: 'pipe', timeout: 60000 });
+        console.log(`[render] ${clipFiles.length} clips concatenated successfully`);
+      } catch (e) {
+        console.log(`[render] Concat failed, using first clip only: ${e.message}`);
+        videoFile = clipFiles[0];
+      }
+      // Cleanup concat list
+      try { fs.unlinkSync(concatListFile); } catch (e) {}
+    } else {
+      videoFile = clipFiles[0];
     }
-    if (prediction.status !== 'succeeded') throw new Error('Generation failed');
 
-    const videoUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
-    if (!videoUrl) throw new Error('No output URL');
-
-    // Download video
-    const vr = await fetch(videoUrl);
-    const vb = Buffer.from(await vr.arrayBuffer());
-    const videoFile = path.join(outputDir, `v-${ts}.mp4`);
-    fs.writeFileSync(videoFile, vb);
-    console.log(`[render] Video: ${(vb.length / 1024 / 1024).toFixed(1)}MB`);
+    console.log(`[render] Video ready: ${videoFile}`);
 
     // STEP 3: Force correct aspect ratio with FFmpeg
     let processedVideoFile = videoFile;
@@ -216,10 +261,12 @@ Rules:
     console.log(`[render] === DONE! ${(buf.length / 1024 / 1024).toFixed(1)}MB ===`);
 
     // Cleanup
-    try { fs.unlinkSync(videoFile); } catch (e) {}
-    try { if (processedVideoFile !== videoFile) fs.unlinkSync(processedVideoFile); } catch (e) {}
+    try { if (videoFile) fs.unlinkSync(videoFile); } catch (e) {}
+    try { if (processedVideoFile && processedVideoFile !== videoFile) fs.unlinkSync(processedVideoFile); } catch (e) {}
     try { if (audioFile) fs.unlinkSync(audioFile); } catch (e) {}
-    try { if (finalFile !== videoFile && finalFile !== processedVideoFile) fs.unlinkSync(finalFile); } catch (e) {}
+    try { if (finalFile && finalFile !== videoFile && finalFile !== processedVideoFile) fs.unlinkSync(finalFile); } catch (e) {}
+    // Cleanup clip files
+    for (const cf of clipFiles) { try { if (cf !== videoFile) fs.unlinkSync(cf); } catch (e) {} }
 
     res.set({ 'Content-Type': 'video/mp4', 'Content-Disposition': `attachment; filename="nuviral-${ts}.mp4"`, 'Content-Length': buf.length });
     res.send(buf);
