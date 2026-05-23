@@ -101,11 +101,10 @@ Rules:
     // STEP 2: Generate video with Kling v2.1 Master (supports 5s and 10s native)
     console.log(`[render] Generating video with Kling v2.1 (${aspectRatio}, duration: ${duration})...`);
 
-    // Kling v2.1 supports 5s and 10s natively
-    // For 20s, we generate 2x 10s clips and concatenate
+    // Wan 2.7 supports 2-15s natively, so we only need concat for 20s
     const targetDurationSec = duration === 'short' ? 5 : duration === 'long' ? 20 : 10;
-    const klingDuration = targetDurationSec <= 10 ? targetDurationSec : 10; // Max 10s per Kling call
-    const clipsNeeded = Math.ceil(targetDurationSec / 10); // 5s=1, 10s=1, 20s=2
+    const klingDuration = targetDurationSec <= 15 ? targetDurationSec : 15; // Max 15s per Wan 2.7 call
+    const clipsNeeded = targetDurationSec <= 15 ? 1 : 2; // Only concat for 20s (15+5 or 10+10)
 
     console.log(`[render] Target: ${targetDurationSec}s, Kling duration: ${klingDuration}s, clips: ${clipsNeeded}`);
 
@@ -121,10 +120,20 @@ Rules:
 
       let prediction = null;
 
-      // Try Minimax first (proven to work), then Kling as upgrade
+      // Try models in order: Wan 2.7 (best prompt accuracy, native 2-15s) -> Seedance 2.0 -> Minimax fallback
       const models = [
-        { name: 'minimax/video-01', input: { prompt: clipPrompt, prompt_optimizer: true, aspect_ratio: aspectRatio } },
-        { name: 'kwaivgi/kling-v2.1', input: { prompt: clipPrompt, duration: klingDuration, aspect_ratio: aspectRatio } },
+        {
+          name: 'wan-video/wan-2.7-t2v',
+          input: { prompt: clipPrompt, duration: klingDuration, aspect_ratio: aspectRatio, resolution: '720p' }
+        },
+        {
+          name: 'bytedance/seedance-2.0',
+          input: { prompt: clipPrompt, duration: klingDuration, aspect_ratio: aspectRatio }
+        },
+        {
+          name: 'minimax/video-01',
+          input: { prompt: clipPrompt, prompt_optimizer: true, aspect_ratio: aspectRatio }
+        },
       ];
 
       for (const model of models) {
