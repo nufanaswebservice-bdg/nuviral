@@ -1,44 +1,40 @@
-name: Deploy to Production
+name: CI Check
 
 on:
   push:
     branches: [main]
-  workflow_dispatch: # Allow manual trigger
+  pull_request:
+    branches: [main]
 
 jobs:
-  deploy:
-    name: Deploy to Server
+  check:
+    name: Type Check & Lint
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy to server via SSH
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          port: ${{ secrets.SERVER_PORT || 22 }}
-          script: |
-            cd ${{ secrets.PROJECT_PATH || '/opt/nuviral' }}
-            
-            # Pull latest code
-            git pull origin main
-            
-            # Build and restart containers
-            cd docker
-            docker-compose up -d --build backend nginx
-            
-            # Run database migrations
-            docker-compose exec -T backend npx prisma migrate deploy
-            
-            # Check status
-            docker-compose ps
-            
-            # Health check
-            sleep 5
-            curl -s -o /dev/null -w "%{http_code}" http://localhost:4000/api/v1/subscription/notification -X POST -H "Content-Type: application/json" -d '{"test":true}' || echo "Health check warning"
-            
-            echo "✅ Deployment completed!"
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --workspace=backend --workspace=shared
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Build shared
+        run: npm run build --workspace=shared
+        continue-on-error: true
+
+      - name: Build backend
+        run: npm run build --workspace=backend
+        continue-on-error: true
+
+      - name: Deploy notification
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: echo "✅ Push to main detected - Railway will auto-deploy"

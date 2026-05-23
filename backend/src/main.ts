@@ -18,8 +18,10 @@ async function bootstrap() {
       process.env.APP_URL || 'http://localhost:3000',
       'https://nuviral.cloud',
       'https://www.nuviral.cloud',
+      'https://api.nuviral.cloud',
       'https://api.midtrans.com',
       'https://api.sandbox.midtrans.com',
+      /\.railway\.app$/,
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -47,8 +49,8 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  const port = process.env.APP_PORT || 4000;
-  await app.listen(port);
+  const port = process.env.PORT || process.env.APP_PORT || 4000;
+  await app.listen(port, '0.0.0.0');
   console.log(`🚀 ViralAI API running on port ${port}`);
   console.log(`📚 API Docs: http://localhost:${port}/api/docs`);
 }

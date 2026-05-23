@@ -1,0 +1,11 @@
+{
+  "build": {
+    "dockerfilePath": "../docker/Dockerfile.backend",
+    "dockerContext": ".."
+  },
+  "deploy": {
+    "healthcheckPath": "/api/v1/subscription/notification",
+    "restartPolicyType": "ON_FAILURE",
+    "numReplicas": 1
+  }
+}
