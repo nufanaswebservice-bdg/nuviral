@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const crypto = require('crypto');
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -7,8 +8,9 @@ const path = require('path');
 const app = express();
 app.use(cors({
   origin: ['https://nuviral.cloud', 'https://www.nuviral.cloud', 'http://localhost:3000'],
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
 }));
 app.use(express.json());
 
@@ -19,12 +21,20 @@ const YOUTUBE_CLIENT_ID = process.env.YOUTUBE_CLIENT_ID || '';
 const YOUTUBE_CLIENT_SECRET = process.env.YOUTUBE_CLIENT_SECRET || '';
 const YOUTUBE_REDIRECT_URI = 'https://nuviral-production.up.railway.app/auth/youtube/callback';
 
+// Midtrans config
+const MIDTRANS_SERVER_KEY = process.env.MIDTRANS_SERVER_KEY || '';
+const MIDTRANS_CLIENT_KEY = process.env.MIDTRANS_CLIENT_KEY || '';
+const MIDTRANS_IS_PRODUCTION = process.env.MIDTRANS_IS_PRODUCTION === 'true';
+const MIDTRANS_BASE_URL = MIDTRANS_IS_PRODUCTION
+  ? 'https://app.midtrans.com/snap/v1'
+  : 'https://app.sandbox.midtrans.com/snap/v1';
+
 function hasFfmpeg() {
   try { execSync('ffmpeg -version', { stdio: 'pipe' }); return true; } catch { return false; }
 }
 
 app.get('/', (req, res) => {
-  res.json({ status: 'ok', service: 'NuViral v4', replicate: !!REPLICATE_API_TOKEN, openai: !!OPENAI_API_KEY, ffmpeg: hasFfmpeg() });
+  res.json({ status: 'ok', service: 'NuViral v4', replicate: !!REPLICATE_API_TOKEN, openai: !!OPENAI_API_KEY, midtrans: !!MIDTRANS_SERVER_KEY, ffmpeg: hasFfmpeg() });
 });
 
 app.post('/render', async (req, res) => {
@@ -347,4 +357,174 @@ app.post('/upload/youtube', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`🎬 NuViral v4 | port ${PORT} | Replicate:${!!REPLICATE_API_TOKEN} | OpenAI:${!!OPENAI_API_KEY} | YouTube:${!!YOUTUBE_CLIENT_ID} | FFmpeg:${hasFfmpeg()}`));
+// ============================================
+// MIDTRANS PAYMENT GATEWAY
+// ============================================
+
+const PLANS = {
+  STARTER: { name: 'Starter', price: 449000 },
+  PRO: { name: 'Pro', price: 1225000 },
+  AGENCY: { name: 'Agency', price: 3085000 },
+};
+
+// Health check for subscription
+app.get('/api/v1/subscription/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'midtrans-payment',
+    midtransConfigured: !!MIDTRANS_SERVER_KEY,
+    isProduction: MIDTRANS_IS_PRODUCTION,
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// Create Midtrans Snap transaction
+app.post('/api/v1/subscription/create-transaction', async (req, res) => {
+  try {
+    const { plan, userId, email, name } = req.body;
+
+    // Get email from Authorization header token if available (decode JWT payload)
+    let userEmail = email || 'customer@nuviral.cloud';
+    let userName = name || 'Customer';
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+        userEmail = payload.email || userEmail;
+        userName = payload.name || payload.sub || userName;
+      } catch (e) { /* ignore decode errors */ }
+    }
+
+    if (!plan) return res.status(400).json({ error: 'Plan is required' });
+    if (!MIDTRANS_SERVER_KEY) {
+      console.error('[midtrans] MIDTRANS_SERVER_KEY is not set!');
+      return res.status(500).json({ error: 'Payment system not configured. Contact admin.' });
+    }
+
+    const planKey = plan.toUpperCase();
+    const planConfig = PLANS[planKey];
+    if (!planConfig) return res.status(400).json({ error: `Invalid plan: ${planKey}` });
+
+    const orderId = `NUVIRAL-${planKey}-${Date.now()}`;
+    const authString = Buffer.from(MIDTRANS_SERVER_KEY + ':').toString('base64');
+
+    const parameter = {
+      transaction_details: {
+        order_id: orderId,
+        gross_amount: planConfig.price,
+      },
+      item_details: [{
+        id: planKey.toLowerCase(),
+        price: planConfig.price,
+        quantity: 1,
+        name: `NuViral ${planConfig.name} Plan - Monthly`,
+      }],
+      customer_details: {
+        first_name: userName,
+        email: userEmail,
+      },
+      callbacks: {
+        finish: 'https://nuviral.cloud/dashboard/billing?payment=success',
+        error: 'https://nuviral.cloud/dashboard/billing?payment=error',
+        pending: 'https://nuviral.cloud/dashboard/billing?payment=pending',
+      },
+    };
+
+    console.log(`[midtrans] Creating transaction: ${orderId} - ${planConfig.name} - Rp${planConfig.price} - ${userEmail}`);
+
+    const response = await fetch(`${MIDTRANS_BASE_URL}/transactions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Basic ${authString}`,
+      },
+      body: JSON.stringify(parameter),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error(`[midtrans] API Error (${response.status}): ${JSON.stringify(data)}`);
+      return res.status(500).json({ error: 'Failed to create transaction', detail: data });
+    }
+
+    console.log(`[midtrans] ✅ Transaction created: ${orderId}, token: ${data.token ? 'received' : 'EMPTY'}`);
+
+    res.json({
+      token: data.token,
+      redirectUrl: data.redirect_url,
+      orderId,
+    });
+  } catch (error) {
+    console.error('[midtrans] Error:', error.message);
+    res.status(500).json({ error: 'Failed to create transaction', detail: error.message });
+  }
+});
+
+// Midtrans webhook notification
+app.post('/api/v1/subscription/notification', (req, res) => {
+  const notification = req.body;
+  console.log(`[midtrans] Notification received:`, JSON.stringify(notification));
+
+  // Handle test notification
+  if (!notification.order_id || !notification.transaction_status) {
+    console.log('[midtrans] Test notification received');
+    return res.status(200).json({ status: 'ok', message: 'test notification received' });
+  }
+
+  // Verify signature
+  const signatureKey = notification.signature_key;
+  const orderId = notification.order_id;
+  const statusCode = notification.status_code;
+  const grossAmount = notification.gross_amount;
+
+  const expectedSignature = crypto
+    .createHash('sha512')
+    .update(`${orderId}${statusCode}${grossAmount}${MIDTRANS_SERVER_KEY}`)
+    .digest('hex');
+
+  if (signatureKey !== expectedSignature) {
+    console.warn(`[midtrans] Invalid signature for order: ${orderId}`);
+    return res.status(400).json({ error: 'Invalid signature' });
+  }
+
+  const transactionStatus = notification.transaction_status;
+  console.log(`[midtrans] Payment ${orderId}: ${transactionStatus}`);
+
+  // TODO: Update database subscription status here
+  // For now, just acknowledge
+  if (transactionStatus === 'capture' || transactionStatus === 'settlement') {
+    console.log(`[midtrans] ✅ Payment SUCCESS for ${orderId}`);
+  } else if (transactionStatus === 'pending') {
+    console.log(`[midtrans] ⏳ Payment PENDING for ${orderId}`);
+  } else if (['deny', 'cancel', 'expire'].includes(transactionStatus)) {
+    console.log(`[midtrans] ❌ Payment ${transactionStatus.toUpperCase()} for ${orderId}`);
+  }
+
+  res.status(200).json({ status: 'ok' });
+});
+
+// Check transaction status
+app.get('/api/v1/subscription/status', async (req, res) => {
+  try {
+    const { orderId } = req.query;
+    if (!orderId) return res.status(400).json({ error: 'orderId required' });
+
+    const authString = Buffer.from(MIDTRANS_SERVER_KEY + ':').toString('base64');
+    const baseUrl = MIDTRANS_IS_PRODUCTION
+      ? 'https://api.midtrans.com/v2'
+      : 'https://api.sandbox.midtrans.com/v2';
+
+    const response = await fetch(`${baseUrl}/${orderId}/status`, {
+      headers: { 'Authorization': `Basic ${authString}` },
+    });
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.listen(PORT, () => console.log(`🎬 NuViral v4 | port ${PORT} | Replicate:${!!REPLICATE_API_TOKEN} | OpenAI:${!!OPENAI_API_KEY} | YouTube:${!!YOUTUBE_CLIENT_ID} | Midtrans:${!!MIDTRANS_SERVER_KEY} | FFmpeg:${hasFfmpeg()}`));
