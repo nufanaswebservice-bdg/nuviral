@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import axios from 'axios';
+import { BillingPopup } from '@/components/billing-popup';
 import {
   Video,
   Play,
@@ -47,12 +49,13 @@ const musicCategories = [
 type RenderStatus = 'idle' | 'preparing' | 'voiceover' | 'footage' | 'rendering' | 'subtitles' | 'finalizing' | 'completed';
 
 // Video Player component that generates and plays AI video
-function VideoPlayer({ scriptData }: { scriptData: any }) {
+function VideoPlayer({ scriptData, onNeedUpgrade }: { scriptData: any; onNeedUpgrade: () => void }) {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const generateVideo = async () => {
+    // Credit check is handled by parent via onNeedUpgrade
     setLoading(true);
     setError('');
     try {
@@ -114,6 +117,8 @@ function VideoPlayer({ scriptData }: { scriptData: any }) {
   );
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nuviral-production.up.railway.app/api/v1';
+
 export default function CreateVideoPage() {
   const router = useRouter();
   const [scriptData, setScriptData] = useState<any>(null);
@@ -124,6 +129,8 @@ export default function CreateVideoPage() {
   const [watermark, setWatermark] = useState(false);
   const [renderStatus, setRenderStatus] = useState<RenderStatus>('idle');
   const [renderProgress, setRenderProgress] = useState(0);
+  const [showBillingPopup, setShowBillingPopup] = useState(false);
+  const [credits, setCredits] = useState<{ aiCreditsUsed: number; aiCreditsLimit: number }>({ aiCreditsUsed: 50, aiCreditsLimit: 50 });
 
   useEffect(() => {
     // Load script data from localStorage (passed from AI Generator)
@@ -131,9 +138,33 @@ export default function CreateVideoPage() {
     if (saved) {
       setScriptData(JSON.parse(saved));
     }
+    // Fetch credits
+    const fetchCredits = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const res = await axios.get(`${API_URL}/subscription/current`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (res.data) {
+          setCredits({
+            aiCreditsUsed: res.data.aiCreditsUsed ?? 0,
+            aiCreditsLimit: res.data.aiCreditsLimit ?? 50,
+          });
+        }
+      } catch {
+        setCredits({ aiCreditsUsed: 50, aiCreditsLimit: 50 });
+      }
+    };
+    fetchCredits();
   }, []);
 
   const handleRender = () => {
+    // Check credits before rendering
+    if (credits.aiCreditsUsed >= credits.aiCreditsLimit) {
+      setShowBillingPopup(true);
+      return;
+    }
+
     setRenderStatus('preparing');
     setRenderProgress(0);
 
@@ -170,6 +201,14 @@ export default function CreateVideoPage() {
 
   return (
     <div className="space-y-6">
+      {/* Billing Popup */}
+      <BillingPopup
+        isOpen={showBillingPopup}
+        onClose={() => setShowBillingPopup(false)}
+        creditsUsed={credits.aiCreditsUsed}
+        creditsLimit={credits.aiCreditsLimit}
+      />
+
       {/* Header */}
       <div className="flex items-center gap-4">
         <button
@@ -204,7 +243,7 @@ export default function CreateVideoPage() {
 
           {/* Real Video Player */}
           <div className="w-full max-w-sm mx-auto mb-8">
-            <VideoPlayer scriptData={scriptData} />
+            <VideoPlayer scriptData={scriptData} onNeedUpgrade={() => setShowBillingPopup(true)} />
           </div>
 
           <div className="flex gap-3 justify-center">

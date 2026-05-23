@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import axios from 'axios';
+import { BillingPopup } from '@/components/billing-popup';
 import {
   Video,
   Download,
@@ -58,6 +60,8 @@ const templates = [
   { label: '🌊 Nature', title: 'Sunset di Pantai Bali', script: 'Matahari terbenam di pantai Bali.\nOmbak memecah di karang.\nLangit berubah warna dari oranye ke ungu.\nSiluet pohon kelapa tertiup angin.\nKeindahan alam Indonesia yang tiada tara.' },
 ];
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nuviral-production.up.railway.app/api/v1';
+
 export default function QuickVideoPage() {
   const [title, setTitle] = useState('');
   const [script, setScript] = useState('');
@@ -70,11 +74,39 @@ export default function QuickVideoPage() {
   const [renderProgress, setRenderProgress] = useState(0);
   const [renderStage, setRenderStage] = useState('');
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [showBillingPopup, setShowBillingPopup] = useState(false);
+  const [credits, setCredits] = useState<{ aiCreditsUsed: number; aiCreditsLimit: number }>({ aiCreditsUsed: 50, aiCreditsLimit: 50 });
+
+  useEffect(() => {
+    const fetchCredits = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const res = await axios.get(`${API_URL}/subscription/current`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (res.data) {
+          setCredits({
+            aiCreditsUsed: res.data.aiCreditsUsed ?? 0,
+            aiCreditsLimit: res.data.aiCreditsLimit ?? 50,
+          });
+        }
+      } catch {
+        setCredits({ aiCreditsUsed: 50, aiCreditsLimit: 50 });
+      }
+    };
+    fetchCredits();
+  }, []);
 
   const selectedStyle = stylePresets.find(s => s.id === style) || stylePresets[0];
 
   const handleRender = async () => {
     if (!title.trim()) { toast.error('Masukkan prompt video'); return; }
+
+    // Check credits
+    if (credits.aiCreditsUsed >= credits.aiCreditsLimit) {
+      setShowBillingPopup(true);
+      return;
+    }
 
     setIsRendering(true);
     setRenderProgress(5);
@@ -156,6 +188,14 @@ export default function QuickVideoPage() {
 
   return (
     <div className="space-y-5">
+      {/* Billing Popup */}
+      <BillingPopup
+        isOpen={showBillingPopup}
+        onClose={() => setShowBillingPopup(false)}
+        creditsUsed={credits.aiCreditsUsed}
+        creditsLimit={credits.aiCreditsLimit}
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

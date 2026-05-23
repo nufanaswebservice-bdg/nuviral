@@ -195,17 +195,19 @@ export default function AiGeneratorPage() {
     const fetchCredits = async () => {
       try {
         const token = localStorage.getItem('accessToken');
-        if (!token) return;
         const res = await axios.get(`${API_URL}/subscription/current`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         if (res.data) {
           setCredits({
-            aiCreditsUsed: res.data.aiCreditsUsed || 0,
-            aiCreditsLimit: res.data.aiCreditsLimit || 50,
+            aiCreditsUsed: res.data.aiCreditsUsed ?? 0,
+            aiCreditsLimit: res.data.aiCreditsLimit ?? 50,
           });
         }
-      } catch { /* ignore */ }
+      } catch {
+        // If API fails, assume free plan with credits used up (force upgrade)
+        setCredits({ aiCreditsUsed: 50, aiCreditsLimit: 50 });
+      }
     };
     fetchCredits();
   }, []);

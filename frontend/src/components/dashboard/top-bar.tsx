@@ -17,7 +17,7 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
-  const [credits, setCredits] = useState<{ aiCreditsUsed: number; aiCreditsLimit: number; plan: string } | null>(null);
+  const [credits, setCredits] = useState<{ aiCreditsUsed: number; aiCreditsLimit: number; plan: string }>({ aiCreditsUsed: 0, aiCreditsLimit: 50, plan: 'FREE' });
 
   useEffect(() => {
     fetchCredits();
@@ -30,8 +30,17 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
       const res = await axios.get(`${API_URL}/subscription/current`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setCredits(res.data);
-    } catch { /* ignore */ }
+      if (res.data) {
+        setCredits({
+          aiCreditsUsed: res.data.aiCreditsUsed || 0,
+          aiCreditsLimit: res.data.aiCreditsLimit || 50,
+          plan: res.data.plan || 'FREE',
+        });
+      }
+    } catch {
+      // Fallback: show Free plan info even if API fails
+      setCredits({ aiCreditsUsed: 0, aiCreditsLimit: 50, plan: 'FREE' });
+    }
   };
 
   const notifications = [
@@ -61,22 +70,20 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
       </div>
 
       <div className="flex items-center gap-2">
-        {/* Billing Credits Badge */}
-        {credits && (
-          <button
-            onClick={() => router.push('/dashboard/billing')}
-            className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl border border-border hover:border-primary/30 transition"
-            title="Lihat billing"
-          >
-            <Zap className="h-4 w-4 text-primary" />
-            <div className="text-left">
-              <p className="text-[10px] text-muted-foreground leading-none">{credits.plan || 'FREE'} Plan</p>
-              <p className="text-xs font-semibold leading-tight">
-                {credits.aiCreditsUsed || 0}/{credits.aiCreditsLimit || 50} credits
-              </p>
-            </div>
-          </button>
-        )}
+        {/* Billing Credits Badge - Always visible */}
+        <button
+          onClick={() => router.push('/dashboard/billing')}
+          className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl border border-border hover:border-primary/30 transition"
+          title="Lihat billing"
+        >
+          <Zap className="h-4 w-4 text-primary" />
+          <div className="text-left">
+            <p className="text-[10px] text-muted-foreground leading-none">{credits.plan} Plan</p>
+            <p className="text-xs font-semibold leading-tight">
+              {credits.aiCreditsUsed}/{credits.aiCreditsLimit} credits
+            </p>
+          </div>
+        </button>
 
         {/* Quick Create Button */}
         <div className="relative">

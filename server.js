@@ -378,6 +378,26 @@ app.get('/api/v1/subscription/health', (req, res) => {
   });
 });
 
+// Get current subscription (returns Free plan defaults since no DB on Railway)
+app.get('/api/v1/subscription/current', (req, res) => {
+  // For now, return Free plan data for all users
+  // In production with NestJS backend + Prisma, this would query the database
+  res.json({
+    plan: 'FREE',
+    status: 'ACTIVE',
+    videoRenderLimit: 5,
+    videoRenderUsed: 0,
+    aiCreditsLimit: 50,
+    aiCreditsUsed: 50, // Set to max so popup triggers (user needs to upgrade)
+    storageLimit: 1073741824,
+    storageUsed: 0,
+    teamMemberLimit: 1,
+    apiAccessEnabled: false,
+    currentPeriodStart: null,
+    currentPeriodEnd: null,
+  });
+});
+
 // Create Midtrans Snap transaction
 app.post('/api/v1/subscription/create-transaction', async (req, res) => {
   try {
