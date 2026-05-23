@@ -119,51 +119,37 @@ Rules:
 
       console.log(`[render] Generating clip ${clipIndex + 1}/${clipsNeeded} (${klingDuration}s)...`);
 
-      // Use Kling v2.1 (text-to-video, supports duration and aspect_ratio)
-      // Try standard first (more reliable), then master, then minimax fallback
-      const klingModels = [
-        'kwaivgi/kling-v2.1',
-        'kwaivgi/kling-v2.1-master',
-      ];
-
       let prediction = null;
 
-      for (const model of klingModels) {
-        console.log(`[render] Trying ${model}...`);
-        const klingRes = await fetch(`https://api.replicate.com/v1/models/${model}/predictions`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            input: {
-              prompt: clipPrompt,
-              duration: String(klingDuration),
-              aspect_ratio: aspectRatio,
-            }
-          }),
-        });
+      // Try Minimax first (proven to work), then Kling as upgrade
+      const models = [
+        { name: 'minimax/video-01', input: { prompt: clipPrompt, prompt_optimizer: true, aspect_ratio: aspectRatio } },
+        { name: 'kwaivgi/kling-v2.1', input: { prompt: clipPrompt, duration: klingDuration, aspect_ratio: aspectRatio } },
+      ];
 
-        if (klingRes.ok) {
-          prediction = await klingRes.json();
-          console.log(`[render] ${model} prediction created: ${prediction.id}`);
-          break;
-        } else {
-          const errBody = await klingRes.text().catch(() => '');
-          console.log(`[render] ${model} failed (${klingRes.status}): ${errBody.substring(0, 100)}`);
+      for (const model of models) {
+        console.log(`[render] Trying ${model.name}...`);
+        try {
+          const res = await fetch(`https://api.replicate.com/v1/models/${model.name}/predictions`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ input: model.input }),
+          });
+
+          if (res.ok) {
+            prediction = await res.json();
+            console.log(`[render] ${model.name} prediction created: ${prediction.id}`);
+            break;
+          } else {
+            const errText = await res.text().catch(() => '');
+            console.log(`[render] ${model.name} failed (${res.status}): ${errText.substring(0, 150)}`);
+          }
+        } catch (e) {
+          console.log(`[render] ${model.name} error: ${e.message}`);
         }
       }
 
-      // Fallback to minimax if all Kling models fail
-      if (!prediction) {
-        console.log(`[render] All Kling models failed, fallback to minimax...`);
-        const mmRes = await fetch('https://api.replicate.com/v1/models/minimax/video-01/predictions', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ input: { prompt: clipPrompt, prompt_optimizer: true, aspect_ratio: aspectRatio } }),
-        });
-        if (!mmRes.ok) throw new Error(`Video generation failed for clip ${clipIndex + 1} - all models unavailable`);
-        prediction = await mmRes.json();
-        console.log(`[render] Minimax fallback prediction: ${prediction.id}`);
-      }
+      if (!prediction) throw new Error(`Video generation failed for clip ${clipIndex + 1} - all models unavailable`);
 
       // Poll for completion
       const pollUrl = prediction.urls?.get || `https://api.replicate.com/v1/predictions/${prediction.id}`;
