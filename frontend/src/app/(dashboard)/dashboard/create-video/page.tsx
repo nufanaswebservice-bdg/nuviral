@@ -130,7 +130,7 @@ export default function CreateVideoPage() {
   const [renderStatus, setRenderStatus] = useState<RenderStatus>('idle');
   const [renderProgress, setRenderProgress] = useState(0);
   const [showBillingPopup, setShowBillingPopup] = useState(false);
-  const [credits, setCredits] = useState<{ aiCreditsUsed: number; aiCreditsLimit: number }>({ aiCreditsUsed: 50, aiCreditsLimit: 50 });
+  const [credits, setCredits] = useState<{ aiCreditsUsed: number; aiCreditsLimit: number }>({ aiCreditsUsed: 0, aiCreditsLimit: 0 });
 
   useEffect(() => {
     // Load script data from localStorage (passed from AI Generator)
@@ -152,7 +152,7 @@ export default function CreateVideoPage() {
           });
         }
       } catch {
-        setCredits({ aiCreditsUsed: 50, aiCreditsLimit: 50 });
+        setCredits({ aiCreditsUsed: 0, aiCreditsLimit: 0 });
       }
     };
     fetchCredits();
@@ -160,7 +160,7 @@ export default function CreateVideoPage() {
 
   const handleRender = () => {
     // Check credits before rendering
-    if (credits.aiCreditsUsed >= credits.aiCreditsLimit) {
+    if (credits.aiCreditsLimit === 0 || credits.aiCreditsUsed >= credits.aiCreditsLimit) {
       setShowBillingPopup(true);
       return;
     }

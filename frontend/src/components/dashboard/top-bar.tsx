@@ -17,7 +17,7 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
-  const [credits, setCredits] = useState<{ aiCreditsUsed: number; aiCreditsLimit: number; plan: string }>({ aiCreditsUsed: 0, aiCreditsLimit: 50, plan: 'FREE' });
+  const [credits, setCredits] = useState<{ aiCreditsUsed: number; aiCreditsLimit: number; plan: string | null }>({ aiCreditsUsed: 0, aiCreditsLimit: 0, plan: null });
 
   useEffect(() => {
     fetchCredits();
@@ -32,14 +32,13 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
       });
       if (res.data) {
         setCredits({
-          aiCreditsUsed: res.data.aiCreditsUsed || 0,
-          aiCreditsLimit: res.data.aiCreditsLimit || 50,
-          plan: res.data.plan || 'FREE',
+          aiCreditsUsed: res.data.aiCreditsUsed ?? 0,
+          aiCreditsLimit: res.data.aiCreditsLimit ?? 0,
+          plan: res.data.plan || null,
         });
       }
     } catch {
-      // Fallback: show Free plan info even if API fails
-      setCredits({ aiCreditsUsed: 0, aiCreditsLimit: 50, plan: 'FREE' });
+      setCredits({ aiCreditsUsed: 0, aiCreditsLimit: 0, plan: null });
     }
   };
 
@@ -78,10 +77,19 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
         >
           <Zap className="h-4 w-4 text-primary" />
           <div className="text-left">
-            <p className="text-[10px] text-muted-foreground leading-none">{credits.plan} Plan</p>
-            <p className="text-xs font-semibold leading-tight">
-              {credits.aiCreditsUsed}/{credits.aiCreditsLimit} credits
-            </p>
+            {credits.plan ? (
+              <>
+                <p className="text-[10px] text-muted-foreground leading-none">{credits.plan} Plan</p>
+                <p className="text-xs font-semibold leading-tight">
+                  {credits.aiCreditsLimit - credits.aiCreditsUsed} credits tersisa
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-[10px] text-muted-foreground leading-none">Belum Berlangganan</p>
+                <p className="text-xs font-semibold leading-tight text-primary">Upgrade →</p>
+              </>
+            )}
           </div>
         </button>
 

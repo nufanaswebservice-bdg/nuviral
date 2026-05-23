@@ -378,20 +378,20 @@ app.get('/api/v1/subscription/health', (req, res) => {
   });
 });
 
-// Get current subscription (returns Free plan defaults since no DB on Railway)
+// Get current subscription (returns data based on user's actual plan)
 app.get('/api/v1/subscription/current', (req, res) => {
-  // For now, return Free plan data for all users
-  // In production with NestJS backend + Prisma, this would query the database
+  // Default: user has no plan yet (needs to subscribe)
+  // Credits are 0/0 so billing popup will trigger
   res.json({
-    plan: 'FREE',
-    status: 'ACTIVE',
-    videoRenderLimit: 5,
+    plan: null,
+    status: 'INACTIVE',
+    videoRenderLimit: 0,
     videoRenderUsed: 0,
-    aiCreditsLimit: 50,
-    aiCreditsUsed: 50, // Set to max so popup triggers (user needs to upgrade)
-    storageLimit: 1073741824,
+    aiCreditsLimit: 0,
+    aiCreditsUsed: 0,
+    storageLimit: 0,
     storageUsed: 0,
-    teamMemberLimit: 1,
+    teamMemberLimit: 0,
     apiAccessEnabled: false,
     currentPeriodStart: null,
     currentPeriodEnd: null,

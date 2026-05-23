@@ -75,7 +75,7 @@ export default function QuickVideoPage() {
   const [renderStage, setRenderStage] = useState('');
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [showBillingPopup, setShowBillingPopup] = useState(false);
-  const [credits, setCredits] = useState<{ aiCreditsUsed: number; aiCreditsLimit: number }>({ aiCreditsUsed: 50, aiCreditsLimit: 50 });
+  const [credits, setCredits] = useState<{ aiCreditsUsed: number; aiCreditsLimit: number }>({ aiCreditsUsed: 0, aiCreditsLimit: 0 });
 
   useEffect(() => {
     const fetchCredits = async () => {
@@ -91,7 +91,7 @@ export default function QuickVideoPage() {
           });
         }
       } catch {
-        setCredits({ aiCreditsUsed: 50, aiCreditsLimit: 50 });
+        setCredits({ aiCreditsUsed: 0, aiCreditsLimit: 0 });
       }
     };
     fetchCredits();
@@ -103,7 +103,7 @@ export default function QuickVideoPage() {
     if (!title.trim()) { toast.error('Masukkan prompt video'); return; }
 
     // Check credits
-    if (credits.aiCreditsUsed >= credits.aiCreditsLimit) {
+    if (credits.aiCreditsLimit === 0 || credits.aiCreditsUsed >= credits.aiCreditsLimit) {
       setShowBillingPopup(true);
       return;
     }

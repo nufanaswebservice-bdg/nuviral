@@ -27,7 +27,7 @@ export function BillingPopup({ isOpen, onClose, creditsUsed, creditsLimit }: Bil
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <CreditCard className="h-5 w-5 text-primary" />
-            Kredit Habis
+            {creditsLimit === 0 ? 'Berlangganan Dulu' : 'Kredit Habis'}
           </h2>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-accent">
             <X className="h-5 w-5" />
@@ -36,10 +36,13 @@ export function BillingPopup({ isOpen, onClose, creditsUsed, creditsLimit }: Bil
 
         <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 mb-4">
           <p className="text-sm text-red-600 dark:text-red-400 font-medium">
-            Kredit AI kamu sudah habis ({creditsUsed}/{creditsLimit})
+            {creditsLimit === 0
+              ? 'Kamu belum berlangganan'
+              : `Kredit AI kamu sudah habis (${creditsUsed}/${creditsLimit})`
+            }
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            Upgrade plan untuk mendapatkan lebih banyak kredit AI dan fitur premium lainnya.
+            Pilih paket berlangganan untuk menggunakan fitur AI Video Generator dan mendapatkan kredit AI.
           </p>
         </div>
 

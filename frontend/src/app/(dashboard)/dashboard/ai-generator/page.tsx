@@ -170,7 +170,7 @@ export default function AiGeneratorPage() {
   const [referenceVideo, setReferenceVideo] = useState<any>(null);
   const [activeInputTab, setActiveInputTab] = useState<'text' | 'visual'>('text');
   const [showBillingPopup, setShowBillingPopup] = useState(false);
-  const [credits, setCredits] = useState<{ aiCreditsUsed: number; aiCreditsLimit: number }>({ aiCreditsUsed: 0, aiCreditsLimit: 50 });
+  const [credits, setCredits] = useState<{ aiCreditsUsed: number; aiCreditsLimit: number }>({ aiCreditsUsed: 0, aiCreditsLimit: 0 });
   const [advancedSettings, setAdvancedSettings] = useState<AdvancedVideoSettings>({
     videoStyle: 'cinematic',
     cameraMotion: 'smooth_zoom',
@@ -205,8 +205,8 @@ export default function AiGeneratorPage() {
           });
         }
       } catch {
-        // If API fails, assume free plan with credits used up (force upgrade)
-        setCredits({ aiCreditsUsed: 50, aiCreditsLimit: 50 });
+        // If API fails, assume no subscription (force upgrade)
+        setCredits({ aiCreditsUsed: 0, aiCreditsLimit: 0 });
       }
     };
     fetchCredits();
@@ -241,8 +241,8 @@ export default function AiGeneratorPage() {
   };
 
   const handleGenerate = async () => {
-    // Check if user has credits
-    if (credits.aiCreditsUsed >= credits.aiCreditsLimit) {
+    // Check if user has credits (no plan or credits exhausted)
+    if (credits.aiCreditsLimit === 0 || credits.aiCreditsUsed >= credits.aiCreditsLimit) {
       setShowBillingPopup(true);
       return;
     }

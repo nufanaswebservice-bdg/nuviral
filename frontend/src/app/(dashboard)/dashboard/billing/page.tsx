@@ -25,20 +25,6 @@ declare global {
 
 const plans = [
   {
-    name: 'Free',
-    key: 'FREE',
-    priceIdr: 0,
-    icon: Sparkles,
-    popular: false,
-    features: [
-      '5 video renders/bulan',
-      '50 AI credits/bulan',
-      '1GB storage',
-      'Template dasar',
-      'Watermark di video',
-    ],
-  },
-  {
     name: 'Starter',
     key: 'STARTER',
     priceIdr: 225000,
@@ -211,7 +197,7 @@ export default function BillingPage() {
     }
   }, []);
 
-  const currentPlanName = currentPlan?.plan || 'FREE';
+  const currentPlanName = currentPlan?.plan || null;
 
   return (
     <div className="space-y-6">
@@ -229,7 +215,7 @@ export default function BillingPage() {
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
           <span className="ml-2 text-muted-foreground">Loading subscription...</span>
         </div>
-      ) : currentPlan && currentPlanName !== 'FREE' ? (
+      ) : currentPlan && currentPlanName ? (
         <div className="p-6 rounded-2xl border border-primary/30 bg-primary/5">
           <div className="flex items-center justify-between">
             <div>
@@ -299,19 +285,19 @@ export default function BillingPage() {
           </div>
         </div>
       ) : (
-        <div className="p-6 rounded-2xl border border-border bg-card">
-          <p className="text-sm text-muted-foreground">Current Plan</p>
-          <p className="text-2xl font-bold">Free Plan</p>
+        <div className="p-6 rounded-2xl border border-amber-500/30 bg-amber-500/5">
+          <p className="text-sm text-muted-foreground">Status</p>
+          <p className="text-2xl font-bold">Belum Berlangganan</p>
           <p className="text-sm text-muted-foreground mt-1">
-            Upgrade to unlock more features
+            Pilih paket di bawah untuk mulai menggunakan semua fitur AI
           </p>
         </div>
       )}
 
       {/* Plans */}
       <div>
-        <h2 className="text-lg font-semibold mb-4">Available Plans</h2>
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <h2 className="text-lg font-semibold mb-4">Pilih Paket Berlangganan</h2>
+        <div className="grid md:grid-cols-3 gap-4">
           {plans.map((plan, index) => (
             <motion.div
               key={plan.name}
@@ -347,7 +333,7 @@ export default function BillingPage() {
               </ul>
               <button
                 onClick={() => handleUpgrade(plan.key)}
-                disabled={currentPlanName === plan.key || plan.key === 'FREE' || processingPlan !== null}
+                disabled={currentPlanName === plan.key || processingPlan !== null}
                 className={`w-full py-2.5 rounded-xl font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${
                   plan.popular
                     ? 'gradient-primary text-white hover:opacity-90'
@@ -361,10 +347,8 @@ export default function BillingPage() {
                   </span>
                 ) : currentPlanName === plan.key ? (
                   'Current Plan'
-                ) : plan.key === 'FREE' ? (
-                  'Free'
                 ) : (
-                  'Upgrade'
+                  'Pilih Paket'
                 )}
               </button>
             </motion.div>
