@@ -26,7 +26,6 @@ const tabs = [
   { id: 'appearance', label: 'Appearance', icon: Palette },
   { id: 'security', label: 'Security', icon: Shield },
   { id: 'language', label: 'Language', icon: Globe },
-  { id: 'api', label: 'API Keys', icon: Key },
 ];
 
 export default function SettingsPage() {
