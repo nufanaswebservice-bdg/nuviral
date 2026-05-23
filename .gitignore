@@ -37,10 +37,10 @@ coverage/
 prisma/migrations/
 
 # Uploads & Renders
-uploads/
-renders/
-thumbnails/
-temp/
+/uploads/
+/renders/
+/thumbnails/
+/temp/
 
 # Docker
 docker/data/
