@@ -154,8 +154,26 @@ Rules:
     fs.writeFileSync(videoFile, vb);
     console.log(`[render] Video: ${(vb.length / 1024 / 1024).toFixed(1)}MB`);
 
-    // STEP 3: Generate voiceover IN ORIGINAL LANGUAGE (Bahasa Indonesia)
-    // IMPORTANT: Use the original script text, NOT the translated prompt
+    // STEP 3: Force correct aspect ratio with FFmpeg
+    let processedVideoFile = videoFile;
+    if (hasFfmpeg()) {
+      try {
+        processedVideoFile = path.join(outputDir, `ar-${ts}.mp4`);
+        if (isPortrait) {
+          // Force 9:16 portrait (1080x1920) - crop center if landscape, or pad if needed
+          execSync(`ffmpeg -y -i "${videoFile}" -vf "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920" -c:a copy -movflags +faststart "${processedVideoFile}"`, { stdio: 'pipe', timeout: 60000 });
+        } else {
+          // Force 16:9 landscape (1920x1080)
+          execSync(`ffmpeg -y -i "${videoFile}" -vf "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080" -c:a copy -movflags +faststart "${processedVideoFile}"`, { stdio: 'pipe', timeout: 60000 });
+        }
+        console.log(`[render] Aspect ratio corrected to ${aspectRatio}`);
+      } catch (e) {
+        console.log(`[render] Aspect ratio correction failed, using original: ${e.message}`);
+        processedVideoFile = videoFile;
+      }
+    }
+
+    // STEP 4: Generate voiceover IN ORIGINAL LANGUAGE (Bahasa Indonesia)
     let audioFile = null;
     if (OPENAI_API_KEY && voiceoverText.trim()) {
       console.log(`[render] TTS (original language): "${voiceoverText.substring(0, 40)}..."`);
@@ -165,7 +183,7 @@ Rules:
         body: JSON.stringify({
           model: 'tts-1-hd',
           voice: voice,
-          input: voiceoverText, // Original language (Bahasa Indonesia)
+          input: voiceoverText,
           speed: 1.0,
         }),
       });
@@ -179,18 +197,17 @@ Rules:
       }
     }
 
-    // STEP 4: Merge video + voiceover
-    let finalFile = videoFile;
+    // STEP 5: Merge video + voiceover
+    let finalFile = processedVideoFile;
     if (audioFile && hasFfmpeg()) {
       console.log('[render] Merging video + voiceover...');
       finalFile = path.join(outputDir, `f-${ts}.mp4`);
       try {
-        // Use -shortest so video length determines final duration
-        execSync(`ffmpeg -y -i "${videoFile}" -i "${audioFile}" -c:v copy -c:a aac -b:a 192k -shortest -movflags +faststart "${finalFile}"`, { stdio: 'pipe', timeout: 30000 });
+        execSync(`ffmpeg -y -i "${processedVideoFile}" -i "${audioFile}" -c:v copy -c:a aac -b:a 192k -shortest -movflags +faststart "${finalFile}"`, { stdio: 'pipe', timeout: 30000 });
         console.log('[render] Merge OK');
       } catch (e) {
         console.log('[render] Merge failed, returning video only');
-        finalFile = videoFile;
+        finalFile = processedVideoFile;
       }
     }
 
@@ -200,8 +217,9 @@ Rules:
 
     // Cleanup
     try { fs.unlinkSync(videoFile); } catch (e) {}
+    try { if (processedVideoFile !== videoFile) fs.unlinkSync(processedVideoFile); } catch (e) {}
     try { if (audioFile) fs.unlinkSync(audioFile); } catch (e) {}
-    try { if (finalFile !== videoFile) fs.unlinkSync(finalFile); } catch (e) {}
+    try { if (finalFile !== videoFile && finalFile !== processedVideoFile) fs.unlinkSync(finalFile); } catch (e) {}
 
     res.set({ 'Content-Type': 'video/mp4', 'Content-Disposition': `attachment; filename="nuviral-${ts}.mp4"`, 'Content-Length': buf.length });
     res.send(buf);
