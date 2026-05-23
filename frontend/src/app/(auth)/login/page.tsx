@@ -26,19 +26,15 @@ export default function LoginPage() {
     const password = formData.get('password') as string;
 
     // Demo credentials check
-    if (
-      (email === 'demo@viralai.com' && password === 'Demo123!') ||
-      (email === 'admin@viralai.com' && password === 'Admin123!')
-    ) {
-      // Simulate login delay
+    if (email && password) {
       setTimeout(() => {
-        localStorage.setItem('accessToken', 'demo-token');
-        localStorage.setItem('user', JSON.stringify({ email, name: email === 'admin@viralai.com' ? 'Admin' : 'Demo User', role: email === 'admin@viralai.com' ? 'ADMIN' : 'USER' }));
+        localStorage.setItem('accessToken', 'email-token');
+        localStorage.setItem('user', JSON.stringify({ email, name: email.split('@')[0], role: 'USER' }));
         router.push('/dashboard');
       }, 1000);
     } else {
       setTimeout(() => {
-        setError('Invalid credentials. Use demo account below.');
+        setError('Please enter email and password');
         setIsLoading(false);
       }, 1000);
     }
@@ -104,13 +100,6 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Demo Credentials */}
-          <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 mb-4">
-            <p className="text-xs font-medium text-primary mb-1">🔑 Demo Credentials:</p>
-            <p className="text-xs text-muted-foreground">Email: <code className="text-primary">demo@viralai.com</code></p>
-            <p className="text-xs text-muted-foreground">Password: <code className="text-primary">Demo123!</code></p>
-          </div>
-
           {error && (
             <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 mb-4">
               <p className="text-xs text-destructive">{error}</p>
@@ -125,7 +114,6 @@ export default function LoginPage() {
                 <input
                   type="email"
                   name="email"
-                  defaultValue="demo@viralai.com"
                   placeholder="you@example.com"
                   className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-background focus:border-primary focus:ring-1 focus:ring-primary outline-none transition"
                   required
@@ -140,7 +128,6 @@ export default function LoginPage() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   name="password"
-                  defaultValue="Demo123!"
                   placeholder="Enter your password"
                   className="w-full pl-10 pr-12 py-3 rounded-xl border border-border bg-background focus:border-primary focus:ring-1 focus:ring-primary outline-none transition"
                   required
