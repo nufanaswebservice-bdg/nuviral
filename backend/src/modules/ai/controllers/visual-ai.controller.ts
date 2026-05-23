@@ -1,8 +1,10 @@
-import { Controller, Post, Body, UseGuards, Req, UploadedFile, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Req, UploadedFile, UploadedFiles, UseInterceptors, BadRequestException } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { VisualAnalysisService } from '../services/visual-analysis.service';
+
+const MAX_UPLOAD_IMAGES = 10;
 
 @ApiTags('AI Visual Analysis')
 @ApiBearerAuth()
@@ -15,15 +17,27 @@ export class VisualAiController {
   @UseInterceptors(FileInterceptor('image'))
   @ApiOperation({ summary: 'Analyze uploaded image with AI Vision' })
   async analyzeImage(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No image file provided');
+    }
     // In production, upload to S3/R2 and get URL
     const imageUrl = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
     return this.visualAnalysis.analyzeImage(imageUrl);
   }
 
   @Post('analyze-images')
-  @UseInterceptors(FilesInterceptor('images', 20))
-  @ApiOperation({ summary: 'Analyze multiple images' })
+  @UseInterceptors(FilesInterceptor('images', MAX_UPLOAD_IMAGES))
+  @ApiOperation({ summary: 'Analyze multiple images (max 10)' })
   async analyzeImages(@UploadedFiles() files: Express.Multer.File[]) {
+    if (!files || files.length === 0) {
+      throw new BadRequestException('No image files provided');
+    }
+    if (files.length > MAX_UPLOAD_IMAGES) {
+      throw new BadRequestException(
+        `Too many images: ${files.length}. Maximum allowed is ${MAX_UPLOAD_IMAGES} per request.`,
+      );
+    }
+
     const results = await Promise.all(
       files.map(async (file) => {
         const imageUrl = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
@@ -54,8 +68,8 @@ export class VisualAiController {
   }
 
   @Post('image-to-video')
-  @UseInterceptors(FilesInterceptor('images', 20))
-  @ApiOperation({ summary: 'Generate video from uploaded images' })
+  @UseInterceptors(FilesInterceptor('images', MAX_UPLOAD_IMAGES))
+  @ApiOperation({ summary: 'Generate video from uploaded images (max 10)' })
   async imageToVideo(
     @Req() req: any,
     @UploadedFiles() files: Express.Multer.File[],
@@ -67,6 +81,15 @@ export class VisualAiController {
       subtitleStyle: string;
     },
   ) {
+    if (!files || files.length === 0) {
+      throw new BadRequestException('No image files provided');
+    }
+    if (files.length > MAX_UPLOAD_IMAGES) {
+      throw new BadRequestException(
+        `Too many images: ${files.length}. Maximum allowed is ${MAX_UPLOAD_IMAGES} per request.`,
+      );
+    }
+
     // In production: queue video generation job
     return {
       jobId: `render_${Date.now()}`,

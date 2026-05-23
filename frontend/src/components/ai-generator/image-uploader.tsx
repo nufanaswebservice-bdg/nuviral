@@ -38,7 +38,7 @@ interface ImageUploaderProps {
   maxSizeMB?: number;
 }
 
-export function ImageUploader({ images, onImagesChange, maxImages = 20, maxSizeMB = 10 }: ImageUploaderProps) {
+export function ImageUploader({ images, onImagesChange, maxImages = 10, maxSizeMB = 10 }: ImageUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [analyzing, setAnalyzing] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -58,8 +58,25 @@ export function ImageUploader({ images, onImagesChange, maxImages = 20, maxSizeM
     const maxSize = maxSizeMB * 1024 * 1024;
     const remaining = maxImages - images.length;
 
-    const newImages: UploadedImage[] = Array.from(files)
-      .filter((file) => validTypes.includes(file.type) && file.size <= maxSize)
+    if (remaining <= 0) {
+      alert(`Maximum ${maxImages} images allowed. Please remove some images before adding more.`);
+      return;
+    }
+
+    const validFiles = Array.from(files).filter(
+      (file) => validTypes.includes(file.type) && file.size <= maxSize,
+    );
+
+    if (validFiles.length === 0) {
+      alert('No valid files. Please upload JPG, PNG, or WEBP images under ' + maxSizeMB + 'MB.');
+      return;
+    }
+
+    if (validFiles.length > remaining) {
+      alert(`Only ${remaining} more image(s) can be added. Maximum is ${maxImages} images total.`);
+    }
+
+    const newImages: UploadedImage[] = validFiles
       .slice(0, remaining)
       .map((file) => ({
         id: `img_${Date.now()}_${Math.random().toString(36).slice(2)}`,
