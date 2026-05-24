@@ -42,13 +42,26 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
     }
   };
 
-  const notifications = [
-    { id: 1, title: 'Video berhasil di-render', message: 'Video "Sate Kambing" siap download', time: '2 menit lalu', read: false },
-    { id: 2, title: 'Upload selesai', message: 'Video berhasil diupload ke TikTok', time: '1 jam lalu', read: false },
-    { id: 3, title: 'Selamat datang!', message: 'Akun NuViral kamu sudah aktif', time: '1 hari lalu', read: true },
-  ];
+  const [notifications, setNotifications] = useState<{ id: number; title: string; message: string; time: string; read: boolean }[]>([]);
+
+  useEffect(() => {
+    // Load notifications based on logged-in user
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const userName = user.name || user.email?.split('@')[0] || 'User';
+      setNotifications([
+        { id: 1, title: 'Selamat datang!', message: `Halo ${userName}, akun NuViral kamu sudah aktif`, time: 'Baru saja', read: false },
+      ]);
+    } catch {
+      setNotifications([]);
+    }
+  }, []);
 
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  const markAllRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
 
   return (
     <header className="h-16 border-b border-border bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl sticky top-0 z-30 flex items-center justify-between px-6">
@@ -164,10 +177,14 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
               >
                 <div className="p-3 border-b border-border flex items-center justify-between">
                   <h3 className="text-sm font-semibold">Notifikasi</h3>
-                  <button className="text-xs text-primary hover:underline">Tandai semua dibaca</button>
+                  <button onClick={markAllRead} className="text-xs text-primary hover:underline">Tandai semua dibaca</button>
                 </div>
                 <div className="max-h-72 overflow-y-auto">
-                  {notifications.map((notif) => (
+                  {notifications.length === 0 ? (
+                    <div className="p-6 text-center">
+                      <p className="text-sm text-muted-foreground">Belum ada notifikasi</p>
+                    </div>
+                  ) : notifications.map((notif) => (
                     <div key={notif.id} className={`p-3 border-b border-border last:border-0 hover:bg-accent/50 transition ${!notif.read ? 'bg-primary/5' : ''}`}>
                       <div className="flex items-start gap-2">
                         {!notif.read && <div className="w-2 h-2 rounded-full bg-primary mt-1.5 flex-shrink-0" />}
