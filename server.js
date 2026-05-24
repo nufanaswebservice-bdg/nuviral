@@ -236,25 +236,32 @@ Rules:
     // STEP 4: Generate voiceover IN ORIGINAL LANGUAGE (Bahasa Indonesia)
     let audioFile = null;
     if (OPENAI_API_KEY && voiceoverText.trim()) {
-      console.log(`[render] TTS (original language): "${voiceoverText.substring(0, 40)}..."`);
-      const tts = await fetch('https://api.openai.com/v1/audio/speech', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'tts-1-hd',
-          voice: voice,
-          input: voiceoverText,
-          speed: 1.0,
-        }),
-      });
-      if (tts.ok) {
-        const ab = Buffer.from(await tts.arrayBuffer());
-        audioFile = path.join(outputDir, `a-${ts}.mp3`);
-        fs.writeFileSync(audioFile, ab);
-        console.log(`[render] Voice: ${(ab.length / 1024).toFixed(0)}KB`);
-      } else {
-        console.log(`[render] TTS failed: ${tts.status}`);
+      console.log(`[render] TTS: voice=${voice}, text="${voiceoverText.substring(0, 60)}..."`);
+      try {
+        const tts = await fetch('https://api.openai.com/v1/audio/speech', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'tts-1-hd',
+            voice: voice,
+            input: voiceoverText.substring(0, 4096),
+            speed: 1.0,
+          }),
+        });
+        if (tts.ok) {
+          const ab = Buffer.from(await tts.arrayBuffer());
+          audioFile = path.join(outputDir, `a-${ts}.mp3`);
+          fs.writeFileSync(audioFile, ab);
+          console.log(`[render] ✅ Voice generated: ${(ab.length / 1024).toFixed(0)}KB`);
+        } else {
+          const errText = await tts.text().catch(() => '');
+          console.log(`[render] ❌ TTS failed (${tts.status}): ${errText.substring(0, 200)}`);
+        }
+      } catch (ttsErr) {
+        console.log(`[render] ❌ TTS error: ${ttsErr.message}`);
       }
+    } else {
+      console.log(`[render] Skipping TTS: OPENAI_KEY=${!!OPENAI_API_KEY}, voiceText=${!!voiceoverText.trim()}`);
     }
 
     // STEP 5: Merge video + voiceover
@@ -263,12 +270,22 @@ Rules:
       console.log('[render] Merging video + voiceover...');
       finalFile = path.join(outputDir, `f-${ts}.mp4`);
       try {
-        execSync(`ffmpeg -y -i "${processedVideoFile}" -i "${audioFile}" -c:v copy -c:a aac -b:a 192k -shortest -movflags +faststart "${finalFile}"`, { stdio: 'pipe', timeout: 30000 });
-        console.log('[render] Merge OK');
+        // Re-encode video to ensure compatibility, add audio as AAC
+        execSync(`ffmpeg -y -i "${processedVideoFile}" -i "${audioFile}" -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 192k -shortest -movflags +faststart "${finalFile}"`, { stdio: 'pipe', timeout: 120000 });
+        console.log('[render] ✅ Merge OK (video + voiceover)');
       } catch (e) {
-        console.log('[render] Merge failed, returning video only');
-        finalFile = processedVideoFile;
+        console.log(`[render] ❌ Merge failed: ${e.message}`);
+        // Try simpler merge without re-encoding
+        try {
+          execSync(`ffmpeg -y -i "${processedVideoFile}" -i "${audioFile}" -c:v copy -c:a aac -b:a 192k -shortest "${finalFile}"`, { stdio: 'pipe', timeout: 60000 });
+          console.log('[render] ✅ Merge OK (copy mode)');
+        } catch (e2) {
+          console.log(`[render] ❌ Merge copy also failed: ${e2.message}`);
+          finalFile = processedVideoFile;
+        }
       }
+    } else if (!audioFile) {
+      console.log('[render] No audio file, returning video only');
     }
 
     // Send final video
