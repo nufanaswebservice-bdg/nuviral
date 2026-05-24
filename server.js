@@ -101,10 +101,11 @@ Rules:
     // STEP 2: Generate video with Kling v2.1 Master (supports 5s and 10s native)
     console.log(`[render] Generating video with Kling v2.1 (${aspectRatio}, duration: ${duration})...`);
 
-    // Wan 2.7 supports 2-15s natively, so we only need concat for 20s
+    // Wan 2.1 1.3B: ~$0.10-0.20 per video (very cheap)
+    // Uses num_frames: 81 frames = ~5s, 161 frames = ~10s at 16fps
     const targetDurationSec = duration === 'short' ? 5 : duration === 'long' ? 20 : 10;
-    const klingDuration = targetDurationSec <= 15 ? targetDurationSec : 15; // Max 15s per Wan 2.7 call
-    const clipsNeeded = targetDurationSec <= 15 ? 1 : 2; // Only concat for 20s (15+5 or 10+10)
+    const klingDuration = targetDurationSec <= 10 ? targetDurationSec : 10;
+    const clipsNeeded = targetDurationSec <= 10 ? 1 : 2;
 
     console.log(`[render] Target: ${targetDurationSec}s, Kling duration: ${klingDuration}s, clips: ${clipsNeeded}`);
 
@@ -120,15 +121,12 @@ Rules:
 
       let prediction = null;
 
-      // Try models in order: Wan 2.7 (best prompt accuracy, native 2-15s) -> Seedance 2.0 -> Minimax fallback
+      // Use Wan 2.1 480p (cheapest: ~$0.10-0.20 per video) with good quality
+      // wavespeedai version is optimized and faster
       const models = [
         {
-          name: 'wan-video/wan-2.7-t2v',
-          input: { prompt: clipPrompt, duration: klingDuration, aspect_ratio: aspectRatio, resolution: '720p' }
-        },
-        {
-          name: 'bytedance/seedance-2.0',
-          input: { prompt: clipPrompt, duration: klingDuration, aspect_ratio: aspectRatio }
+          name: 'wan-video/wan-2.1-1.3b',
+          input: { prompt: clipPrompt, num_frames: klingDuration <= 5 ? 81 : 161, num_inference_steps: 20, fps: 16, aspect_ratio: aspectRatio }
         },
         {
           name: 'minimax/video-01',
