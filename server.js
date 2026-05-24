@@ -231,16 +231,16 @@ Rules:
       }
     }
 
-    // STEP 4: Generate voiceover IN ORIGINAL LANGUAGE (Bahasa Indonesia)
+    // STEP 4: Generate voiceover IN ORIGINAL LANGUAGE (auto-detect: Indonesian/English)
     let audioFile = null;
     if (OPENAI_API_KEY && voiceoverText.trim()) {
-      console.log(`[render] TTS: voice=${voice}, text="${voiceoverText.substring(0, 60)}..."`);
+      console.log(`[render] TTS: voice=${voice}, lang=auto, text="${voiceoverText.substring(0, 80)}..."`);
       try {
         const tts = await fetch('https://api.openai.com/v1/audio/speech', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            model: 'tts-1-hd',
+            model: 'tts-1',
             voice: voice,
             input: voiceoverText.substring(0, 4096),
             speed: 1.0,
@@ -250,7 +250,7 @@ Rules:
           const ab = Buffer.from(await tts.arrayBuffer());
           audioFile = path.join(outputDir, `a-${ts}.mp3`);
           fs.writeFileSync(audioFile, ab);
-          console.log(`[render] ✅ Voice generated: ${(ab.length / 1024).toFixed(0)}KB`);
+          console.log(`[render] ✅ Voiceover generated: ${(ab.length / 1024).toFixed(0)}KB`);
         } else {
           const errText = await tts.text().catch(() => '');
           console.log(`[render] ❌ TTS failed (${tts.status}): ${errText.substring(0, 200)}`);
@@ -268,22 +268,22 @@ Rules:
       console.log('[render] Merging video + voiceover...');
       finalFile = path.join(outputDir, `f-${ts}.mp4`);
       try {
-        // Re-encode video to ensure compatibility, add audio as AAC
-        execSync(`ffmpeg -y -i "${processedVideoFile}" -i "${audioFile}" -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 192k -shortest -movflags +faststart "${finalFile}"`, { stdio: 'pipe', timeout: 120000 });
-        console.log('[render] ✅ Merge OK (video + voiceover)');
+        // Method 1: Add audio to video (map video from first input, audio from second)
+        execSync(`ffmpeg -y -i "${processedVideoFile}" -i "${audioFile}" -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 128k -shortest -movflags +faststart "${finalFile}"`, { stdio: 'pipe', timeout: 120000 });
+        console.log('[render] ✅ Merge OK');
       } catch (e) {
-        console.log(`[render] ❌ Merge failed: ${e.message}`);
-        // Try simpler merge without re-encoding
+        console.log(`[render] Merge method 1 failed, trying method 2...`);
         try {
-          execSync(`ffmpeg -y -i "${processedVideoFile}" -i "${audioFile}" -c:v copy -c:a aac -b:a 192k -shortest "${finalFile}"`, { stdio: 'pipe', timeout: 60000 });
-          console.log('[render] ✅ Merge OK (copy mode)');
+          // Method 2: Re-encode everything
+          execSync(`ffmpeg -y -i "${processedVideoFile}" -i "${audioFile}" -map 0:v:0 -map 1:a:0 -c:v libx264 -preset ultrafast -crf 28 -c:a aac -b:a 128k -shortest -movflags +faststart "${finalFile}"`, { stdio: 'pipe', timeout: 120000 });
+          console.log('[render] ✅ Merge OK (re-encoded)');
         } catch (e2) {
-          console.log(`[render] ❌ Merge copy also failed: ${e2.message}`);
+          console.log(`[render] ❌ All merge methods failed: ${e2.message}`);
           finalFile = processedVideoFile;
         }
       }
     } else if (!audioFile) {
-      console.log('[render] No audio file, returning video only');
+      console.log('[render] ⚠️ No voiceover audio generated, returning video only');
     }
 
     // Send final video
