@@ -56,17 +56,19 @@ export default function VideoSamplesPage() {
     loadSamples();
   }, []);
 
-  const loadSamples = () => {
+  const loadSamples = async () => {
     try {
-      const saved = JSON.parse(localStorage.getItem('nuviral-admin-video-samples') || '[]');
-      setSamples(saved);
+      const res = await fetch(`${API_URL}/video-samples`);
+      if (res.ok) {
+        const data = await res.json();
+        setSamples(data);
+      }
     } catch {
       setSamples([]);
     }
   };
 
   const saveSamples = (data: VideoSample[]) => {
-    localStorage.setItem('nuviral-admin-video-samples', JSON.stringify(data));
     setSamples(data);
   };
 
@@ -97,58 +99,89 @@ export default function VideoSamplesPage() {
     setUploading(true);
     setUploadProgress(0);
 
-    // Simulate upload progress
-    const progressInterval = setInterval(() => {
-      setUploadProgress(prev => Math.min(prev + 10, 90));
-    }, 200);
-
     try {
-      // For now, store video as blob URL (in production, upload to Cloudflare R2/S3)
-      const videoUrl = form.videoPreview || editingSample?.videoUrl || '';
-      const thumbnailUrl = form.thumbnailPreview || editingSample?.thumbnailUrl || '';
+      if (form.videoFile) {
+        // Convert file to base64 and upload to server (R2)
+        setUploadProgress(10);
+        const reader = new FileReader();
+        const fileBase64 = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => {
+            const base64 = (reader.result as string).split(',')[1];
+            resolve(base64);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(form.videoFile!);
+        });
 
-      const sample: VideoSample = {
-        id: editingSample?.id || `sample-${Date.now()}`,
-        title: form.title,
-        description: form.description,
-        category: form.category,
-        style: form.style,
-        videoUrl,
-        thumbnailUrl,
-        prompt: form.prompt,
-        featured: form.featured,
-        trending: form.trending,
-        views: editingSample?.views || 0,
-        createdAt: editingSample?.createdAt || new Date().toISOString(),
-      };
+        setUploadProgress(40);
 
-      let updated;
-      if (editingSample) {
-        updated = samples.map(s => s.id === editingSample.id ? sample : s);
-      } else {
-        updated = [sample, ...samples];
+        const res = await fetch(`${API_URL}/admin/upload-video`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileBase64,
+            fileName: form.videoFile.name,
+            contentType: form.videoFile.type,
+            title: form.title,
+            description: form.description,
+            category: form.category,
+            style: form.style,
+            prompt: form.prompt,
+            featured: form.featured,
+            trending: form.trending,
+          }),
+        });
+
+        setUploadProgress(80);
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Upload failed');
+        }
+
+        const data = await res.json();
+        setUploadProgress(100);
+        toast.success('Video sample uploaded!');
+        loadSamples();
+        resetForm();
+      } else if (editingSample) {
+        // Update existing sample
+        const res = await fetch(`${API_URL}/admin/video-samples/${editingSample.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: form.title,
+            description: form.description,
+            category: form.category,
+            style: form.style,
+            prompt: form.prompt,
+            featured: form.featured,
+            trending: form.trending,
+          }),
+        });
+
+        if (!res.ok) throw new Error('Update failed');
+        toast.success('Video sample updated!');
+        loadSamples();
+        resetForm();
       }
-
-      clearInterval(progressInterval);
-      setUploadProgress(100);
-
-      saveSamples(updated);
-      toast.success(editingSample ? 'Video sample updated!' : 'Video sample uploaded!');
-      resetForm();
     } catch (err: any) {
-      clearInterval(progressInterval);
-      toast.error(`Upload gagal: ${err.message}`);
+      toast.error(`Gagal: ${err.message}`);
     } finally {
       setUploading(false);
       setUploadProgress(0);
     }
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('Hapus video sample ini?')) return;
-    const updated = samples.filter(s => s.id !== id);
-    saveSamples(updated);
-    toast.success('Video sample deleted');
+    try {
+      await fetch(`${API_URL}/admin/video-samples/${id}`, { method: 'DELETE' });
+      loadSamples();
+      toast.success('Video sample deleted');
+    } catch {
+      toast.error('Gagal menghapus');
+    }
   };
 
   const handleEdit = (sample: VideoSample) => {
@@ -169,14 +202,26 @@ export default function VideoSamplesPage() {
     setShowUpload(true);
   };
 
-  const toggleFeatured = (id: string) => {
-    const updated = samples.map(s => s.id === id ? { ...s, featured: !s.featured } : s);
-    saveSamples(updated);
+  const toggleFeatured = async (id: string) => {
+    const sample = samples.find(s => s.id === id);
+    if (!sample) return;
+    await fetch(`${API_URL}/admin/video-samples/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ featured: !sample.featured }),
+    });
+    loadSamples();
   };
 
-  const toggleTrending = (id: string) => {
-    const updated = samples.map(s => s.id === id ? { ...s, trending: !s.trending } : s);
-    saveSamples(updated);
+  const toggleTrending = async (id: string) => {
+    const sample = samples.find(s => s.id === id);
+    if (!sample) return;
+    await fetch(`${API_URL}/admin/video-samples/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ trending: !sample.trending }),
+    });
+    loadSamples();
   };
 
   const resetForm = () => {

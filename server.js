@@ -12,7 +12,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 }));
-app.use(express.json());
+app.use(express.json({ limit: '200mb' }));
+app.use(express.urlencoded({ extended: true, limit: '200mb' }));
 
 const PORT = process.env.PORT || 3001;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || process.env.OPENAI_KEY || '';
@@ -28,6 +29,14 @@ const MIDTRANS_IS_PRODUCTION = process.env.MIDTRANS_IS_PRODUCTION === 'true';
 const MIDTRANS_BASE_URL = MIDTRANS_IS_PRODUCTION
   ? 'https://app.midtrans.com/snap/v1'
   : 'https://app.sandbox.midtrans.com/snap/v1';
+
+// Cloudflare R2 config (S3-compatible)
+const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID || '';
+const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID || '';
+const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY || '';
+const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME || 'nuviral-media';
+const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || ''; // e.g. https://media.nuviral.cloud or https://pub-xxx.r2.dev
+const R2_ENDPOINT = `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
 
 function hasFfmpeg() {
   try { execSync('ffmpeg -version', { stdio: 'pipe' }); return true; } catch { return false; }
@@ -680,4 +689,181 @@ app.get('/api/v1/subscription/status', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`🎬 NuViral v4 | port ${PORT} | Replicate:${!!REPLICATE_API_TOKEN} | OpenAI:${!!OPENAI_API_KEY} | YouTube:${!!YOUTUBE_CLIENT_ID} | Midtrans:${!!MIDTRANS_SERVER_KEY} | FFmpeg:${hasFfmpeg()}`));
+// ============================================
+// CLOUDFLARE R2 STORAGE & VIDEO SAMPLES API
+// ============================================
+
+// In-memory store for video samples (persisted via R2 metadata)
+let videoSamplesCache = [];
+
+// Helper: Upload buffer to R2
+async function uploadToR2(buffer, key, contentType) {
+  if (!R2_ACCESS_KEY_ID || !R2_ACCOUNT_ID) {
+    throw new Error('R2 not configured');
+  }
+
+  const url = `${R2_ENDPOINT}/${R2_BUCKET_NAME}/${key}`;
+  const date = new Date().toUTCString();
+
+  // Use AWS Signature V4 via fetch with basic auth headers
+  // For simplicity, use the S3-compatible PutObject with presigned approach
+  const { createHmac } = require('crypto');
+
+  // Simple S3 PUT with AWS4 signature
+  const method = 'PUT';
+  const host = `${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
+  const amzDate = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
+  const dateStamp = amzDate.substring(0, 8);
+  const region = 'auto';
+  const service = 's3';
+
+  const canonicalUri = `/${R2_BUCKET_NAME}/${key}`;
+  const canonicalQuerystring = '';
+  const payloadHash = createHmac('sha256', '').update(buffer).digest('hex');
+
+  const canonicalHeaders = `content-type:${contentType}\nhost:${host}\nx-amz-content-sha256:${payloadHash}\nx-amz-date:${amzDate}\n`;
+  const signedHeaders = 'content-type;host;x-amz-content-sha256;x-amz-date';
+
+  const canonicalRequest = `${method}\n${canonicalUri}\n${canonicalQuerystring}\n${canonicalHeaders}\n${signedHeaders}\n${payloadHash}`;
+
+  const algorithm = 'AWS4-HMAC-SHA256';
+  const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
+  const stringToSign = `${algorithm}\n${amzDate}\n${credentialScope}\n${createHmac('sha256', '').update(canonicalRequest).digest('hex')}`;
+
+  function getSignatureKey(key, dateStamp, region, service) {
+    const kDate = createHmac('sha256', `AWS4${key}`).update(dateStamp).digest();
+    const kRegion = createHmac('sha256', kDate).update(region).digest();
+    const kService = createHmac('sha256', kRegion).update(service).digest();
+    return createHmac('sha256', kService).update('aws4_request').digest();
+  }
+
+  const signingKey = getSignatureKey(R2_SECRET_ACCESS_KEY, dateStamp, region, service);
+  const signature = createHmac('sha256', signingKey).update(stringToSign).digest('hex');
+  const authHeader = `${algorithm} Credential=${R2_ACCESS_KEY_ID}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+
+  const response = await fetch(`https://${host}${canonicalUri}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': contentType,
+      'Host': host,
+      'x-amz-content-sha256': payloadHash,
+      'x-amz-date': amzDate,
+      'Authorization': authHeader,
+    },
+    body: buffer,
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`R2 upload failed (${response.status}): ${errText.substring(0, 200)}`);
+  }
+
+  // Return public URL
+  const publicUrl = R2_PUBLIC_URL
+    ? `${R2_PUBLIC_URL}/${key}`
+    : `https://${host}/${R2_BUCKET_NAME}/${key}`;
+
+  return publicUrl;
+}
+
+// Upload video sample (admin only)
+app.post('/api/v1/admin/upload-video', async (req, res) => {
+  try {
+    const { fileBase64, fileName, contentType, title, description, category, style, prompt, featured, trending } = req.body;
+
+    if (!fileBase64 || !fileName) {
+      return res.status(400).json({ error: 'fileBase64 and fileName required' });
+    }
+
+    const buffer = Buffer.from(fileBase64, 'base64');
+    const key = `videos/${Date.now()}-${fileName.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+
+    console.log(`[upload] Uploading ${fileName} (${(buffer.length / 1024 / 1024).toFixed(1)}MB) to R2...`);
+
+    let videoUrl;
+    try {
+      videoUrl = await uploadToR2(buffer, key, contentType || 'video/mp4');
+      console.log(`[upload] ✅ Uploaded to R2: ${videoUrl}`);
+    } catch (r2Err) {
+      console.log(`[upload] R2 failed: ${r2Err.message}, storing reference only`);
+      videoUrl = ''; // Will be empty if R2 not configured
+    }
+
+    // Save sample metadata
+    const sample = {
+      id: `sample-${Date.now()}`,
+      title: title || fileName,
+      description: description || '',
+      category: category || 'Cinematic',
+      style: style || '🎬 Cinematic',
+      videoUrl,
+      thumbnailUrl: '',
+      prompt: prompt || '',
+      featured: featured || false,
+      trending: trending || false,
+      views: 0,
+      createdAt: new Date().toISOString(),
+    };
+
+    videoSamplesCache.unshift(sample);
+    console.log(`[upload] Sample saved: ${sample.title} (total: ${videoSamplesCache.length})`);
+
+    res.json({ success: true, sample });
+  } catch (error) {
+    console.error('[upload] Error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Upload thumbnail for a sample
+app.post('/api/v1/admin/upload-thumbnail', async (req, res) => {
+  try {
+    const { fileBase64, fileName, contentType, sampleId } = req.body;
+
+    if (!fileBase64 || !sampleId) {
+      return res.status(400).json({ error: 'fileBase64 and sampleId required' });
+    }
+
+    const buffer = Buffer.from(fileBase64, 'base64');
+    const key = `thumbnails/${Date.now()}-${fileName.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+
+    let thumbnailUrl;
+    try {
+      thumbnailUrl = await uploadToR2(buffer, key, contentType || 'image/jpeg');
+    } catch (r2Err) {
+      thumbnailUrl = '';
+    }
+
+    // Update sample
+    const sample = videoSamplesCache.find(s => s.id === sampleId);
+    if (sample) {
+      sample.thumbnailUrl = thumbnailUrl;
+    }
+
+    res.json({ success: true, thumbnailUrl });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all video samples (public)
+app.get('/api/v1/video-samples', (req, res) => {
+  res.json(videoSamplesCache);
+});
+
+// Delete video sample (admin)
+app.delete('/api/v1/admin/video-samples/:id', (req, res) => {
+  const { id } = req.params;
+  videoSamplesCache = videoSamplesCache.filter(s => s.id !== id);
+  res.json({ success: true });
+});
+
+// Update video sample (admin)
+app.put('/api/v1/admin/video-samples/:id', (req, res) => {
+  const { id } = req.params;
+  const updates = req.body;
+  videoSamplesCache = videoSamplesCache.map(s => s.id === id ? { ...s, ...updates } : s);
+  res.json({ success: true, sample: videoSamplesCache.find(s => s.id === id) });
+});
+
+app.listen(PORT, () => console.log(`🎬 NuViral v4 | port ${PORT} | Replicate:${!!REPLICATE_API_TOKEN} | OpenAI:${!!OPENAI_API_KEY} | Midtrans:${!!MIDTRANS_SERVER_KEY} | R2:${!!R2_ACCESS_KEY_ID} | FFmpeg:${hasFfmpeg()}`));

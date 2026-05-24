@@ -25,13 +25,20 @@ export default function MediaPage() {
   const [filter, setFilter] = useState('all');
 
   useEffect(() => {
-    // Load video samples uploaded by admin
-    try {
-      const saved = JSON.parse(localStorage.getItem('nuviral-admin-video-samples') || '[]');
-      setSamples(saved);
-    } catch {
-      setSamples([]);
-    }
+    // Load video samples from server API
+    const fetchSamples = async () => {
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nuviral-production.up.railway.app/api/v1';
+        const res = await fetch(`${API_URL}/video-samples`);
+        if (res.ok) {
+          const data = await res.json();
+          setSamples(data);
+        }
+      } catch {
+        setSamples([]);
+      }
+    };
+    fetchSamples();
   }, []);
 
   const filteredSamples = filter === 'all'
