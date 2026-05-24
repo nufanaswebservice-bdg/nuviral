@@ -51,9 +51,11 @@ function extractUserEmail(req) {
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
   try {
     const token = authHeader.split(' ')[1];
-    if (!token || token === 'null' || token === 'undefined') return null;
-    // Firebase tokens and our custom tokens have email in payload
-    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+    if (!token || token === 'null' || token === 'undefined' || token === 'email-token') return null;
+    // Try to decode JWT payload (works for Firebase tokens and our custom tokens)
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
     return payload.email || null;
   } catch {
     return null;

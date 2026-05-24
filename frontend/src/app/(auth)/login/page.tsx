@@ -26,8 +26,13 @@ export default function LoginPage() {
     // Demo credentials check
     if (email && password) {
       setTimeout(async () => {
-        localStorage.setItem('accessToken', 'email-token');
-        localStorage.setItem('user', JSON.stringify({ email, name: email.split('@')[0], role: 'USER' }));
+        // Create a simple JWT-like token with email in payload
+        const payload = { email, name: email.split('@')[0], role: 'USER' };
+        const encodedPayload = btoa(JSON.stringify(payload));
+        const token = `eyJ0eXAiOiJKV1QiLCJhbGciOiJub25lIn0.${encodedPayload}.signature`;
+        
+        localStorage.setItem('accessToken', token);
+        localStorage.setItem('user', JSON.stringify(payload));
         // Track login
         try {
           await fetch('https://nuviral-production.up.railway.app/api/v1/auth/track-login', {
