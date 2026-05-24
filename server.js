@@ -690,6 +690,80 @@ app.get('/api/v1/subscription/status', async (req, res) => {
 });
 
 // ============================================
+// USER MANAGEMENT (Admin)
+// ============================================
+
+const USERS_FILE = '/tmp/nuviral-users.json';
+
+function loadUsersFromDisk() {
+  try {
+    if (fs.existsSync(USERS_FILE)) {
+      return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+    }
+  } catch (e) {}
+  return [];
+}
+
+function saveUsersToDisk(users) {
+  try { fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2)); } catch (e) {}
+}
+
+let usersCache = loadUsersFromDisk();
+
+// Track user login (called from frontend after login)
+app.post('/api/v1/auth/track-login', (req, res) => {
+  const { email, name, avatar, provider } = req.body;
+  if (!email) return res.status(400).json({ error: 'email required' });
+
+  const existing = usersCache.find(u => u.email === email);
+  if (existing) {
+    existing.lastLogin = new Date().toISOString();
+    existing.loginCount = (existing.loginCount || 0) + 1;
+    existing.name = name || existing.name;
+    existing.avatar = avatar || existing.avatar;
+  } else {
+    usersCache.push({
+      id: `user-${Date.now()}`,
+      email,
+      name: name || email.split('@')[0],
+      avatar: avatar || '',
+      provider: provider || 'email',
+      role: 'USER',
+      status: 'active',
+      plan: null,
+      createdAt: new Date().toISOString(),
+      lastLogin: new Date().toISOString(),
+      loginCount: 1,
+      videosGenerated: 0,
+    });
+  }
+  saveUsersToDisk(usersCache);
+  res.json({ success: true });
+});
+
+// Get all users (admin)
+app.get('/api/v1/admin/users', (req, res) => {
+  res.json(usersCache);
+});
+
+// Update user (admin)
+app.put('/api/v1/admin/users/:id', (req, res) => {
+  const { id } = req.params;
+  const updates = req.body;
+  usersCache = usersCache.map(u => u.id === id ? { ...u, ...updates } : u);
+  saveUsersToDisk(usersCache);
+  res.json({ success: true });
+});
+
+// Delete/ban user (admin)
+app.delete('/api/v1/admin/users/:id', (req, res) => {
+  const { id } = req.params;
+  usersCache = usersCache.filter(u => u.id !== id);
+  saveUsersToDisk(usersCache);
+  res.json({ success: true });
+});
+
+// ============================================
 // CLOUDFLARE R2 STORAGE & VIDEO SAMPLES API
 // ============================================
 

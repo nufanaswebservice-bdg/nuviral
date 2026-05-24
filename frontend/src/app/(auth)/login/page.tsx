@@ -25,9 +25,16 @@ export default function LoginPage() {
 
     // Demo credentials check
     if (email && password) {
-      setTimeout(() => {
+      setTimeout(async () => {
         localStorage.setItem('accessToken', 'email-token');
         localStorage.setItem('user', JSON.stringify({ email, name: email.split('@')[0], role: 'USER' }));
+        // Track login
+        try {
+          await fetch('https://nuviral-production.up.railway.app/api/v1/auth/track-login', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, name: email.split('@')[0], provider: 'email' }),
+          });
+        } catch {}
         router.push('/dashboard');
       }, 1000);
     } else {
@@ -73,6 +80,13 @@ export default function LoginPage() {
                   avatar: user.photoURL,
                   role: 'USER',
                 }));
+                // Track login
+                try {
+                  await fetch('https://nuviral-production.up.railway.app/api/v1/auth/track-login', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: user.email, name: user.displayName, avatar: user.photoURL, provider: 'google' }),
+                  });
+                } catch {}
                 router.push('/dashboard');
               } catch (err: any) {
                 setError(err.message || 'Google login failed');
