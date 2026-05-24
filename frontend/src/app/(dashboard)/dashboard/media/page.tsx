@@ -46,153 +46,8 @@ const folders: MediaFolder[] = [
   { id: '5', name: 'Brand Assets', itemCount: 8 },
 ];
 
-// AI Video Showcase samples (public stock videos representing AI-generated quality)
-const videoShowcase = [
-  {
-    id: 'showcase-1',
-    title: 'Cinematic City Night',
-    description: 'AI Generated — Cyberpunk city at night with neon lights',
-    style: '🎬 Cinematic',
-    videoUrl: 'https://videos.pexels.com/video-files/3129671/3129671-uhd_2560_1440_30fps.mp4',
-    thumbnail: 'https://images.pexels.com/videos/3129671/free-video-3129671.jpg?auto=compress&w=400',
-    duration: '0:10',
-  },
-  {
-    id: 'showcase-2',
-    title: 'Sunset di Pantai',
-    description: 'AI Generated — Beautiful ocean sunset with golden hour',
-    style: '🌿 Nature',
-    videoUrl: 'https://videos.pexels.com/video-files/1093662/1093662-hd_1920_1080_30fps.mp4',
-    thumbnail: 'https://images.pexels.com/videos/1093662/free-video-1093662.jpg?auto=compress&w=400',
-    duration: '0:12',
-  },
-  {
-    id: 'showcase-3',
-    title: 'Food Close-up Sizzling',
-    description: 'AI Generated — Delicious food with steam and close-up',
-    style: '🍜 Food',
-    videoUrl: 'https://videos.pexels.com/video-files/3195394/3195394-uhd_2560_1440_25fps.mp4',
-    thumbnail: 'https://images.pexels.com/videos/3195394/free-video-3195394.jpg?auto=compress&w=400',
-    duration: '0:08',
-  },
-  {
-    id: 'showcase-4',
-    title: 'Motivational Fitness',
-    description: 'AI Generated — Gym workout motivation content',
-    style: '💪 Motivasi',
-    videoUrl: 'https://videos.pexels.com/video-files/4761437/4761437-uhd_2560_1440_25fps.mp4',
-    thumbnail: 'https://images.pexels.com/videos/4761437/free-video-4761437.jpg?auto=compress&w=400',
-    duration: '0:09',
-  },
-  {
-    id: 'showcase-5',
-    title: 'Neon Lights Abstract',
-    description: 'AI Generated — Colorful neon abstract visuals',
-    style: '💜 Neon/Cyberpunk',
-    videoUrl: 'https://videos.pexels.com/video-files/5765826/5765826-hd_1080_1920_25fps.mp4',
-    thumbnail: 'https://images.pexels.com/videos/5765826/pexels-photo-5765826.jpeg?auto=compress&w=400',
-    duration: '0:07',
-  },
-  {
-    id: 'showcase-6',
-    title: 'Mountain Landscape',
-    description: 'AI Generated — Stunning mountain aerial view',
-    style: '🌿 Nature',
-    videoUrl: 'https://videos.pexels.com/video-files/2169880/2169880-hd_1920_1080_30fps.mp4',
-    thumbnail: 'https://images.pexels.com/videos/2169880/free-video-2169880.jpg?auto=compress&w=400',
-    duration: '0:11',
-  },
-  {
-    id: 'showcase-7',
-    title: 'Coffee Shop Aesthetic',
-    description: 'AI Generated — Cozy coffee shop ambiance',
-    style: '🎬 Cinematic',
-    videoUrl: 'https://videos.pexels.com/video-files/4424296/4424296-uhd_2560_1440_24fps.mp4',
-    thumbnail: 'https://images.pexels.com/videos/4424296/free-video-4424296.jpg?auto=compress&w=400',
-    duration: '0:08',
-  },
-  {
-    id: 'showcase-8',
-    title: 'Rain on Window',
-    description: 'AI Generated — Moody rain drops on glass',
-    style: '🌑 Dark/Horror',
-    videoUrl: 'https://videos.pexels.com/video-files/2491284/2491284-hd_1920_1080_24fps.mp4',
-    thumbnail: 'https://images.pexels.com/videos/2491284/free-video-2491284.jpg?auto=compress&w=400',
-    duration: '0:10',
-  },
-  {
-    id: 'showcase-9',
-    title: 'Street Food Night Market',
-    description: 'AI Generated — Asian night market food stalls',
-    style: '🍜 Food',
-    videoUrl: 'https://videos.pexels.com/video-files/4168964/4168964-uhd_2560_1440_25fps.mp4',
-    thumbnail: 'https://images.pexels.com/videos/4168964/free-video-4168964.jpg?auto=compress&w=400',
-    duration: '0:12',
-  },
-  {
-    id: 'showcase-10',
-    title: 'Ocean Waves Close-up',
-    description: 'AI Generated — Crystal clear ocean waves',
-    style: '🌿 Nature',
-    videoUrl: 'https://videos.pexels.com/video-files/1918465/1918465-hd_1920_1080_30fps.mp4',
-    thumbnail: 'https://images.pexels.com/videos/1918465/free-video-1918465.jpg?auto=compress&w=400',
-    duration: '0:09',
-  },
-  {
-    id: 'showcase-11',
-    title: 'City Traffic Timelapse',
-    description: 'AI Generated — Fast-paced urban traffic at night',
-    style: '🎬 Cinematic',
-    videoUrl: 'https://videos.pexels.com/video-files/1721294/1721294-hd_1920_1080_24fps.mp4',
-    thumbnail: 'https://images.pexels.com/videos/1721294/free-video-1721294.jpg?auto=compress&w=400',
-    duration: '0:14',
-  },
-  {
-    id: 'showcase-12',
-    title: 'Cooking Flames',
-    description: 'AI Generated — Chef cooking with fire and flames',
-    style: '🍜 Food',
-    videoUrl: 'https://videos.pexels.com/video-files/3298572/3298572-uhd_2560_1440_30fps.mp4',
-    thumbnail: 'https://images.pexels.com/videos/3298572/free-video-3298572.jpg?auto=compress&w=400',
-    duration: '0:06',
-  },
-  {
-    id: 'showcase-13',
-    title: 'Waterfall Tropical',
-    description: 'AI Generated — Beautiful tropical waterfall',
-    style: '🌿 Nature',
-    videoUrl: 'https://videos.pexels.com/video-files/1448735/1448735-hd_1920_1080_24fps.mp4',
-    thumbnail: 'https://images.pexels.com/videos/1448735/free-video-1448735.jpg?auto=compress&w=400',
-    duration: '0:10',
-  },
-  {
-    id: 'showcase-14',
-    title: 'Yoga & Meditation',
-    description: 'AI Generated — Peaceful yoga and wellness',
-    style: '💪 Motivasi',
-    videoUrl: 'https://videos.pexels.com/video-files/3571264/3571264-uhd_2560_1440_30fps.mp4',
-    thumbnail: 'https://images.pexels.com/videos/3571264/free-video-3571264.jpg?auto=compress&w=400',
-    duration: '0:08',
-  },
-  {
-    id: 'showcase-15',
-    title: 'Fireworks Night Sky',
-    description: 'AI Generated — Spectacular fireworks display',
-    style: '🎬 Cinematic',
-    videoUrl: 'https://videos.pexels.com/video-files/2330780/2330780-hd_1920_1080_24fps.mp4',
-    thumbnail: 'https://images.pexels.com/videos/2330780/free-video-2330780.jpg?auto=compress&w=400',
-    duration: '0:11',
-  },
-  {
-    id: 'showcase-16',
-    title: 'Laptop & Workspace',
-    description: 'AI Generated — Modern tech workspace setup',
-    style: '📦 Product',
-    videoUrl: 'https://videos.pexels.com/video-files/5752729/5752729-hd_1080_1920_25fps.mp4',
-    thumbnail: 'https://images.pexels.com/videos/5752729/pexels-photo-5752729.jpeg?auto=compress&w=400',
-    duration: '0:07',
-  },
-];
+// Video samples loaded from admin uploads (stored in localStorage for now)
+const videoShowcase: any[] = [];
 
 const assets: MediaAsset[] = [
   { id: '1', name: 'city-timelapse-4k.mp4', type: 'video', size: '124 MB', duration: '0:32', uploadedAt: '2 hours ago' },
@@ -383,83 +238,26 @@ export default function MediaPage() {
         </div>
       </div>
 
-      {/* AI Video Showcase */}
-      {!currentFolder && (
+      {/* Video Samples from Admin */}
+      {!currentFolder && videoShowcase.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-muted-foreground">🎬 AI Video Showcase — Contoh Video yang Dibuat NuViral</h3>
+            <h3 className="text-sm font-medium text-muted-foreground">🎬 AI Video Showcase</h3>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {videoShowcase.map((video, index) => (
-              <motion.div
-                key={video.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.05 }}
-                className="group rounded-xl border border-border bg-card overflow-hidden hover:border-primary/30 transition cursor-pointer"
-                onClick={() => {
-                  const modal = document.getElementById(`video-modal-${video.id}`);
-                  if (modal) modal.classList.remove('hidden');
-                }}
-              >
+            {videoShowcase.map((video: any, index: number) => (
+              <div key={video.id} className="group rounded-xl border border-border bg-card overflow-hidden hover:border-primary/30 transition cursor-pointer">
                 <div className="aspect-[9/16] bg-gradient-to-br from-primary/20 to-primary/5 relative overflow-hidden">
-                  {video.thumbnail && (
-                    <img src={video.thumbnail} alt={video.title} className="w-full h-full object-cover" />
-                  )}
-                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                    <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
-                      <Video className="h-5 w-5 text-primary ml-0.5" />
-                    </div>
-                  </div>
-                  <span className="absolute bottom-1.5 right-1.5 text-[10px] bg-black/70 text-white px-1.5 py-0.5 rounded">
-                    {video.duration}
-                  </span>
-                  <span className="absolute top-1.5 left-1.5 text-[9px] bg-primary/90 text-white px-1.5 py-0.5 rounded font-medium">
-                    AI Generated
-                  </span>
+                  {video.thumbnail && <img src={video.thumbnail} alt={video.title} className="w-full h-full object-cover" />}
+                  <span className="absolute top-1.5 left-1.5 text-[9px] bg-primary/90 text-white px-1.5 py-0.5 rounded font-medium">AI Generated</span>
                 </div>
                 <div className="p-2">
                   <p className="text-xs font-medium truncate">{video.title}</p>
                   <p className="text-[10px] text-muted-foreground">{video.style}</p>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
-
-          {/* Video Modals */}
-          {videoShowcase.map((video) => (
-            <div
-              key={`modal-${video.id}`}
-              id={`video-modal-${video.id}`}
-              className="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
-              onClick={(e) => {
-                if (e.target === e.currentTarget) {
-                  (e.currentTarget as HTMLElement).classList.add('hidden');
-                }
-              }}
-            >
-              <div className="w-full max-w-sm mx-4">
-                <div className="rounded-2xl overflow-hidden bg-black">
-                  <video
-                    src={video.videoUrl}
-                    controls
-                    autoPlay
-                    className="w-full aspect-[9/16] max-h-[80vh] object-contain"
-                  />
-                </div>
-                <div className="mt-3 text-center">
-                  <p className="text-white font-medium">{video.title}</p>
-                  <p className="text-white/60 text-sm">{video.description}</p>
-                  <button
-                    onClick={() => document.getElementById(`video-modal-${video.id}`)?.classList.add('hidden')}
-                    className="mt-3 px-4 py-2 rounded-lg bg-white/10 text-white text-sm hover:bg-white/20 transition"
-                  >
-                    Tutup
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
         </div>
       )}
 
