@@ -81,6 +81,17 @@ export default function AdminUsersPage() {
     fetchUsers();
   };
 
+  const handlePlanChange = async (user: UserData, plan: string) => {
+    const token = localStorage.getItem('accessToken') || '';
+    await fetch(`${API_URL}/admin/users/${user.id}/plan`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ plan: plan === 'NONE' ? null : plan }),
+    });
+    toast.success(plan === 'NONE' ? 'Plan removed' : `Plan set to ${plan}`);
+    fetchUsers();
+  };
+
   const filteredUsers = users.filter(u =>
     u.email.toLowerCase().includes(search.toLowerCase()) ||
     u.name.toLowerCase().includes(search.toLowerCase())
@@ -196,6 +207,16 @@ export default function AdminUsersPage() {
 
               {/* Actions */}
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                <select
+                  value={user.plan || 'NONE'}
+                  onChange={(e) => handlePlanChange(user, e.target.value)}
+                  className="text-xs bg-gray-800 border border-white/10 rounded-lg px-2 py-1 text-gray-300"
+                >
+                  <option value="NONE">No Plan</option>
+                  <option value="STARTER">Starter</option>
+                  <option value="PRO">Pro</option>
+                  <option value="AGENCY">Agency</option>
+                </select>
                 <select
                   value={user.role}
                   onChange={(e) => handleRoleChange(user, e.target.value)}

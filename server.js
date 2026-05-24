@@ -902,6 +902,35 @@ app.put('/api/v1/admin/users/:id', requireAdmin, (req, res) => {
   res.json({ success: true });
 });
 
+// Assign plan to user (admin)
+app.put('/api/v1/admin/users/:id/plan', requireAdmin, (req, res) => {
+  const { id } = req.params;
+  const { plan } = req.body;
+
+  // Find user email
+  const user = usersCache.find(u => u.id === id);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const usage = getUserUsage(user.email);
+  if (plan && PLANS[plan]) {
+    usage.plan = plan;
+    usage.videosUsed = 0;
+    usage.aiCreditsUsed = 0;
+    usage.periodStart = new Date().toISOString();
+    usage.periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    console.log(`[admin] Plan ${plan} assigned to ${user.email} (30 days)`);
+  } else {
+    usage.plan = null;
+    usage.videosUsed = 0;
+    usage.aiCreditsUsed = 0;
+    usage.periodStart = null;
+    usage.periodEnd = null;
+    console.log(`[admin] Plan removed from ${user.email}`);
+  }
+  saveUsage(userUsage);
+  res.json({ success: true });
+});
+
 // Delete/ban user (admin)
 app.delete('/api/v1/admin/users/:id', requireAdmin, (req, res) => {
   const { id } = req.params;
