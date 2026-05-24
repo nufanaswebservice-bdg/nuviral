@@ -20,6 +20,11 @@ interface UserData {
   lastLogin: string;
   loginCount: number;
   videosGenerated: number;
+  videosUsed: number;
+  aiCreditsUsed: number;
+  videoLimit: number;
+  periodStart: string | null;
+  periodEnd: string | null;
 }
 
 export default function AdminUsersPage() {
@@ -178,6 +183,14 @@ export default function AdminUsersPage() {
                   <span className="text-[10px] text-gray-600">Login: {user.loginCount}x</span>
                   <span className="text-[10px] text-gray-600">Last: {formatDate(user.lastLogin)}</span>
                   <span className="text-[10px] text-gray-600">Via: {user.provider}</span>
+                  {user.plan && (
+                    <>
+                      <span className="text-[10px] text-violet-400">Video: {user.videosUsed}/{user.videoLimit}</span>
+                      {user.periodEnd && (
+                        <span className="text-[10px] text-gray-600">Exp: {formatDate(user.periodEnd)}</span>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
 

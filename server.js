@@ -875,9 +875,22 @@ app.post('/api/v1/auth/track-login', (req, res) => {
   res.json({ success: true });
 });
 
-// Get all users (admin)
+// Get all users (admin) - includes subscription data
 app.get('/api/v1/admin/users', requireAdmin, (req, res) => {
-  res.json(usersCache);
+  // Merge user data with subscription/usage data
+  const usersWithPlan = usersCache.map(user => {
+    const usage = userUsage[user.email] || {};
+    return {
+      ...user,
+      plan: usage.plan || null,
+      videosUsed: usage.videosUsed || 0,
+      aiCreditsUsed: usage.aiCreditsUsed || 0,
+      periodStart: usage.periodStart || null,
+      periodEnd: usage.periodEnd || null,
+      videoLimit: usage.plan && PLANS[usage.plan] ? PLANS[usage.plan].videoLimit : 0,
+    };
+  });
+  res.json(usersWithPlan);
 });
 
 // Update user (admin)
