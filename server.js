@@ -693,53 +693,70 @@ app.get('/api/v1/subscription/status', async (req, res) => {
 // CLOUDFLARE R2 STORAGE & VIDEO SAMPLES API
 // ============================================
 
-// In-memory store for video samples (persisted via R2 metadata)
-let videoSamplesCache = [];
+// Persistent storage: save samples metadata to /tmp file (survives within same deploy)
+const SAMPLES_FILE = '/tmp/nuviral-video-samples.json';
 
-// Helper: Upload buffer to R2
+function loadSamplesFromDisk() {
+  try {
+    if (fs.existsSync(SAMPLES_FILE)) {
+      return JSON.parse(fs.readFileSync(SAMPLES_FILE, 'utf8'));
+    }
+  } catch (e) { console.log('[samples] Failed to load from disk:', e.message); }
+  return [];
+}
+
+function saveSamplesToDisk(samples) {
+  try {
+    fs.writeFileSync(SAMPLES_FILE, JSON.stringify(samples, null, 2));
+  } catch (e) { console.log('[samples] Failed to save to disk:', e.message); }
+}
+
+let videoSamplesCache = loadSamplesFromDisk();
+
+// Helper: Upload buffer to R2 using S3-compatible basic auth
 async function uploadToR2(buffer, key, contentType) {
   if (!R2_ACCESS_KEY_ID || !R2_ACCOUNT_ID) {
-    throw new Error('R2 not configured');
+    throw new Error('R2 not configured: missing R2_ACCESS_KEY_ID or R2_ACCOUNT_ID');
   }
 
-  const url = `${R2_ENDPOINT}/${R2_BUCKET_NAME}/${key}`;
-  const date = new Date().toUTCString();
+  const { createHash, createHmac } = require('crypto');
 
-  // Use AWS Signature V4 via fetch with basic auth headers
-  // For simplicity, use the S3-compatible PutObject with presigned approach
-  const { createHmac } = require('crypto');
-
-  // Simple S3 PUT with AWS4 signature
   const method = 'PUT';
   const host = `${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
   const amzDate = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
   const dateStamp = amzDate.substring(0, 8);
   const region = 'auto';
   const service = 's3';
-
   const canonicalUri = `/${R2_BUCKET_NAME}/${key}`;
-  const canonicalQuerystring = '';
-  const payloadHash = createHmac('sha256', '').update(buffer).digest('hex');
 
-  const canonicalHeaders = `content-type:${contentType}\nhost:${host}\nx-amz-content-sha256:${payloadHash}\nx-amz-date:${amzDate}\n`;
+  const payloadHash = createHash('sha256').update(buffer).digest('hex');
+
+  const canonicalHeaders = [
+    `content-type:${contentType}`,
+    `host:${host}`,
+    `x-amz-content-sha256:${payloadHash}`,
+    `x-amz-date:${amzDate}`,
+  ].join('\n') + '\n';
+
   const signedHeaders = 'content-type;host;x-amz-content-sha256;x-amz-date';
 
-  const canonicalRequest = `${method}\n${canonicalUri}\n${canonicalQuerystring}\n${canonicalHeaders}\n${signedHeaders}\n${payloadHash}`;
+  const canonicalRequest = [method, canonicalUri, '', canonicalHeaders, signedHeaders, payloadHash].join('\n');
 
-  const algorithm = 'AWS4-HMAC-SHA256';
   const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
-  const stringToSign = `${algorithm}\n${amzDate}\n${credentialScope}\n${createHmac('sha256', '').update(canonicalRequest).digest('hex')}`;
+  const stringToSign = [
+    'AWS4-HMAC-SHA256',
+    amzDate,
+    credentialScope,
+    createHash('sha256').update(canonicalRequest).digest('hex'),
+  ].join('\n');
 
-  function getSignatureKey(key, dateStamp, region, service) {
-    const kDate = createHmac('sha256', `AWS4${key}`).update(dateStamp).digest();
-    const kRegion = createHmac('sha256', kDate).update(region).digest();
-    const kService = createHmac('sha256', kRegion).update(service).digest();
-    return createHmac('sha256', kService).update('aws4_request').digest();
-  }
-
-  const signingKey = getSignatureKey(R2_SECRET_ACCESS_KEY, dateStamp, region, service);
+  const kDate = createHmac('sha256', `AWS4${R2_SECRET_ACCESS_KEY}`).update(dateStamp).digest();
+  const kRegion = createHmac('sha256', kDate).update(region).digest();
+  const kService = createHmac('sha256', kRegion).update(service).digest();
+  const signingKey = createHmac('sha256', kService).update('aws4_request').digest();
   const signature = createHmac('sha256', signingKey).update(stringToSign).digest('hex');
-  const authHeader = `${algorithm} Credential=${R2_ACCESS_KEY_ID}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+
+  const authHeader = `AWS4-HMAC-SHA256 Credential=${R2_ACCESS_KEY_ID}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
 
   const response = await fetch(`https://${host}${canonicalUri}`, {
     method: 'PUT',
@@ -749,20 +766,18 @@ async function uploadToR2(buffer, key, contentType) {
       'x-amz-content-sha256': payloadHash,
       'x-amz-date': amzDate,
       'Authorization': authHeader,
+      'Content-Length': buffer.length.toString(),
     },
     body: buffer,
   });
 
   if (!response.ok) {
     const errText = await response.text();
-    throw new Error(`R2 upload failed (${response.status}): ${errText.substring(0, 200)}`);
+    console.error(`[R2] Upload failed (${response.status}):`, errText.substring(0, 300));
+    throw new Error(`R2 upload failed (${response.status})`);
   }
 
-  // Return public URL
-  const publicUrl = R2_PUBLIC_URL
-    ? `${R2_PUBLIC_URL}/${key}`
-    : `https://${host}/${R2_BUCKET_NAME}/${key}`;
-
+  const publicUrl = R2_PUBLIC_URL ? `${R2_PUBLIC_URL}/${key}` : `https://${host}/${R2_BUCKET_NAME}/${key}`;
   return publicUrl;
 }
 
@@ -806,7 +821,17 @@ app.post('/api/v1/admin/upload-video', async (req, res) => {
     };
 
     videoSamplesCache.unshift(sample);
+    saveSamplesToDisk(videoSamplesCache);
     console.log(`[upload] Sample saved: ${sample.title} (total: ${videoSamplesCache.length})`);
+
+    // Also save metadata to R2 for persistence across deploys
+    try {
+      const metadataBuffer = Buffer.from(JSON.stringify(videoSamplesCache, null, 2));
+      await uploadToR2(metadataBuffer, 'metadata/samples.json', 'application/json');
+      console.log('[upload] Metadata synced to R2');
+    } catch (e) {
+      console.log(`[upload] Metadata sync failed (non-critical): ${e.message}`);
+    }
 
     res.json({ success: true, sample });
   } catch (error) {
@@ -855,6 +880,7 @@ app.get('/api/v1/video-samples', (req, res) => {
 app.delete('/api/v1/admin/video-samples/:id', (req, res) => {
   const { id } = req.params;
   videoSamplesCache = videoSamplesCache.filter(s => s.id !== id);
+  saveSamplesToDisk(videoSamplesCache);
   res.json({ success: true });
 });
 
@@ -863,7 +889,27 @@ app.put('/api/v1/admin/video-samples/:id', (req, res) => {
   const { id } = req.params;
   const updates = req.body;
   videoSamplesCache = videoSamplesCache.map(s => s.id === id ? { ...s, ...updates } : s);
+  saveSamplesToDisk(videoSamplesCache);
   res.json({ success: true, sample: videoSamplesCache.find(s => s.id === id) });
 });
 
-app.listen(PORT, () => console.log(`🎬 NuViral v4 | port ${PORT} | Replicate:${!!REPLICATE_API_TOKEN} | OpenAI:${!!OPENAI_API_KEY} | Midtrans:${!!MIDTRANS_SERVER_KEY} | R2:${!!R2_ACCESS_KEY_ID} | FFmpeg:${hasFfmpeg()}`));
+app.listen(PORT, async () => {
+  console.log(`🎬 NuViral v4 | port ${PORT} | Replicate:${!!REPLICATE_API_TOKEN} | OpenAI:${!!OPENAI_API_KEY} | Midtrans:${!!MIDTRANS_SERVER_KEY} | R2:${!!R2_ACCESS_KEY_ID} | FFmpeg:${hasFfmpeg()}`);
+
+  // Try to load samples metadata from R2 on startup
+  if (R2_PUBLIC_URL && videoSamplesCache.length === 0) {
+    try {
+      const res = await fetch(`${R2_PUBLIC_URL}/metadata/samples.json`);
+      if (res.ok) {
+        const data = await res.json();
+        videoSamplesCache = data;
+        saveSamplesToDisk(videoSamplesCache);
+        console.log(`[startup] Loaded ${data.length} samples from R2 metadata`);
+      }
+    } catch (e) {
+      console.log('[startup] No R2 metadata found, starting fresh');
+    }
+  } else if (videoSamplesCache.length > 0) {
+    console.log(`[startup] Loaded ${videoSamplesCache.length} samples from disk cache`);
+  }
+});
