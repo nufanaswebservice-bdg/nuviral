@@ -33,7 +33,10 @@ export default function AdminUsersPage() {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch(`${API_URL}/admin/users`);
+      const token = localStorage.getItem('accessToken') || '';
+      const res = await fetch(`${API_URL}/admin/users`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
       if (res.ok) {
         const data = await res.json();
         setUsers(data);
@@ -44,9 +47,10 @@ export default function AdminUsersPage() {
 
   const handleSuspend = async (user: UserData) => {
     const newStatus = user.status === 'suspended' ? 'active' : 'suspended';
+    const token = localStorage.getItem('accessToken') || '';
     await fetch(`${API_URL}/admin/users/${user.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ status: newStatus }),
     });
     toast.success(newStatus === 'suspended' ? 'User suspended' : 'User activated');
@@ -55,15 +59,17 @@ export default function AdminUsersPage() {
 
   const handleDelete = async (user: UserData) => {
     if (!confirm(`Hapus user ${user.email}?`)) return;
-    await fetch(`${API_URL}/admin/users/${user.id}`, { method: 'DELETE' });
+    const token = localStorage.getItem('accessToken') || '';
+    await fetch(`${API_URL}/admin/users/${user.id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
     toast.success('User deleted');
     fetchUsers();
   };
 
   const handleRoleChange = async (user: UserData, role: string) => {
+    const token = localStorage.getItem('accessToken') || '';
     await fetch(`${API_URL}/admin/users/${user.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ role }),
     });
     toast.success(`Role updated to ${role}`);

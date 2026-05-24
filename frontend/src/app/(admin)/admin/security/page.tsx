@@ -26,7 +26,10 @@ export default function AdminSecurityPage() {
 
   const fetchSecurity = async () => {
     try {
-      const res = await fetch(`${API_URL}/admin/security`);
+      const token = localStorage.getItem('accessToken') || '';
+      const res = await fetch(`${API_URL}/admin/security`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
       if (res.ok) {
         const data = await res.json();
         setBlockedIPs(data.blockedIPs || []);
@@ -39,9 +42,10 @@ export default function AdminSecurityPage() {
   const handleBlockIP = async () => {
     if (!newIP.trim()) return;
     const updated = [...blockedIPs, newIP.trim()];
+    const token = localStorage.getItem('accessToken') || '';
     await fetch(`${API_URL}/admin/security`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ blockedIPs: updated, settings }),
     });
     setBlockedIPs(updated);
@@ -51,9 +55,10 @@ export default function AdminSecurityPage() {
 
   const handleUnblockIP = async (ip: string) => {
     const updated = blockedIPs.filter(i => i !== ip);
+    const token = localStorage.getItem('accessToken') || '';
     await fetch(`${API_URL}/admin/security`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ blockedIPs: updated, settings }),
     });
     setBlockedIPs(updated);
@@ -61,9 +66,10 @@ export default function AdminSecurityPage() {
   };
 
   const handleSaveSettings = async () => {
+    const token = localStorage.getItem('accessToken') || '';
     await fetch(`${API_URL}/admin/security`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ blockedIPs, settings }),
     });
     toast.success('Security settings saved');

@@ -45,7 +45,10 @@ export default function AdminStoragePage() {
   const fetchStorage = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/admin/storage`);
+      const token = localStorage.getItem('accessToken') || '';
+      const res = await fetch(`${API_URL}/admin/storage`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
       if (res.ok) {
         setStorage(await res.json());
       }

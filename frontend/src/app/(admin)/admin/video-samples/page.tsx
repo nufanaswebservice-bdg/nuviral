@@ -58,7 +58,10 @@ export default function VideoSamplesPage() {
 
   const loadSamples = async () => {
     try {
-      const res = await fetch(`${API_URL}/video-samples`);
+      const token = localStorage.getItem('accessToken') || '';
+      const res = await fetch(`${API_URL}/video-samples`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
       if (res.ok) {
         const data = await res.json();
         setSamples(data);
@@ -117,7 +120,7 @@ export default function VideoSamplesPage() {
 
         const res = await fetch(`${API_URL}/admin/upload-video`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken') || ''}` },
           body: JSON.stringify({
             fileBase64,
             fileName: form.videoFile.name,
@@ -148,7 +151,7 @@ export default function VideoSamplesPage() {
         // Update existing sample
         const res = await fetch(`${API_URL}/admin/video-samples/${editingSample.id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken') || ''}` },
           body: JSON.stringify({
             title: form.title,
             description: form.description,
@@ -176,7 +179,8 @@ export default function VideoSamplesPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Hapus video sample ini?')) return;
     try {
-      await fetch(`${API_URL}/admin/video-samples/${id}`, { method: 'DELETE' });
+      const token = localStorage.getItem('accessToken') || '';
+      await fetch(`${API_URL}/admin/video-samples/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
       loadSamples();
       toast.success('Video sample deleted');
     } catch {
@@ -205,9 +209,10 @@ export default function VideoSamplesPage() {
   const toggleFeatured = async (id: string) => {
     const sample = samples.find(s => s.id === id);
     if (!sample) return;
+    const token = localStorage.getItem('accessToken') || '';
     await fetch(`${API_URL}/admin/video-samples/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ featured: !sample.featured }),
     });
     loadSamples();
@@ -216,9 +221,10 @@ export default function VideoSamplesPage() {
   const toggleTrending = async (id: string) => {
     const sample = samples.find(s => s.id === id);
     if (!sample) return;
+    const token = localStorage.getItem('accessToken') || '';
     await fetch(`${API_URL}/admin/video-samples/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ trending: !sample.trending }),
     });
     loadSamples();

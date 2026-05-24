@@ -37,7 +37,10 @@ export default function AdminContentPage() {
 
   const fetchContent = async () => {
     try {
-      const res = await fetch(`${API_URL}/admin/content`);
+      const token = localStorage.getItem('accessToken') || '';
+      const res = await fetch(`${API_URL}/admin/content`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
       if (res.ok) {
         const data = await res.json();
         if (data.homepage) setHomepage(data.homepage);
@@ -49,9 +52,10 @@ export default function AdminContentPage() {
 
   const saveContent = async () => {
     try {
+      const token = localStorage.getItem('accessToken') || '';
       await fetch(`${API_URL}/admin/content`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ homepage, faqs, testimonials }),
       });
       toast.success('Content saved!');
