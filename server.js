@@ -41,18 +41,23 @@ app.post('/render', async (req, res) => {
   try {
     const { title = '', script = '', voice = 'nova', prompt = '', format = 'portrait', duration = 'medium', style = '' } = req.body;
 
-    // prompt = full prompt with style from frontend
-    // script = narasi bahasa Indonesia (untuk voiceover)
+    // prompt = full prompt with style from frontend (will be translated to English for video AI)
+    // script = narasi bahasa Indonesia (untuk voiceover - NEVER translate this)
     // title = judul video
     const videoPrompt = prompt || title || 'cinematic video';
-    const voiceoverText = script || title || ''; // Keep original language for voiceover
+    
+    // IMPORTANT: voiceover uses the ORIGINAL script text (bahasa Indonesia)
+    // Do NOT use translated prompt for voiceover
+    const voiceoverText = script || ''; // Only use script field, not title (title might get translated)
 
     // Determine aspect ratio from format
     const aspectRatio = format === 'landscape' ? '16:9' : '9:16';
     const isPortrait = format !== 'landscape';
 
     console.log(`[render] === START ===`);
-    console.log(`[render] Prompt: "${videoPrompt.substring(0, 100)}"`);
+    console.log(`[render] Video Prompt: "${videoPrompt.substring(0, 100)}"`);
+    console.log(`[render] Voiceover Text (original): "${voiceoverText.substring(0, 100)}"`);
+    console.log(`[render] Voice: ${voice} | Format: ${format} | Duration: ${duration}`);
     console.log(`[render] Voice text: "${voiceoverText.substring(0, 50)}"`);
     console.log(`[render] Format: ${format} | Aspect: ${aspectRatio} | Duration: ${duration}`);
 
@@ -234,23 +239,34 @@ Rules:
     // STEP 4: Generate voiceover IN ORIGINAL LANGUAGE (auto-detect: Indonesian/English)
     let audioFile = null;
     if (OPENAI_API_KEY && voiceoverText.trim()) {
-      console.log(`[render] TTS: voice=${voice}, lang=auto, text="${voiceoverText.substring(0, 80)}..."`);
+      // Detect if text is Indonesian (contains common Indonesian words)
+      const indonesianWords = ['yang', 'dan', 'ini', 'itu', 'akan', 'dengan', 'untuk', 'dari', 'tidak', 'bisa', 'kamu', 'saya', 'anda', 'adalah', 'sudah', 'belum', 'juga', 'atau', 'pada', 'ke', 'di', 'se', 'ber', 'ter', 'me', 'nomor', 'cara', 'buat', 'dalam'];
+      const textLower = voiceoverText.toLowerCase();
+      const isIndonesian = indonesianWords.filter(w => textLower.includes(w)).length >= 2;
+      
+      console.log(`[render] TTS: voice=${voice}, detected_lang=${isIndonesian ? 'ID' : 'EN'}`);
+      console.log(`[render] TTS text: "${voiceoverText.substring(0, 120)}"`);
+      
+      // For Indonesian, use alloy or nova voice (best for non-English)
+      // OpenAI TTS auto-detects language from input text
+      const ttsVoice = voice || 'nova';
+      
       try {
         const tts = await fetch('https://api.openai.com/v1/audio/speech', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             model: 'tts-1',
-            voice: voice,
+            voice: ttsVoice,
             input: voiceoverText.substring(0, 4096),
-            speed: 1.0,
+            speed: 0.95, // Slightly slower for clearer Indonesian pronunciation
           }),
         });
         if (tts.ok) {
           const ab = Buffer.from(await tts.arrayBuffer());
           audioFile = path.join(outputDir, `a-${ts}.mp3`);
           fs.writeFileSync(audioFile, ab);
-          console.log(`[render] ✅ Voiceover generated: ${(ab.length / 1024).toFixed(0)}KB`);
+          console.log(`[render] ✅ Voiceover generated: ${(ab.length / 1024).toFixed(0)}KB (${isIndonesian ? 'Bahasa Indonesia' : 'English'})`);
         } else {
           const errText = await tts.text().catch(() => '');
           console.log(`[render] ❌ TTS failed (${tts.status}): ${errText.substring(0, 200)}`);
