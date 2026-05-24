@@ -950,6 +950,63 @@ app.get('/api/v1/video-samples', (req, res) => {
   res.json(videoSamplesCache);
 });
 
+// Storage info (admin)
+app.get('/api/v1/admin/storage', (req, res) => {
+  // Calculate storage usage from video samples
+  let totalVideoSize = 0;
+  let totalThumbnailSize = 0;
+  const filesList = [];
+
+  videoSamplesCache.forEach(sample => {
+    // Estimate size based on video duration (avg 2MB per 5s video)
+    const estimatedSize = 2 * 1024 * 1024; // 2MB estimate per video
+    totalVideoSize += estimatedSize;
+    filesList.push({
+      key: `videos/${sample.id}`,
+      name: sample.title,
+      type: 'video',
+      size: estimatedSize,
+      url: sample.videoUrl,
+      uploadedAt: sample.createdAt,
+    });
+    if (sample.thumbnailUrl) {
+      const thumbSize = 200 * 1024; // ~200KB per thumbnail
+      totalThumbnailSize += thumbSize;
+      filesList.push({
+        key: `thumbnails/${sample.id}`,
+        name: `${sample.title} (thumb)`,
+        type: 'image',
+        size: thumbSize,
+        url: sample.thumbnailUrl,
+        uploadedAt: sample.createdAt,
+      });
+    }
+  });
+
+  const totalUsed = totalVideoSize + totalThumbnailSize;
+  const totalLimit = 10 * 1024 * 1024 * 1024; // 10GB R2 free tier
+
+  res.json({
+    provider: 'Cloudflare R2',
+    bucket: R2_BUCKET_NAME,
+    publicUrl: R2_PUBLIC_URL,
+    configured: !!R2_ACCESS_KEY_ID,
+    totalLimit,
+    totalUsed,
+    totalVideoSize,
+    totalThumbnailSize,
+    totalFiles: filesList.length,
+    totalVideos: videoSamplesCache.length,
+    files: filesList,
+    freeTier: {
+      storage: '10 GB',
+      classAOps: '1M requests/month',
+      classBOps: '10M requests/month',
+      egress: 'Free (no egress fees)',
+    },
+  });
+});
+
 // Delete video sample (admin)
 app.delete('/api/v1/admin/video-samples/:id', (req, res) => {
   const { id } = req.params;
