@@ -764,6 +764,29 @@ app.delete('/api/v1/admin/users/:id', (req, res) => {
 });
 
 // ============================================
+// ADMIN: SECURITY, CONTENT, SETTINGS
+// ============================================
+
+const SECURITY_FILE = '/tmp/nuviral-security.json';
+const CONTENT_FILE = '/tmp/nuviral-content.json';
+const SETTINGS_FILE = '/tmp/nuviral-settings.json';
+
+function loadJsonFile(file, fallback = {}) { try { if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, 'utf8')); } catch {} return fallback; }
+function saveJsonFile(file, data) { try { fs.writeFileSync(file, JSON.stringify(data, null, 2)); } catch {} }
+
+// Security
+app.get('/api/v1/admin/security', (req, res) => res.json(loadJsonFile(SECURITY_FILE, { blockedIPs: [], settings: {}, logs: [] })));
+app.put('/api/v1/admin/security', (req, res) => { saveJsonFile(SECURITY_FILE, req.body); res.json({ success: true }); });
+
+// Content
+app.get('/api/v1/admin/content', (req, res) => res.json(loadJsonFile(CONTENT_FILE, {})));
+app.put('/api/v1/admin/content', (req, res) => { saveJsonFile(CONTENT_FILE, req.body); res.json({ success: true }); });
+
+// Settings
+app.get('/api/v1/admin/settings', (req, res) => res.json(loadJsonFile(SETTINGS_FILE, {})));
+app.put('/api/v1/admin/settings', (req, res) => { saveJsonFile(SETTINGS_FILE, req.body); res.json({ success: true }); });
+
+// ============================================
 // CLOUDFLARE R2 STORAGE & VIDEO SAMPLES API
 // ============================================
 
