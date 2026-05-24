@@ -35,35 +35,66 @@ const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID || '';
 const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID || '';
 const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY || '';
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME || 'nuviral-media';
-const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || ''; // e.g. https://media.nuviral.cloud or https://pub-xxx.r2.dev
+const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || '';
 const R2_ENDPOINT = `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
+
+// Admin emails (super admin access)
+const ADMIN_EMAILS = ['nufanaswebservice@gmail.com', 'baranashira01@gmail.com', 'rufanaswebservice@gmail.com'];
+
+// ============================================
+// AUTH MIDDLEWARE & HELPERS
+// ============================================
+
+// Extract user email from Firebase/JWT token in Authorization header
+function extractUserEmail(req) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+  try {
+    const token = authHeader.split(' ')[1];
+    if (!token || token === 'null' || token === 'undefined') return null;
+    // Firebase tokens and our custom tokens have email in payload
+    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+    return payload.email || null;
+  } catch {
+    return null;
+  }
+}
+
+// Middleware: require authenticated user
+function requireAuth(req, res, next) {
+  const email = extractUserEmail(req);
+  if (!email) {
+    return res.status(401).json({ error: 'Unauthorized', detail: 'Login required' });
+  }
+  req.userEmail = email;
+  next();
+}
+
+// Middleware: require admin
+function requireAdmin(req, res, next) {
+  const email = extractUserEmail(req);
+  if (!email || !ADMIN_EMAILS.includes(email)) {
+    return res.status(403).json({ error: 'Forbidden', detail: 'Admin access required' });
+  }
+  req.userEmail = email;
+  next();
+}
 
 function hasFfmpeg() {
   try { execSync('ffmpeg -version', { stdio: 'pipe' }); return true; } catch { return false; }
 }
 
 app.get('/', (req, res) => {
-  res.json({ status: 'ok', service: 'NuViral v4', replicate: !!REPLICATE_API_TOKEN, openai: !!OPENAI_API_KEY, midtrans: !!MIDTRANS_SERVER_KEY, ffmpeg: hasFfmpeg() });
+  res.json({ status: 'ok', service: 'NuViral v4', replicate: !!REPLICATE_API_TOKEN, openai: !!OPENAI_API_KEY, midtrans: !!MIDTRANS_SERVER_KEY, r2: !!R2_ACCESS_KEY_ID, ffmpeg: hasFfmpeg() });
 });
 
-app.post('/render', async (req, res) => {
+app.post('/render', requireAuth, async (req, res) => {
   try {
     const { title = '', script = '', voice = 'nova', prompt = '', format = 'portrait', duration = 'medium', style = '' } = req.body;
+    const userEmail = req.userEmail;
 
-    // Check user limit (extract email from auth header)
-    let userEmail = '';
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      try {
-        const token = authHeader.split(' ')[1];
-        const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-        userEmail = payload.email || '';
-      } catch {}
-    }
-
-    // Admin bypass
-    const ADMIN_EMAILS = ['nufanaswebservice@gmail.com', 'baranashira01@gmail.com', 'rufanaswebservice@gmail.com'];
-    if (!ADMIN_EMAILS.includes(userEmail) && userEmail) {
+    // Check user limit
+    if (!ADMIN_EMAILS.includes(userEmail)) {
       const usage = getUserUsage(userEmail);
       if (usage.plan && PLANS[usage.plan]) {
         const planConfig = PLANS[usage.plan];
@@ -845,12 +876,12 @@ app.post('/api/v1/auth/track-login', (req, res) => {
 });
 
 // Get all users (admin)
-app.get('/api/v1/admin/users', (req, res) => {
+app.get('/api/v1/admin/users', requireAdmin, (req, res) => {
   res.json(usersCache);
 });
 
 // Update user (admin)
-app.put('/api/v1/admin/users/:id', (req, res) => {
+app.put('/api/v1/admin/users/:id', requireAdmin, (req, res) => {
   const { id } = req.params;
   const updates = req.body;
   usersCache = usersCache.map(u => u.id === id ? { ...u, ...updates } : u);
@@ -859,7 +890,7 @@ app.put('/api/v1/admin/users/:id', (req, res) => {
 });
 
 // Delete/ban user (admin)
-app.delete('/api/v1/admin/users/:id', (req, res) => {
+app.delete('/api/v1/admin/users/:id', requireAdmin, (req, res) => {
   const { id } = req.params;
   usersCache = usersCache.filter(u => u.id !== id);
   saveUsersToDisk(usersCache);
@@ -878,16 +909,16 @@ function loadJsonFile(file, fallback = {}) { try { if (fs.existsSync(file)) retu
 function saveJsonFile(file, data) { try { fs.writeFileSync(file, JSON.stringify(data, null, 2)); } catch {} }
 
 // Security
-app.get('/api/v1/admin/security', (req, res) => res.json(loadJsonFile(SECURITY_FILE, { blockedIPs: [], settings: {}, logs: [] })));
-app.put('/api/v1/admin/security', (req, res) => { saveJsonFile(SECURITY_FILE, req.body); res.json({ success: true }); });
+app.get('/api/v1/admin/security', requireAdmin, (req, res) => res.json(loadJsonFile(SECURITY_FILE, { blockedIPs: [], settings: {}, logs: [] })));
+app.put('/api/v1/admin/security', requireAdmin, (req, res) => { saveJsonFile(SECURITY_FILE, req.body); res.json({ success: true }); });
 
 // Content
-app.get('/api/v1/admin/content', (req, res) => res.json(loadJsonFile(CONTENT_FILE, {})));
-app.put('/api/v1/admin/content', (req, res) => { saveJsonFile(CONTENT_FILE, req.body); res.json({ success: true }); });
+app.get('/api/v1/admin/content', requireAdmin, (req, res) => res.json(loadJsonFile(CONTENT_FILE, {})));
+app.put('/api/v1/admin/content', requireAdmin, (req, res) => { saveJsonFile(CONTENT_FILE, req.body); res.json({ success: true }); });
 
 // Settings
-app.get('/api/v1/admin/settings', (req, res) => res.json(loadJsonFile(SETTINGS_FILE, {})));
-app.put('/api/v1/admin/settings', (req, res) => { saveJsonFile(SETTINGS_FILE, req.body); res.json({ success: true }); });
+app.get('/api/v1/admin/settings', requireAdmin, (req, res) => res.json(loadJsonFile(SETTINGS_FILE, {})));
+app.put('/api/v1/admin/settings', requireAdmin, (req, res) => { saveJsonFile(SETTINGS_FILE, req.body); res.json({ success: true }); });
 
 // ============================================
 // CLOUDFLARE R2 STORAGE & VIDEO SAMPLES API
@@ -982,7 +1013,7 @@ async function uploadToR2(buffer, key, contentType) {
 }
 
 // Upload video sample (admin only)
-app.post('/api/v1/admin/upload-video', async (req, res) => {
+app.post('/api/v1/admin/upload-video', requireAdmin, async (req, res) => {
   try {
     const { fileBase64, fileName, contentType, title, description, category, style, prompt, featured, trending } = req.body;
 
@@ -1041,7 +1072,7 @@ app.post('/api/v1/admin/upload-video', async (req, res) => {
 });
 
 // Upload thumbnail for a sample
-app.post('/api/v1/admin/upload-thumbnail', async (req, res) => {
+app.post('/api/v1/admin/upload-thumbnail', requireAdmin, async (req, res) => {
   try {
     const { fileBase64, fileName, contentType, sampleId } = req.body;
 
@@ -1077,7 +1108,7 @@ app.get('/api/v1/video-samples', (req, res) => {
 });
 
 // Storage info (admin)
-app.get('/api/v1/admin/storage', (req, res) => {
+app.get('/api/v1/admin/storage', requireAdmin, (req, res) => {
   // Calculate storage usage from video samples
   let totalVideoSize = 0;
   let totalThumbnailSize = 0;
@@ -1134,7 +1165,7 @@ app.get('/api/v1/admin/storage', (req, res) => {
 });
 
 // Delete video sample (admin)
-app.delete('/api/v1/admin/video-samples/:id', (req, res) => {
+app.delete('/api/v1/admin/video-samples/:id', requireAdmin, (req, res) => {
   const { id } = req.params;
   videoSamplesCache = videoSamplesCache.filter(s => s.id !== id);
   saveSamplesToDisk(videoSamplesCache);
@@ -1142,7 +1173,7 @@ app.delete('/api/v1/admin/video-samples/:id', (req, res) => {
 });
 
 // Update video sample (admin)
-app.put('/api/v1/admin/video-samples/:id', (req, res) => {
+app.put('/api/v1/admin/video-samples/:id', requireAdmin, (req, res) => {
   const { id } = req.params;
   const updates = req.body;
   videoSamplesCache = videoSamplesCache.map(s => s.id === id ? { ...s, ...updates } : s);
@@ -1153,20 +1184,68 @@ app.put('/api/v1/admin/video-samples/:id', (req, res) => {
 app.listen(PORT, async () => {
   console.log(`🎬 NuViral v4 | port ${PORT} | Replicate:${!!REPLICATE_API_TOKEN} | OpenAI:${!!OPENAI_API_KEY} | Midtrans:${!!MIDTRANS_SERVER_KEY} | R2:${!!R2_ACCESS_KEY_ID} | FFmpeg:${hasFfmpeg()}`);
 
-  // Try to load samples metadata from R2 on startup
-  if (R2_PUBLIC_URL && videoSamplesCache.length === 0) {
-    try {
-      const res = await fetch(`${R2_PUBLIC_URL}/metadata/samples.json`);
-      if (res.ok) {
-        const data = await res.json();
-        videoSamplesCache = data;
-        saveSamplesToDisk(videoSamplesCache);
-        console.log(`[startup] Loaded ${data.length} samples from R2 metadata`);
+  // Load all data from R2 on startup (persistent across deploys)
+  if (R2_PUBLIC_URL) {
+    const filesToLoad = [
+      { url: `${R2_PUBLIC_URL}/metadata/samples.json`, target: 'samples' },
+      { url: `${R2_PUBLIC_URL}/metadata/users.json`, target: 'users' },
+      { url: `${R2_PUBLIC_URL}/metadata/usage.json`, target: 'usage' },
+      { url: `${R2_PUBLIC_URL}/metadata/security.json`, target: 'security' },
+      { url: `${R2_PUBLIC_URL}/metadata/content.json`, target: 'content' },
+      { url: `${R2_PUBLIC_URL}/metadata/settings.json`, target: 'settings' },
+    ];
+
+    for (const file of filesToLoad) {
+      try {
+        const res = await fetch(file.url);
+        if (res.ok) {
+          const data = await res.json();
+          if (file.target === 'samples' && Array.isArray(data) && data.length > 0) {
+            videoSamplesCache = data;
+            saveSamplesToDisk(videoSamplesCache);
+          } else if (file.target === 'users' && Array.isArray(data)) {
+            usersCache = data;
+            saveUsersToDisk(usersCache);
+          } else if (file.target === 'usage' && typeof data === 'object') {
+            userUsage = data;
+            saveUsage(userUsage);
+          } else if (file.target === 'security') {
+            saveJsonFile(SECURITY_FILE, data);
+          } else if (file.target === 'content') {
+            saveJsonFile(CONTENT_FILE, data);
+          } else if (file.target === 'settings') {
+            saveJsonFile(SETTINGS_FILE, data);
+          }
+          console.log(`[startup] ✅ Loaded ${file.target} from R2`);
+        }
+      } catch (e) {
+        console.log(`[startup] ${file.target}: not found in R2 (starting fresh)`);
       }
-    } catch (e) {
-      console.log('[startup] No R2 metadata found, starting fresh');
     }
-  } else if (videoSamplesCache.length > 0) {
-    console.log(`[startup] Loaded ${videoSamplesCache.length} samples from disk cache`);
+  }
+
+  // Periodic backup to R2 every 5 minutes
+  if (R2_ACCESS_KEY_ID) {
+    setInterval(async () => {
+      try {
+        const backups = [
+          { data: videoSamplesCache, key: 'metadata/samples.json' },
+          { data: usersCache, key: 'metadata/users.json' },
+          { data: userUsage, key: 'metadata/usage.json' },
+          { data: loadJsonFile(SECURITY_FILE, {}), key: 'metadata/security.json' },
+          { data: loadJsonFile(CONTENT_FILE, {}), key: 'metadata/content.json' },
+          { data: loadJsonFile(SETTINGS_FILE, {}), key: 'metadata/settings.json' },
+        ];
+        for (const backup of backups) {
+          if (backup.data && (Array.isArray(backup.data) ? backup.data.length > 0 : Object.keys(backup.data).length > 0)) {
+            await uploadToR2(Buffer.from(JSON.stringify(backup.data)), backup.key, 'application/json');
+          }
+        }
+        console.log(`[backup] ✅ All data synced to R2 (${new Date().toLocaleTimeString()})`);
+      } catch (e) {
+        console.log(`[backup] ❌ Sync failed: ${e.message}`);
+      }
+    }, 5 * 60 * 1000); // Every 5 minutes
+    console.log('[startup] Auto-backup to R2 enabled (every 5 min)');
   }
 });

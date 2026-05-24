@@ -125,9 +125,10 @@ export default function QuickVideoPage() {
     }, 2000);
 
     try {
+      const authToken = localStorage.getItem('accessToken') || '';
       const response = await fetch('https://nuviral-production.up.railway.app/render', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
         body: JSON.stringify({
           title: title.trim(),
           script: enableVoiceover ? (script.trim() || title.trim()) : '',

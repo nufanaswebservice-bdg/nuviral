@@ -59,9 +59,10 @@ function VideoPlayer({ scriptData, onNeedUpgrade }: { scriptData: any; onNeedUpg
     setLoading(true);
     setError('');
     try {
+      const authToken = localStorage.getItem('accessToken') || '';
       const response = await fetch('https://nuviral-production.up.railway.app/render', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
         body: JSON.stringify({
           title: scriptData?.title || 'AI Generated Video',
           script: scriptData?.script || scriptData?.title || 'cinematic video',
