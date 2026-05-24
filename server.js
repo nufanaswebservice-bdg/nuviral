@@ -50,6 +50,31 @@ app.post('/render', async (req, res) => {
   try {
     const { title = '', script = '', voice = 'nova', prompt = '', format = 'portrait', duration = 'medium', style = '' } = req.body;
 
+    // Check user limit (extract email from auth header)
+    let userEmail = '';
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+        userEmail = payload.email || '';
+      } catch {}
+    }
+
+    // Admin bypass
+    const ADMIN_EMAILS = ['nufanaswebservice@gmail.com', 'baranashira01@gmail.com', 'rufanaswebservice@gmail.com'];
+    if (!ADMIN_EMAILS.includes(userEmail) && userEmail) {
+      const usage = getUserUsage(userEmail);
+      if (usage.plan && PLANS[usage.plan]) {
+        const planConfig = PLANS[usage.plan];
+        if (usage.videosUsed >= planConfig.videoLimit) {
+          return res.status(403).json({ error: 'Limit tercapai', detail: `Kuota video kamu sudah habis (${usage.videosUsed}/${planConfig.videoLimit}). Upgrade plan untuk mendapatkan lebih banyak kuota.` });
+        }
+      } else if (!usage.plan) {
+        return res.status(403).json({ error: 'Belum berlangganan', detail: 'Silakan pilih paket berlangganan untuk menggunakan AI Video Generator.' });
+      }
+    }
+
     // prompt = full prompt with style from frontend (will be translated to English for video AI)
     // script = narasi bahasa Indonesia (untuk voiceover - NEVER translate this)
     // title = judul video
@@ -315,6 +340,13 @@ Rules:
     const buf = fs.readFileSync(finalFile);
     console.log(`[render] === DONE! ${(buf.length / 1024 / 1024).toFixed(1)}MB ===`);
 
+    // Increment user usage (after successful render)
+    if (userEmail && !ADMIN_EMAILS.includes(userEmail)) {
+      incrementUsage(userEmail);
+      const usage = getUserUsage(userEmail);
+      console.log(`[render] Usage updated for ${userEmail}: ${usage.videosUsed} videos used`);
+    }
+
     // Cleanup
     try { if (videoFile) fs.unlinkSync(videoFile); } catch (e) {}
     try { if (processedVideoFile && processedVideoFile !== videoFile) fs.unlinkSync(processedVideoFile); } catch (e) {}
@@ -475,10 +507,36 @@ app.post('/upload/youtube', async (req, res) => {
 // ============================================
 
 const PLANS = {
-  STARTER: { name: 'Starter', price: 225000 },
-  PRO: { name: 'Pro', price: 449000 },
-  AGENCY: { name: 'Agency', price: 1225000 },
+  STARTER: { name: 'Starter', price: 225000, videoLimit: 37, aiCreditsLimit: 370, storageLimit: 10 * 1024 * 1024 * 1024 },
+  PRO: { name: 'Pro', price: 449000, videoLimit: 75, aiCreditsLimit: 750, storageLimit: 50 * 1024 * 1024 * 1024 },
+  AGENCY: { name: 'Agency', price: 1225000, videoLimit: 204, aiCreditsLimit: 2040, storageLimit: 200 * 1024 * 1024 * 1024 },
 };
+// Profit margin: 50% — user gets Rp worth of AI usage = 50% of subscription price
+// Cost per video: ~Rp 3.000 (Replicate $0.15-0.20 × Rp 16.000)
+// Starter: 225.000 × 50% = 112.500 / 3.000 = 37 videos
+// Pro: 449.000 × 50% = 224.500 / 3.000 = 75 videos
+// Agency: 1.225.000 × 50% = 612.500 / 3.000 = 204 videos
+
+// User usage tracking
+const USAGE_FILE = '/tmp/nuviral-usage.json';
+function loadUsage() { try { if (fs.existsSync(USAGE_FILE)) return JSON.parse(fs.readFileSync(USAGE_FILE, 'utf8')); } catch {} return {}; }
+function saveUsage(data) { try { fs.writeFileSync(USAGE_FILE, JSON.stringify(data, null, 2)); } catch {} }
+let userUsage = loadUsage(); // { email: { videosUsed: 0, aiCreditsUsed: 0, plan: 'STARTER', periodStart: '...' } }
+
+function getUserUsage(email) {
+  if (!userUsage[email]) {
+    userUsage[email] = { videosUsed: 0, aiCreditsUsed: 0, plan: null, periodStart: null, periodEnd: null };
+  }
+  return userUsage[email];
+}
+
+function incrementUsage(email) {
+  const usage = getUserUsage(email);
+  usage.videosUsed = (usage.videosUsed || 0) + 1;
+  usage.aiCreditsUsed = (usage.aiCreditsUsed || 0) + 10; // 10 credits per video
+  saveUsage(userUsage);
+  return usage;
+}
 
 // Health check for subscription
 app.get('/api/v1/subscription/health', (req, res) => {
@@ -523,7 +581,38 @@ app.get('/api/v1/subscription/current', (req, res) => {
     });
   }
 
-  // Regular users: no plan (needs to subscribe)
+  // Check if user has a subscription
+  const usage = getUserUsage(userEmail);
+  if (usage.plan && PLANS[usage.plan]) {
+    const planConfig = PLANS[usage.plan];
+    // Check if period expired (30 days)
+    if (usage.periodEnd && new Date(usage.periodEnd) < new Date()) {
+      // Period expired, reset
+      usage.videosUsed = 0;
+      usage.aiCreditsUsed = 0;
+      usage.plan = null;
+      usage.periodStart = null;
+      usage.periodEnd = null;
+      saveUsage(userUsage);
+    } else {
+      return res.json({
+        plan: usage.plan,
+        status: 'ACTIVE',
+        videoRenderLimit: planConfig.videoLimit,
+        videoRenderUsed: usage.videosUsed || 0,
+        aiCreditsLimit: planConfig.aiCreditsLimit,
+        aiCreditsUsed: usage.aiCreditsUsed || 0,
+        storageLimit: planConfig.storageLimit,
+        storageUsed: 0,
+        teamMemberLimit: usage.plan === 'AGENCY' ? 20 : usage.plan === 'PRO' ? 5 : 2,
+        apiAccessEnabled: usage.plan !== 'STARTER',
+        currentPeriodStart: usage.periodStart,
+        currentPeriodEnd: usage.periodEnd,
+      });
+    }
+  }
+
+  // No plan
   res.json({
     plan: null,
     status: 'INACTIVE',
@@ -655,10 +744,24 @@ app.post('/api/v1/subscription/notification', (req, res) => {
   const transactionStatus = notification.transaction_status;
   console.log(`[midtrans] Payment ${orderId}: ${transactionStatus}`);
 
-  // TODO: Update database subscription status here
-  // For now, just acknowledge
   if (transactionStatus === 'capture' || transactionStatus === 'settlement') {
-    console.log(`[midtrans] ✅ Payment SUCCESS for ${orderId}`);
+    // Extract plan from orderId: NUVIRAL-STARTER-1234567890
+    const planKey = orderId.split('-')[1]; // STARTER, PRO, or AGENCY
+    const customerEmail = notification.customer_details?.email || '';
+
+    if (planKey && PLANS[planKey]) {
+      // Activate subscription for user
+      const usage = getUserUsage(customerEmail);
+      usage.plan = planKey;
+      usage.videosUsed = 0;
+      usage.aiCreditsUsed = 0;
+      usage.periodStart = new Date().toISOString();
+      usage.periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // 30 days
+      saveUsage(userUsage);
+      console.log(`[midtrans] ✅ Plan ${planKey} activated for ${customerEmail} (30 days)`);
+    } else {
+      console.log(`[midtrans] ✅ Payment SUCCESS for ${orderId} but plan not found: ${planKey}`);
+    }
   } else if (transactionStatus === 'pending') {
     console.log(`[midtrans] ⏳ Payment PENDING for ${orderId}`);
   } else if (['deny', 'cancel', 'expire'].includes(transactionStatus)) {
