@@ -155,6 +155,27 @@ export default function QuickVideoPage() {
       setRenderProgress(100);
       setRenderStage('✅ Selesai!');
       toast.success('Video AI berhasil dibuat! 🎬');
+
+      // Save video to My Videos (localStorage)
+      try {
+        const videoData = {
+          id: `vid-${Date.now()}`,
+          title: title.trim(),
+          style: selectedStyle.label,
+          duration: duration,
+          format: format,
+          voice: voice,
+          blobUrl: url,
+          blobSize: blob.size,
+          createdAt: new Date().toISOString(),
+          status: 'completed',
+        };
+        const savedVideos = JSON.parse(localStorage.getItem('nuviral-videos') || '[]');
+        savedVideos.unshift(videoData);
+        // Keep max 50 videos in history
+        if (savedVideos.length > 50) savedVideos.pop();
+        localStorage.setItem('nuviral-videos', JSON.stringify(savedVideos));
+      } catch (e) { /* ignore storage errors */ }
     } catch (err: any) {
       clearInterval(progressInterval);
       toast.error(`Gagal: ${err.message}`);
