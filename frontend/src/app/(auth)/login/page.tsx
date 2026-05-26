@@ -40,7 +40,7 @@ export default function LoginPage() {
             body: JSON.stringify({ email, name: email.split('@')[0], provider: 'email' }),
           });
         } catch {}
-        router.push('/dashboard');
+        router.push('/dashboard/quick-video');
       }, 1000);
     } else {
       setTimeout(() => {
@@ -92,7 +92,7 @@ export default function LoginPage() {
                     body: JSON.stringify({ email: user.email, name: user.displayName, avatar: user.photoURL, provider: 'google' }),
                   });
                 } catch {}
-                router.push('/dashboard');
+                router.push('/dashboard/quick-video');
               } catch (err: any) {
                 setError(err.message || 'Google login failed');
               }

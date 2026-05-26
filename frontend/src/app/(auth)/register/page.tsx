@@ -46,7 +46,7 @@ export default function RegisterPage() {
                 const user = result.user;
                 localStorage.setItem('accessToken', await user.getIdToken());
                 localStorage.setItem('user', JSON.stringify({ email: user.email, name: user.displayName, avatar: user.photoURL, role: 'USER' }));
-                router.push('/dashboard');
+                router.push('/dashboard/quick-video');
               } catch (err: any) {
                 alert(err.message || 'Google sign up failed');
               }
