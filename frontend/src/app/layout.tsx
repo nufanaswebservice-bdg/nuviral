@@ -7,9 +7,12 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'ViralAI - AI Content Generator for Short Video',
-  description: 'Generate viral short-form video content automatically with AI. Support TikTok, YouTube Shorts, Instagram Reels, and Facebook Reels.',
-  keywords: 'AI video generator, TikTok automation, content creator, viral content, short video',
+  title: 'NuViral - AI Video & Content Generator',
+  description: 'Platform AI video generator terdepan di Indonesia. Buat video viral untuk TikTok, YouTube Shorts, Instagram Reels secara otomatis.',
+  keywords: 'AI video generator, NuViral, TikTok automation, content creator, viral content, short video, Indonesia',
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({
