@@ -28,6 +28,119 @@ const STYLES = ['🎬 Cinematic', '🌿 Nature', '🍜 Food', '💪 Motivasi', '
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nuviral-production.up.railway.app/api/v1';
 
+// Helper: Generate thumbnail from video file using canvas
+function generateThumbnailFromFile(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.muted = true;
+    video.playsInline = true;
+
+    const url = URL.createObjectURL(file);
+    video.src = url;
+
+    video.onloadeddata = () => {
+      // Seek to 25% of the video for a more interesting frame
+      video.currentTime = Math.min(video.duration * 0.25, 2);
+    };
+
+    video.onseeked = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        // Use 9:16 aspect ratio for thumbnail (portrait)
+        const targetWidth = 360;
+        const targetHeight = 640;
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { reject(new Error('Canvas not supported')); return; }
+
+        // Calculate crop to fill 9:16
+        const videoAspect = video.videoWidth / video.videoHeight;
+        const targetAspect = targetWidth / targetHeight;
+        let sx = 0, sy = 0, sw = video.videoWidth, sh = video.videoHeight;
+
+        if (videoAspect > targetAspect) {
+          sw = video.videoHeight * targetAspect;
+          sx = (video.videoWidth - sw) / 2;
+        } else {
+          sh = video.videoWidth / targetAspect;
+          sy = (video.videoHeight - sh) / 2;
+        }
+
+        ctx.drawImage(video, sx, sy, sw, sh, 0, 0, targetWidth, targetHeight);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        const base64 = dataUrl.split(',')[1];
+        URL.revokeObjectURL(url);
+        resolve(base64);
+      } catch (e) {
+        URL.revokeObjectURL(url);
+        reject(e);
+      }
+    };
+
+    video.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Video load failed'));
+    };
+
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Thumbnail generation timeout'));
+    }, 10000);
+  });
+}
+
+// Helper: Generate thumbnail from video URL (cross-origin, uses crossOrigin attribute)
+function generateThumbnailFromUrl(videoUrl: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    const video = document.createElement('video');
+    video.crossOrigin = 'anonymous';
+    video.preload = 'metadata';
+    video.muted = true;
+    video.playsInline = true;
+    video.src = videoUrl;
+
+    video.onloadeddata = () => {
+      video.currentTime = Math.min(video.duration * 0.25, 2);
+    };
+
+    video.onseeked = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const targetWidth = 360;
+        const targetHeight = 640;
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { resolve(null); return; }
+
+        const videoAspect = video.videoWidth / video.videoHeight;
+        const targetAspect = targetWidth / targetHeight;
+        let sx = 0, sy = 0, sw = video.videoWidth, sh = video.videoHeight;
+
+        if (videoAspect > targetAspect) {
+          sw = video.videoHeight * targetAspect;
+          sx = (video.videoWidth - sw) / 2;
+        } else {
+          sh = video.videoWidth / targetAspect;
+          sy = (video.videoHeight - sh) / 2;
+        }
+
+        ctx.drawImage(video, sx, sy, sw, sh, 0, 0, targetWidth, targetHeight);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        const base64 = dataUrl.split(',')[1];
+        resolve(base64);
+      } catch {
+        resolve(null);
+      }
+    };
+
+    video.onerror = () => resolve(null);
+    setTimeout(() => resolve(null), 15000);
+  });
+}
+
 export default function VideoSamplesPage() {
   const [samples, setSamples] = useState<VideoSample[]>([]);
   const [showUpload, setShowUpload] = useState(false);
@@ -105,7 +218,18 @@ export default function VideoSamplesPage() {
     try {
       if (form.videoFile) {
         // Convert file to base64 and upload to server (R2)
-        setUploadProgress(10);
+        setUploadProgress(5);
+
+        // Auto-generate thumbnail from video
+        let thumbnailBase64 = '';
+        try {
+          thumbnailBase64 = await generateThumbnailFromFile(form.videoFile);
+          setUploadProgress(15);
+        } catch (e) {
+          console.log('Thumbnail generation failed, continuing without:', e);
+        }
+
+        setUploadProgress(20);
         const reader = new FileReader();
         const fileBase64 = await new Promise<string>((resolve, reject) => {
           reader.onload = () => {
@@ -132,6 +256,7 @@ export default function VideoSamplesPage() {
             prompt: form.prompt,
             featured: form.featured,
             trending: form.trending,
+            thumbnailBase64,
           }),
         });
 
@@ -188,6 +313,48 @@ export default function VideoSamplesPage() {
     }
   };
 
+  // Generate thumbnails for all samples that don't have one
+  const handleGenerateAllThumbnails = async () => {
+    const samplesWithoutThumb = samples.filter(s => !s.thumbnailUrl && s.videoUrl);
+    if (samplesWithoutThumb.length === 0) {
+      toast.info('Semua video sudah punya thumbnail');
+      return;
+    }
+
+    toast.info(`Generating thumbnails for ${samplesWithoutThumb.length} videos...`);
+    let success = 0;
+
+    for (const sample of samplesWithoutThumb) {
+      try {
+        // Generate thumbnail from video URL using video element
+        const thumbBase64 = await generateThumbnailFromUrl(sample.videoUrl);
+        if (!thumbBase64) continue;
+
+        // Upload thumbnail
+        const token = localStorage.getItem('accessToken') || '';
+        const res = await fetch(`${API_URL}/admin/upload-thumbnail`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({
+            fileBase64: thumbBase64,
+            fileName: `thumb-${sample.id}.jpg`,
+            contentType: 'image/jpeg',
+            sampleId: sample.id,
+          }),
+        });
+
+        if (res.ok) {
+          success++;
+        }
+      } catch (e) {
+        console.log(`Failed to generate thumbnail for ${sample.title}:`, e);
+      }
+    }
+
+    toast.success(`Generated ${success}/${samplesWithoutThumb.length} thumbnails`);
+    loadSamples();
+  };
+
   const handleEdit = (sample: VideoSample) => {
     setEditingSample(sample);
     setForm({
@@ -239,23 +406,32 @@ export default function VideoSamplesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <FileVideo className="h-6 w-6 text-violet-400" />
+          <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+            <FileVideo className="h-5 w-5 md:h-6 md:w-6 text-violet-400" />
             Video Samples
           </h1>
-          <p className="text-gray-400 text-sm mt-1">Upload dan kelola video sample untuk showcase</p>
+          <p className="text-gray-400 text-xs md:text-sm mt-1">Upload dan kelola video sample untuk showcase</p>
         </div>
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => { resetForm(); setShowUpload(true); }}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-white font-medium text-sm"
-        >
-          <Plus className="h-4 w-4" />
-          Upload Video
-        </motion.button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleGenerateAllThumbnails}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 text-gray-300 text-xs font-medium hover:bg-white/5 transition"
+            title="Generate thumbnails untuk semua video yang belum punya"
+          >
+            🖼️ Generate Thumbnails
+          </button>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => { resetForm(); setShowUpload(true); }}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-white font-medium text-sm"
+          >
+            <Plus className="h-4 w-4" />
+            Upload
+          </motion.button>
+        </div>
       </div>
 
       {/* Stats */}

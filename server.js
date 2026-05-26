@@ -1186,7 +1186,7 @@ async function uploadToR2(buffer, key, contentType) {
 // Upload video sample (admin only)
 app.post('/api/v1/admin/upload-video', requireAdmin, async (req, res) => {
   try {
-    const { fileBase64, fileName, contentType, title, description, category, style, prompt, featured, trending } = req.body;
+    const { fileBase64, fileName, contentType, title, description, category, style, prompt, featured, trending, thumbnailBase64 } = req.body;
 
     if (!fileBase64 || !fileName) {
       return res.status(400).json({ error: 'fileBase64 and fileName required' });
@@ -1206,6 +1206,19 @@ app.post('/api/v1/admin/upload-video', requireAdmin, async (req, res) => {
       videoUrl = ''; // Will be empty if R2 not configured
     }
 
+    // Upload thumbnail if provided
+    let thumbnailUrl = '';
+    if (thumbnailBase64) {
+      try {
+        const thumbBuffer = Buffer.from(thumbnailBase64, 'base64');
+        const thumbKey = `thumbnails/${Date.now()}-${fileName.replace(/[^a-zA-Z0-9.-]/g, '_').replace(/\.\w+$/, '')}.jpg`;
+        thumbnailUrl = await uploadToR2(thumbBuffer, thumbKey, 'image/jpeg');
+        console.log(`[upload] ✅ Thumbnail uploaded to R2: ${thumbnailUrl}`);
+      } catch (thumbErr) {
+        console.log(`[upload] Thumbnail upload failed (non-critical): ${thumbErr.message}`);
+      }
+    }
+
     // Save sample metadata
     const sample = {
       id: `sample-${Date.now()}`,
@@ -1214,7 +1227,7 @@ app.post('/api/v1/admin/upload-video', requireAdmin, async (req, res) => {
       category: category || 'Cinematic',
       style: style || '🎬 Cinematic',
       videoUrl,
-      thumbnailUrl: '',
+      thumbnailUrl,
       prompt: prompt || '',
       featured: featured || false,
       trending: trending || false,
@@ -1265,6 +1278,12 @@ app.post('/api/v1/admin/upload-thumbnail', requireAdmin, async (req, res) => {
     const sample = videoSamplesCache.find(s => s.id === sampleId);
     if (sample) {
       sample.thumbnailUrl = thumbnailUrl;
+      saveSamplesToDisk(videoSamplesCache);
+      // Sync metadata to R2
+      try {
+        const metadataBuffer = Buffer.from(JSON.stringify(videoSamplesCache, null, 2));
+        await uploadToR2(metadataBuffer, 'metadata/samples.json', 'application/json');
+      } catch (e) { /* non-critical */ }
     }
 
     res.json({ success: true, thumbnailUrl });
