@@ -186,27 +186,27 @@ export default function WorkflowsPage() {
   const activeWorkflow = workflows.find((w) => w.id === selectedWorkflow);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Workflow className="h-6 w-6 text-primary" />
+    <div className="space-y-4 md:space-y-6 max-w-full overflow-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+            <Workflow className="h-5 w-5 md:h-6 md:w-6 text-primary flex-shrink-0" />
             AI Workflows
           </h1>
-          <p className="text-muted-foreground mt-1">Automate your content pipeline from script to publish</p>
+          <p className="text-sm text-muted-foreground mt-1">Automate your content pipeline from script to publish</p>
         </div>
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-primary text-white font-medium"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl gradient-primary text-white font-medium text-sm w-full sm:w-auto flex-shrink-0"
         >
           <Plus className="h-4 w-4" />
           Create Workflow
         </motion.button>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         {/* Workflow List */}
         <div className="lg:col-span-2 space-y-4">
           {workflows.map((wf, index) => (
@@ -221,9 +221,9 @@ export default function WorkflowsPage() {
               }`}
             >
               <div className="flex items-center justify-between mb-3">
-                <div>
-                  <h3 className="font-semibold">{wf.name}</h3>
-                  <div className="flex items-center gap-3 mt-1">
+                <div className="min-w-0 flex-1 mr-2">
+                  <h3 className="font-semibold text-sm md:text-base truncate">{wf.name}</h3>
+                  <div className="flex items-center gap-2 md:gap-3 mt-1 flex-wrap">
                     <span className={`flex items-center gap-1 text-xs font-medium ${
                       wf.status === 'completed' ? 'text-green-500' :
                       wf.status === 'running' ? 'text-blue-500' :

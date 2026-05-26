@@ -200,13 +200,13 @@ export default function BillingPage() {
   const currentPlanName = currentPlan?.plan || null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 max-w-full overflow-hidden">
       <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <CreditCard className="h-6 w-6 text-primary" />
-          Subscription & Billing
+        <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+          <CreditCard className="h-5 w-5 md:h-6 md:w-6 text-primary flex-shrink-0" />
+          <span className="truncate">Subscription & Billing</span>
         </h1>
-        <p className="text-muted-foreground mt-1">Manage your plan and payment methods</p>
+        <p className="text-sm text-muted-foreground mt-1">Manage your plan and payment methods</p>
       </div>
 
       {/* Current Plan */}
@@ -216,13 +216,13 @@ export default function BillingPage() {
           <span className="ml-2 text-muted-foreground">Loading subscription...</span>
         </div>
       ) : currentPlan && currentPlanName ? (
-        <div className="p-6 rounded-2xl border border-primary/30 bg-primary/5">
-          <div className="flex items-center justify-between">
+        <div className="p-4 md:p-6 rounded-xl md:rounded-2xl border border-primary/30 bg-primary/5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
-              <p className="text-sm text-muted-foreground">Current Plan</p>
-              <p className="text-2xl font-bold">{currentPlan.plan} Plan</p>
+              <p className="text-xs md:text-sm text-muted-foreground">Current Plan</p>
+              <p className="text-xl md:text-2xl font-bold">{currentPlan.plan} Plan</p>
               {currentPlan.currentPeriodEnd && (
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-xs md:text-sm text-muted-foreground mt-0.5">
                   Renews on {new Date(currentPlan.currentPeriodEnd).toLocaleDateString('id-ID', {
                     day: 'numeric',
                     month: 'long',
@@ -231,17 +231,17 @@ export default function BillingPage() {
                 </p>
               )}
             </div>
-            <div className="text-right">
-              <p className="text-2xl font-bold">
+            <div className="sm:text-right">
+              <p className="text-lg md:text-2xl font-bold">
                 {formatRupiah(plans.find(p => p.key === currentPlanName)?.priceIdr || 0)}
-                <span className="text-sm font-normal text-muted-foreground">/bln</span>
+                <span className="text-xs md:text-sm font-normal text-muted-foreground">/bln</span>
               </p>
             </div>
           </div>
-          <div className="mt-4 grid grid-cols-3 gap-4">
-            <div className="p-3 rounded-xl bg-card border border-border">
-              <p className="text-xs text-muted-foreground">Videos Used</p>
-              <p className="text-lg font-bold">
+          <div className="mt-3 md:mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2 md:gap-4">
+            <div className="p-2.5 md:p-3 rounded-lg md:rounded-xl bg-card border border-border">
+              <p className="text-[11px] md:text-xs text-muted-foreground">Videos Used</p>
+              <p className="text-base md:text-lg font-bold">
                 {currentPlan.videoRenderUsed || 0}/{currentPlan.videoRenderLimit}
               </p>
               <div className="mt-1 h-1.5 rounded-full bg-muted overflow-hidden">
@@ -253,9 +253,9 @@ export default function BillingPage() {
                 />
               </div>
             </div>
-            <div className="p-3 rounded-xl bg-card border border-border">
-              <p className="text-xs text-muted-foreground">AI Credits</p>
-              <p className="text-lg font-bold">
+            <div className="p-2.5 md:p-3 rounded-lg md:rounded-xl bg-card border border-border">
+              <p className="text-[11px] md:text-xs text-muted-foreground">AI Credits</p>
+              <p className="text-base md:text-lg font-bold">
                 {currentPlan.aiCreditsUsed || 0}/{currentPlan.aiCreditsLimit}
               </p>
               <div className="mt-1 h-1.5 rounded-full bg-muted overflow-hidden">
@@ -267,9 +267,9 @@ export default function BillingPage() {
                 />
               </div>
             </div>
-            <div className="p-3 rounded-xl bg-card border border-border">
-              <p className="text-xs text-muted-foreground">Storage</p>
-              <p className="text-lg font-bold">
+            <div className="p-2.5 md:p-3 rounded-lg md:rounded-xl bg-card border border-border">
+              <p className="text-[11px] md:text-xs text-muted-foreground">Storage</p>
+              <p className="text-base md:text-lg font-bold">
                 {((currentPlan.storageUsed || 0) / (1024 * 1024 * 1024)).toFixed(1)}/
                 {(Number(currentPlan.storageLimit) / (1024 * 1024 * 1024)).toFixed(0)} GB
               </p>
@@ -296,15 +296,15 @@ export default function BillingPage() {
 
       {/* Plans */}
       <div>
-        <h2 className="text-lg font-semibold mb-4">Pilih Paket Berlangganan</h2>
-        <div className="grid md:grid-cols-3 gap-4">
+        <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Pilih Paket Berlangganan</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {plans.map((plan, index) => (
             <motion.div
               key={plan.name}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className={`p-6 rounded-2xl border ${
+              className={`p-4 md:p-6 rounded-xl md:rounded-2xl border ${
                 plan.popular ? 'border-primary bg-primary/5 relative' : 'border-border bg-card'
               }`}
             >
@@ -357,8 +357,8 @@ export default function BillingPage() {
       </div>
 
       {/* Payment Info */}
-      <div className="p-4 rounded-xl border border-border bg-card">
-        <p className="text-sm text-muted-foreground">
+      <div className="p-3 md:p-4 rounded-xl border border-border bg-card">
+        <p className="text-xs md:text-sm text-muted-foreground break-words">
           💳 Pembayaran diproses melalui <strong>Midtrans</strong> — mendukung transfer bank,
           e-wallet (GoPay, OVO, Dana, ShopeePay), kartu kredit/debit, dan virtual account.
         </p>

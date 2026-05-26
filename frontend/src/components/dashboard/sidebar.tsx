@@ -17,13 +17,13 @@ import {
   CreditCard,
   Users,
   Workflow,
-  ChevronLeft,
-  ChevronRight,
+  X,
 } from 'lucide-react';
 
 interface SidebarProps {
   isOpen: boolean;
   onToggle: () => void;
+  onClose: () => void;
 }
 
 const menuItems = [
@@ -41,55 +41,50 @@ const menuItems = [
   { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
 ];
 
-export function Sidebar({ isOpen, onToggle }: SidebarProps) {
+export function Sidebar({ isOpen, onToggle, onClose }: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <motion.aside
-      initial={false}
-      animate={{ width: isOpen ? 256 : 64 }}
-      className="fixed left-0 top-0 h-screen bg-card border-r border-border z-40 flex flex-col"
+    <aside
+      className={`
+        fixed left-0 top-0 h-screen bg-card border-r border-border z-50 flex flex-col
+        w-[280px] max-w-[80vw] md:w-64 md:z-30
+        transition-transform duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+        md:translate-x-0
+      `}
     >
       {/* Logo */}
-      <div className="h-16 flex items-center px-4 border-b border-border">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <Sparkles className="h-7 w-7 text-primary flex-shrink-0" />
-          {isOpen && (
-            <motion.span
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-lg font-bold gradient-text"
-            >
-              ViralAI
-            </motion.span>
-          )}
+      <div className="h-14 md:h-16 flex items-center justify-between px-4 border-b border-border flex-shrink-0">
+        <Link href="/dashboard" className="flex items-center gap-2" onClick={onClose}>
+          <Sparkles className="h-6 w-6 text-primary flex-shrink-0" />
+          <span className="text-lg font-bold gradient-text">NuViral</span>
         </Link>
+        <button
+          onClick={onClose}
+          className="p-2 rounded-lg hover:bg-accent transition md:hidden"
+        >
+          <X className="h-5 w-5 text-muted-foreground" />
+        </button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
+      <nav className="flex-1 py-3 px-3 space-y-0.5 overflow-y-auto overscroll-contain">
         {menuItems.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group relative ${
+              onClick={onClose}
+              className={`flex items-center gap-3 px-3 py-3 md:py-2.5 rounded-xl transition-all group relative ${
                 isActive
                   ? 'bg-primary/10 text-primary'
                   : 'text-muted-foreground hover:text-foreground hover:bg-accent'
               }`}
             >
               <item.icon className={`h-5 w-5 flex-shrink-0 ${isActive ? 'text-primary' : ''}`} />
-              {isOpen && (
-                <motion.span
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-sm font-medium"
-                >
-                  {item.label}
-                </motion.span>
-              )}
+              <span className="text-sm font-medium truncate">{item.label}</span>
               {isActive && (
                 <motion.div
                   layoutId="sidebar-active"
@@ -101,15 +96,12 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
         })}
       </nav>
 
-      {/* Toggle Button */}
-      <div className="p-2 border-t border-border">
-        <button
-          onClick={onToggle}
-          className="w-full flex items-center justify-center p-2 rounded-xl hover:bg-accent transition text-muted-foreground"
-        >
-          {isOpen ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
-        </button>
+      {/* Footer */}
+      <div className="p-3 border-t border-border flex-shrink-0">
+        <div className="px-3 py-2">
+          <p className="text-[10px] text-muted-foreground text-center">NuViral AI © 2024</p>
+        </div>
       </div>
-    </motion.aside>
+    </aside>
   );
 }

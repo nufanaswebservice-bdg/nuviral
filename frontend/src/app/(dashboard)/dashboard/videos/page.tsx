@@ -65,33 +65,32 @@ export default function VideosPage() {
   };
 
   return (
-    <div style={{ maxWidth: '100%', overflow: 'hidden' }}>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Video className="h-6 w-6 text-primary" />
+    <div className="space-y-4 md:space-y-6 max-w-full overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+              <Video className="h-5 w-5 md:h-6 md:w-6 text-primary flex-shrink-0" />
               My Videos
             </h1>
-            <p className="text-muted-foreground mt-1">Video yang sudah kamu buat</p>
+            <p className="text-sm text-muted-foreground mt-1">Video yang sudah kamu buat</p>
           </div>
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => router.push('/dashboard/quick-video')}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-primary text-white font-medium flex-shrink-0"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl gradient-primary text-white font-medium text-sm w-full sm:w-auto flex-shrink-0"
           >
             <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Buat Video</span>
+            Buat Video
           </motion.button>
         </div>
 
         {/* Video Grid */}
         {videos.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 rounded-2xl border border-dashed border-border">
-            <Video className="h-16 w-16 text-muted-foreground/30 mb-4" />
-            <h3 className="text-lg font-semibold mb-1">Belum ada video</h3>
-            <p className="text-sm text-muted-foreground mb-6 text-center max-w-sm">
+          <div className="flex flex-col items-center justify-center py-12 md:py-20 rounded-xl md:rounded-2xl border border-dashed border-border">
+            <Video className="h-12 w-12 md:h-16 md:w-16 text-muted-foreground/30 mb-3 md:mb-4" />
+            <h3 className="text-base md:text-lg font-semibold mb-1">Belum ada video</h3>
+            <p className="text-xs md:text-sm text-muted-foreground mb-6 text-center max-w-sm px-4">
               Mulai buat video pertamamu dengan AI Studio.
             </p>
             <motion.button
@@ -104,7 +103,7 @@ export default function VideosPage() {
             </motion.button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
             {videos.map((video, index) => (
               <motion.div
                 key={video.id}
@@ -172,7 +171,6 @@ export default function VideosPage() {
             ))}
           </div>
         )}
-      </div>
 
       {/* Video Player Modal */}
       {playingVideo && (

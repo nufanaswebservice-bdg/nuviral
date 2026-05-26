@@ -52,34 +52,34 @@ export default function MediaPage() {
   const categories = [...new Set(samples.map(s => s.category))];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 max-w-full overflow-hidden">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Image className="h-6 w-6 text-primary" />
+        <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+          <Image className="h-5 w-5 md:h-6 md:w-6 text-primary flex-shrink-0" />
           Media Library
         </h1>
-        <p className="text-muted-foreground mt-1">Video AI showcase — dibuat dengan NuViral</p>
+        <p className="text-sm text-muted-foreground mt-1">Video AI showcase — dibuat dengan NuViral</p>
       </div>
 
       {/* Filters */}
       {samples.length > 0 && (
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap overflow-x-auto pb-1 -mx-1 px-1">
           <button
             onClick={() => setFilter('all')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${filter === 'all' ? 'gradient-primary text-white' : 'border border-border hover:bg-accent text-muted-foreground'}`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition whitespace-nowrap flex-shrink-0 ${filter === 'all' ? 'gradient-primary text-white' : 'border border-border hover:bg-accent text-muted-foreground'}`}
           >
             Semua ({samples.length})
           </button>
           <button
             onClick={() => setFilter('featured')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${filter === 'featured' ? 'gradient-primary text-white' : 'border border-border hover:bg-accent text-muted-foreground'}`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition whitespace-nowrap flex-shrink-0 ${filter === 'featured' ? 'gradient-primary text-white' : 'border border-border hover:bg-accent text-muted-foreground'}`}
           >
             ⭐ Featured ({samples.filter(s => s.featured).length})
           </button>
           <button
             onClick={() => setFilter('trending')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${filter === 'trending' ? 'gradient-primary text-white' : 'border border-border hover:bg-accent text-muted-foreground'}`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition whitespace-nowrap flex-shrink-0 ${filter === 'trending' ? 'gradient-primary text-white' : 'border border-border hover:bg-accent text-muted-foreground'}`}
           >
             🔥 Trending ({samples.filter(s => s.trending).length})
           </button>
@@ -87,7 +87,7 @@ export default function MediaPage() {
             <button
               key={cat}
               onClick={() => setFilter(cat)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${filter === cat ? 'gradient-primary text-white' : 'border border-border hover:bg-accent text-muted-foreground'}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition whitespace-nowrap flex-shrink-0 ${filter === cat ? 'gradient-primary text-white' : 'border border-border hover:bg-accent text-muted-foreground'}`}
             >
               {cat}
             </button>
@@ -105,7 +105,7 @@ export default function MediaPage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
           {filteredSamples.map((sample, index) => (
             <motion.div
               key={sample.id}

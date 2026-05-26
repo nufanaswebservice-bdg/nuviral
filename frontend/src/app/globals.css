@@ -56,6 +56,11 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
+  html {
+    overflow-x: hidden;
   }
 }
 
@@ -83,6 +88,12 @@
   }
   .shadow-card-hover {
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.03);
+  }
+  /* Mobile responsive utilities */
+  .mobile-safe {
+    max-width: 100%;
+    overflow-x: hidden;
+    word-break: break-word;
   }
 }
 

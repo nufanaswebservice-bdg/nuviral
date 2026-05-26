@@ -156,19 +156,19 @@ export default function QuickVideoPage() {
   const resetAll = () => { setVideoUrl(null); setImageUrl(null); setPrompt(''); setNarasi(''); setRenderProgress(0); setRenderStage(''); };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-7rem)]">
+    <div className="flex flex-col h-[calc(100vh-5rem)] md:h-[calc(100vh-7rem)]">
       <BillingPopup isOpen={showBillingPopup} onClose={() => setShowBillingPopup(false)} creditsUsed={credits.aiCreditsUsed} creditsLimit={credits.aiCreditsLimit} />
 
       {/* Tab Selector - Fixed top */}
-      <div className="flex items-center justify-center py-3 flex-shrink-0">
+      <div className="flex items-center justify-center py-2 md:py-3 flex-shrink-0">
         <div className="flex gap-1 p-1 rounded-xl bg-muted/50">
           {[
             { id: 'chat', label: 'Chat AI', icon: MessageSquare },
             { id: 'image', label: 'Gambar', icon: ImageIcon },
             { id: 'video', label: 'Video', icon: Video },
           ].map(tab => (
-            <button key={tab.id} onClick={() => { setActiveTab(tab.id as any); resetAll(); }} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === tab.id ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-              <tab.icon className="h-4 w-4" />
+            <button key={tab.id} onClick={() => { setActiveTab(tab.id as any); resetAll(); }} className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition ${activeTab === tab.id ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+              <tab.icon className="h-3.5 w-3.5 md:h-4 md:w-4" />
               {tab.label}
             </button>
           ))}
@@ -176,7 +176,7 @@ export default function QuickVideoPage() {
       </div>
 
       {/* Main Content - Scrollable */}
-      <div className="flex-1 overflow-y-auto px-4 pb-4">
+      <div className="flex-1 overflow-y-auto px-2 md:px-4 pb-4">
         <div className="max-w-3xl mx-auto">
           {/* VIDEO TAB */}
           {activeTab === 'video' && (
@@ -198,9 +198,9 @@ export default function QuickVideoPage() {
                 <p className="text-xs text-muted-foreground">{renderProgress}% — estimasi 2-5 menit</p>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-20">
-                <h1 className="text-3xl font-semibold mb-2">Buat Video AI</h1>
-                <p className="text-muted-foreground">Ketik prompt, pilih style, tekan Enter</p>
+              <div className="flex flex-col items-center justify-center py-12 md:py-20">
+                <h1 className="text-2xl md:text-3xl font-semibold mb-2 text-center">Buat Video AI</h1>
+                <p className="text-sm text-muted-foreground text-center">Ketik prompt, pilih style, tekan Enter</p>
               </div>
             )
           )}
@@ -224,9 +224,9 @@ export default function QuickVideoPage() {
                 <p className="text-xs text-muted-foreground">~10-30 detik</p>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-20">
-                <h1 className="text-3xl font-semibold mb-2">Generate Gambar AI</h1>
-                <p className="text-muted-foreground">Deskripsikan gambar yang ingin dibuat</p>
+              <div className="flex flex-col items-center justify-center py-12 md:py-20">
+                <h1 className="text-2xl md:text-3xl font-semibold mb-2 text-center">Generate Gambar AI</h1>
+                <p className="text-sm text-muted-foreground text-center">Deskripsikan gambar yang ingin dibuat</p>
               </div>
             )
           )}
@@ -234,16 +234,16 @@ export default function QuickVideoPage() {
           {/* CHAT TAB */}
           {activeTab === 'chat' && (
             chatMessages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <h1 className="text-3xl font-semibold mb-2">Halo {userName || 'Creator'} 👋</h1>
-                <p className="text-muted-foreground">Tanya apa saja — ide konten, script, strategi viral</p>
+              <div className="flex flex-col items-center justify-center py-12 md:py-20">
+                <h1 className="text-2xl md:text-3xl font-semibold mb-2 text-center">Halo {userName || 'Creator'} 👋</h1>
+                <p className="text-sm text-muted-foreground text-center">Tanya apa saja — ide konten, script, strategi viral</p>
               </div>
             ) : (
               <div className="space-y-4 py-4">
                 {chatMessages.map((msg, i) => (
                   <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] p-4 rounded-2xl ${msg.role === 'user' ? 'bg-primary text-white rounded-br-sm' : 'bg-card border border-border rounded-bl-sm'}`}>
-                      <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                    <div className={`max-w-[90%] md:max-w-[85%] p-3 md:p-4 rounded-2xl ${msg.role === 'user' ? 'bg-primary text-white rounded-br-sm' : 'bg-card border border-border rounded-bl-sm'}`}>
+                      <p className="text-sm whitespace-pre-wrap leading-relaxed break-words">{msg.content}</p>
                       {msg.role === 'assistant' && (
                         <button onClick={() => handleCopy(msg.content)} className="mt-2 text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1">
                           {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />} Copy
@@ -264,7 +264,7 @@ export default function QuickVideoPage() {
 
       {/* Bottom Input Bar - Fixed bottom */}
       {!(activeTab === 'video' && (videoUrl || isRendering)) && !(activeTab === 'image' && (imageUrl || isGeneratingImage)) && (
-        <div className="flex-shrink-0 px-4 pb-4 pt-2 border-t border-border/50 bg-background">
+        <div className="flex-shrink-0 px-2 md:px-4 pb-3 md:pb-4 pt-2 border-t border-border/50 bg-background">
           <div className="max-w-3xl mx-auto">
             {/* Narasi (video only) */}
             <AnimatePresence>

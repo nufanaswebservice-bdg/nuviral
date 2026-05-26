@@ -39,7 +39,7 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 relative min-h-[700px]" style={{ background: 'linear-gradient(180deg, #1e56a0 0%, #4a8fd4 20%, #7ab8e8 40%, #b8daf0 60%, #e8f2fa 80%, #ffffff 100%)' }}>
+      <section className="pt-24 md:pt-32 pb-16 md:pb-20 px-4 relative min-h-[600px] md:min-h-[700px]" style={{ background: 'linear-gradient(180deg, #1e56a0 0%, #4a8fd4 20%, #7ab8e8 40%, #b8daf0 60%, #e8f2fa 80%, #ffffff 100%)' }}>
         {/* Cloud elements - BEHIND content */}
         <div className="absolute top-0 left-0 right-0 bottom-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }} aria-hidden="true">
           {/* White clouds */}
@@ -67,26 +67,26 @@ export default function LandingPage() {
               <Sparkles className="h-4 w-4 text-violet-600" />
               <span className="text-sm text-violet-700 font-medium">AI-Powered Content Creation</span>
             </div>
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-gray-900 mb-6 leading-[1.1]">
+            <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-gray-900 mb-6 leading-[1.1]">
               Create Viral Videos
               <br />
               <span className="gradient-text">Automatically with AI</span>
             </h1>
-            <p className="text-lg md:text-xl text-gray-500 max-w-2xl mx-auto mb-10 leading-relaxed">
+            <p className="text-base md:text-xl text-gray-500 max-w-2xl mx-auto mb-8 md:mb-10 leading-relaxed px-2">
               Generate scripts, render videos, add subtitles, and publish to TikTok, YouTube Shorts,
               Instagram Reels & Facebook Reels — all on autopilot.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
               <Link
                 href="/register"
-                className="gradient-primary text-white px-8 py-4 rounded-xl font-semibold text-lg hover:opacity-90 transition shadow-premium flex items-center gap-2"
+                className="gradient-primary text-white px-6 py-3.5 md:px-8 md:py-4 rounded-xl font-semibold text-base md:text-lg hover:opacity-90 transition shadow-premium flex items-center gap-2 w-full sm:w-auto justify-center"
               >
                 Start Creating for Free
                 <ArrowRight className="h-5 w-5" />
               </Link>
               <Link
                 href="#demo"
-                className="px-8 py-4 rounded-xl font-semibold text-lg text-gray-700 border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition flex items-center gap-2"
+                className="px-6 py-3.5 md:px-8 md:py-4 rounded-xl font-semibold text-base md:text-lg text-gray-700 border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition flex items-center gap-2 w-full sm:w-auto justify-center"
               >
                 <Play className="h-4 w-4" />
                 Watch Demo
@@ -94,7 +94,7 @@ export default function LandingPage() {
             </div>
 
             {/* Trust badges */}
-            <div className="mt-12 flex items-center justify-center gap-6 text-sm text-gray-400">
+            <div className="mt-8 md:mt-12 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 text-xs sm:text-sm text-gray-400">
               <span>✓ No credit card required</span>
               <span>✓ 5 free videos/month</span>
               <span>✓ Cancel anytime</span>
@@ -300,7 +300,7 @@ export default function LandingPage() {
             </motion.div>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {pricingPlans.map((plan, index) => (
               <motion.div
                 key={plan.name}
@@ -391,7 +391,7 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="p-12 md:p-16 rounded-3xl gradient-primary relative overflow-hidden"
+            className="p-8 md:p-12 lg:p-16 rounded-2xl md:rounded-3xl gradient-primary relative overflow-hidden"
           >
             <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '32px 32px' }} />
             <div className="relative z-10">
