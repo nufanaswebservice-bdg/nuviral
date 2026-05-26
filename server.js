@@ -549,6 +549,97 @@ app.post('/upload/youtube', async (req, res) => {
 });
 
 // ============================================
+// AI CHAT (GPT-4o-mini)
+// ============================================
+
+app.post('/api/v1/ai/chat', requireAuth, async (req, res) => {
+  const { message, history = [] } = req.body;
+  if (!message) return res.status(400).json({ error: 'message required' });
+  if (!OPENAI_API_KEY) return res.status(500).json({ error: 'OpenAI not configured' });
+
+  try {
+    const messages = [
+      { role: 'system', content: `Kamu adalah NuViral AI Assistant — asisten kreatif untuk content creator. 
+Kamu membantu:
+- Brainstorm ide konten viral untuk TikTok, Reels, Shorts
+- Menulis script video pendek
+- Membuat caption dan hashtag
+- Strategi konten dan tips viral
+- Ide thumbnail dan visual
+- Analisis tren
+Jawab dalam bahasa yang sama dengan user (Indonesia/English). Buat jawaban singkat, actionable, dan kreatif.` },
+      ...history.slice(-10).map((h) => ({ role: h.role, content: h.content })),
+      { role: 'user', content: message },
+    ];
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'gpt-4o-mini', messages, max_tokens: 1000 }),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(`OpenAI error: ${err.substring(0, 100)}`);
+    }
+
+    const data = await response.json();
+    res.json({ reply: data.choices[0].message.content });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
+// AI IMAGE GENERATION (Flux via Replicate)
+// ============================================
+
+app.post('/api/v1/ai/generate-image', requireAuth, async (req, res) => {
+  const { prompt, aspect_ratio = '9:16', style = '' } = req.body;
+  if (!prompt) return res.status(400).json({ error: 'prompt required' });
+  if (!REPLICATE_API_TOKEN) return res.status(500).json({ error: 'Replicate not configured' });
+
+  const userEmail = req.userEmail;
+  // Check limits (images cost less, allow more)
+  if (!ADMIN_EMAILS.includes(userEmail)) {
+    const usage = getUserUsage(userEmail);
+    if (!usage.plan) return res.status(403).json({ error: 'Belum berlangganan' });
+  }
+
+  try {
+    // Use Flux Schnell (fast, cheap ~$0.003/image)
+    const fullPrompt = style ? `${prompt}, ${style}` : prompt;
+    
+    const createRes = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ input: { prompt: fullPrompt, aspect_ratio, num_outputs: 1 } }),
+    });
+
+    if (!createRes.ok) throw new Error('Failed to create image prediction');
+    let prediction = await createRes.json();
+
+    // Poll
+    const pollUrl = prediction.urls?.get || `https://api.replicate.com/v1/predictions/${prediction.id}`;
+    const maxWait = 60000;
+    const t0 = Date.now();
+    while (prediction.status !== 'succeeded' && prediction.status !== 'failed') {
+      if (Date.now() - t0 > maxWait) throw new Error('Timeout');
+      await new Promise(r => setTimeout(r, 2000));
+      const p = await fetch(pollUrl, { headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}` } });
+      prediction = await p.json();
+    }
+
+    if (prediction.status !== 'succeeded') throw new Error('Image generation failed');
+
+    const imageUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+    res.json({ imageUrl });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
 // MIDTRANS PAYMENT GATEWAY
 // ============================================
 
