@@ -1,8 +1,79 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Image, Video, Play, X } from 'lucide-react';
+
+// Component to generate thumbnail from video on client side
+function VideoThumbnail({ src, alt }: { src: string; alt: string }) {
+  const [thumbnail, setThumbnail] = useState<string | null>(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (!src) return;
+    const video = document.createElement('video');
+    video.crossOrigin = 'anonymous';
+    video.muted = true;
+    video.preload = 'metadata';
+    video.playsInline = true;
+
+    video.onloadeddata = () => {
+      // Seek to 1 second for a better frame
+      video.currentTime = 1;
+    };
+
+    video.onseeked = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || 360;
+        canvas.height = video.videoHeight || 640;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          setThumbnail(canvas.toDataURL('image/jpeg', 0.7));
+        }
+      } catch {
+        setError(true);
+      }
+    };
+
+    video.onerror = () => {
+      setError(true);
+    };
+
+    // Timeout fallback - if video doesn't load in 5s, show placeholder
+    const timeout = setTimeout(() => {
+      if (!thumbnail) setError(true);
+    }, 5000);
+
+    video.src = src;
+
+    return () => {
+      clearTimeout(timeout);
+      video.src = '';
+    };
+  }, [src]);
+
+  if (thumbnail) {
+    return <img src={thumbnail} alt={alt} className="w-full h-full object-cover" />;
+  }
+
+  if (error) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-violet-900/30 to-purple-900/20">
+        <Play className="h-8 w-8 text-primary/60 mb-1" />
+        <span className="text-[10px] text-muted-foreground">Tap to play</span>
+      </div>
+    );
+  }
+
+  // Loading state
+  return (
+    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 animate-pulse">
+      <Video className="h-8 w-8 text-muted-foreground/20" />
+    </div>
+  );
+}
 
 interface VideoSample {
   id: string;
@@ -118,9 +189,9 @@ export default function MediaPage() {
               {/* Video Thumbnail */}
               <div className="aspect-[9/16] bg-gradient-to-br from-primary/10 to-primary/5 relative overflow-hidden">
                 {sample.thumbnailUrl ? (
-                  <img src={sample.thumbnailUrl} alt={sample.title} className="w-full h-full object-cover" />
+                  <img src={sample.thumbnailUrl} alt={sample.title} className="w-full h-full object-cover" loading="lazy" />
                 ) : sample.videoUrl ? (
-                  <video src={sample.videoUrl} className="w-full h-full object-cover" muted preload="metadata" />
+                  <VideoThumbnail src={sample.videoUrl} alt={sample.title} />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <Video className="h-10 w-10 text-muted-foreground/30" />
