@@ -969,6 +969,29 @@ function saveJsonFile(file, data) { try { fs.writeFileSync(file, JSON.stringify(
 app.get('/api/v1/admin/security', requireAdmin, (req, res) => res.json(loadJsonFile(SECURITY_FILE, { blockedIPs: [], settings: {}, logs: [] })));
 app.put('/api/v1/admin/security', requireAdmin, (req, res) => { saveJsonFile(SECURITY_FILE, req.body); res.json({ success: true }); });
 
+// AI System Config (always returns live data)
+app.get('/api/v1/admin/ai-config', requireAdmin, (req, res) => {
+  res.json({
+    primaryModel: 'Kling v2.1 (kwaivgi/kling-v2.1)',
+    primaryCost: '$0.33/5s video',
+    fallbackModels: ['Wan 2.1 1.3B', 'Minimax Video-01'],
+    ttsModel: 'OpenAI TTS-1',
+    promptModel: 'GPT-4o-mini',
+    plans: [
+      { name: 'Starter', price: 225000, videoLimit: PLANS.STARTER.videoLimit, aiCreditsLimit: PLANS.STARTER.aiCreditsLimit, costPerVideo: 5300 },
+      { name: 'Pro', price: 449000, videoLimit: PLANS.PRO.videoLimit, aiCreditsLimit: PLANS.PRO.aiCreditsLimit, costPerVideo: 5300 },
+      { name: 'Agency', price: 1225000, videoLimit: PLANS.AGENCY.videoLimit, aiCreditsLimit: PLANS.AGENCY.aiCreditsLimit, costPerVideo: 5300 },
+    ],
+    status: {
+      replicate_api: !!REPLICATE_API_TOKEN,
+      openai_api: !!OPENAI_API_KEY,
+      midtrans: !!MIDTRANS_SERVER_KEY,
+      r2_storage: !!R2_ACCESS_KEY_ID,
+      ffmpeg: hasFfmpeg(),
+    },
+  });
+});
+
 // Content
 app.get('/api/v1/admin/content', requireAdmin, (req, res) => res.json(loadJsonFile(CONTENT_FILE, {})));
 app.put('/api/v1/admin/content', requireAdmin, (req, res) => { saveJsonFile(CONTENT_FILE, req.body); res.json({ success: true }); });
