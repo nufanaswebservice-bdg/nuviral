@@ -1,0 +1,17 @@
+Kalkulasi Profit 50%
+Paket	Harga	Budget AI (50%)	Biaya/Video (~Rp 3.000)	Limit Video	Profit Admin
+Starter	Rp 225.000	Rp 112.500	Rp 3.000	37 video	Rp 112.500
+Pro	Rp 449.000	Rp 224.500	Rp 3.000	75 video	Rp 224.500
+Agency	Rp 1.225.000	Rp 612.500	Rp 3.000	204 video	Rp 612.500
+Cara Kerja:
+User bayar via Midtrans → webhook aktifkan plan (30 hari)
+Setiap generate video → usage di-increment (+1 video, +10 credits)
+Jika limit tercapai → API return error 403 "Kuota video habis"
+Frontend menampilkan popup billing "Upgrade plan"
+Setelah 30 hari → period expired, usage reset, user perlu bayar lagi
+Admin selalu unlimited (bypass semua limit)
+Yang Ditampilkan ke User:
+Starter: "37 video renders/bulan, 370 AI credits/bulan"
+Pro: "75 video renders/bulan, 750 AI credits/bulan"
+Agency: "204 video renders/bulan, 2040 AI credits/bulan"
+Profit admin dijamin 50% dari setiap pembayaran.

@@ -1,70 +1,52 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { BillingPopup } from '@/components/billing-popup';
 import {
-  Video,
-  Download,
-  Loader2,
-  Sparkles,
-  RotateCcw,
-  Type,
-  Mic,
-  Film,
-  Smartphone,
-  Monitor,
-  Wand2,
-  Clock,
-  Zap,
-  Globe,
-  Volume2,
-  Music,
-  Subtitles,
-  Share2,
+  Video, Download, Loader2, Sparkles, RotateCcw, Mic, Film,
+  Smartphone, Monitor, Wand2, Clock, Zap, Volume2, Send,
+  ChevronDown, Settings2, X,
 } from 'lucide-react';
 
 const voiceOptions = [
-  { id: 'nova', label: 'Nova', desc: 'Female, warm', lang: '🇮🇩 🇺🇸' },
-  { id: 'alloy', label: 'Alloy', desc: 'Neutral', lang: '🇮🇩 🇺🇸' },
-  { id: 'echo', label: 'Echo', desc: 'Male, clear', lang: '🇮🇩 🇺🇸' },
-  { id: 'onyx', label: 'Onyx', desc: 'Male, deep', lang: '🇮🇩 🇺🇸' },
-  { id: 'shimmer', label: 'Shimmer', desc: 'Female, soft', lang: '🇮🇩 🇺🇸' },
-];
-
-const durationOptions = [
-  { id: 'short', label: '5 detik', desc: 'Quick clip', frames: 41 },
-  { id: 'medium', label: '10 detik', desc: 'Standard', frames: 81 },
-  { id: 'long', label: '20 detik', desc: 'Extended', frames: 161 },
+  { id: 'nova', label: 'Nova', desc: 'Female, warm' },
+  { id: 'alloy', label: 'Alloy', desc: 'Neutral' },
+  { id: 'echo', label: 'Echo', desc: 'Male, clear' },
+  { id: 'onyx', label: 'Onyx', desc: 'Male, deep' },
+  { id: 'shimmer', label: 'Shimmer', desc: 'Female, soft' },
 ];
 
 const stylePresets = [
-  { id: 'cinematic', label: '🎬 Cinematic', prompt: 'cinematic, film grain, dramatic lighting, shallow depth of field' },
-  { id: 'anime', label: '🎌 Anime', prompt: 'anime style, vibrant colors, Japanese animation, detailed' },
-  { id: 'realistic', label: '📷 Realistic', prompt: 'photorealistic, natural lighting, high detail, 8K' },
-  { id: 'dark', label: '🌑 Dark/Horror', prompt: 'dark atmosphere, horror, moody lighting, suspense' },
-  { id: 'neon', label: '💜 Neon/Cyberpunk', prompt: 'neon lights, cyberpunk, futuristic, glowing' },
-  { id: 'nature', label: '🌿 Nature', prompt: 'natural landscape, beautiful scenery, golden hour, peaceful' },
-  { id: 'food', label: '🍜 Food', prompt: 'food photography, appetizing, close-up, steam rising, delicious' },
-  { id: 'product', label: '📦 Product', prompt: 'product showcase, clean background, professional lighting, commercial' },
+  { id: 'cinematic', label: 'Cinematic', icon: '🎬' },
+  { id: 'anime', label: 'Anime', icon: '🎌' },
+  { id: 'realistic', label: 'Realistic', icon: '📷' },
+  { id: 'dark', label: 'Dark', icon: '🌑' },
+  { id: 'neon', label: 'Neon', icon: '💜' },
+  { id: 'nature', label: 'Nature', icon: '🌿' },
+  { id: 'food', label: 'Food', icon: '🍜' },
+  { id: 'product', label: 'Product', icon: '📦' },
 ];
 
-const templates = [
-  { label: '🔥 AI Tools', title: '5 AI Tools Yang Akan Mengubah Hidupmu', script: 'Stop scrolling.\nIni 5 AI tools yang akan mengubah hidupmu.\nNomor 1: ChatGPT bisa buat website dalam hitungan detik.\nNomor 2: Midjourney buat gambar fotorealistis.\nNomor 3: ElevenLabs bisa kloning suara siapapun.\nNomor 4: Runway ML buat video kualitas Hollywood.\nNomor 5: Yang paling menakutkan, bisa menggantikan pekerjaanmu.\nFollow untuk update AI terbaru.' },
-  { label: '💪 Motivasi', title: 'Kamu Bukan Malas, Kamu Takut', script: 'Kamu bukan malas.\nDengarkan ini baik-baik.\nHal yang selama ini kamu tunda?\nBukan karena kamu malas.\nTapi karena kamu takut.\nTakut gagal. Takut berhasil. Takut berubah.\nTapi tahukah kamu?\nRasa takut dan semangat itu rasanya sama.\nJadi mungkin kamu bukan takut.\nMungkin kamu sedang bersemangat.\nLakukan sekarang.' },
-  { label: '💰 Bisnis', title: 'Cara Dapat 10 Juta Dalam 30 Hari', script: 'Saya dapat 10 juta bulan lalu.\nBukan dropship. Bukan crypto.\nIni jasa AI automation.\nLangkah 1: Pelajari ChatGPT dan Zapier.\nLangkah 2: Hubungi 50 bisnis lokal.\nLangkah 3: Tawarkan otomasi email dan customer service mereka.\nSaya charge 2 juta per klien.\nDapat 5 klien di bulan pertama.\nPeluangnya masih sangat besar.' },
-  { label: '🎬 Cinematic', title: 'Cyberpunk City at Night', script: 'A futuristic cyberpunk city at night.\nNeon lights reflecting on wet streets.\nFlying cars passing between massive skyscrapers.\nRain falling through holographic advertisements.\nA lone figure walking through the crowd.\nThe future is here.' },
-  { label: '🍜 Food', title: 'Sate Kambing Terbakar', script: 'Sate kambing dipanggang di atas bara api.\nAsap mengepul dari daging yang terbakar sempurna.\nBumbu kacang disiram melimpah.\nAroma rempah memenuhi udara malam.\nSatu tusuk, dua tusuk, tidak pernah cukup.' },
-  { label: '🌊 Nature', title: 'Sunset di Pantai Bali', script: 'Matahari terbenam di pantai Bali.\nOmbak memecah di karang.\nLangit berubah warna dari oranye ke ungu.\nSiluet pohon kelapa tertiup angin.\nKeindahan alam Indonesia yang tiada tara.' },
-];
+const stylePrompts: Record<string, string> = {
+  cinematic: 'cinematic, film grain, dramatic lighting, shallow depth of field',
+  anime: 'anime style, vibrant colors, Japanese animation, detailed',
+  realistic: 'photorealistic, natural lighting, high detail, 8K',
+  dark: 'dark atmosphere, horror, moody lighting, suspense',
+  neon: 'neon lights, cyberpunk, futuristic, glowing',
+  nature: 'natural landscape, beautiful scenery, golden hour, peaceful',
+  food: 'food photography, appetizing, close-up, steam rising, delicious',
+  product: 'product showcase, clean background, professional lighting, commercial',
+};
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nuviral-production.up.railway.app/api/v1';
 
 export default function QuickVideoPage() {
-  const [title, setTitle] = useState('');
-  const [script, setScript] = useState('');
+  const [prompt, setPrompt] = useState('');
+  const [narasi, setNarasi] = useState('');
+  const [showNarasi, setShowNarasi] = useState(false);
   const [voice, setVoice] = useState('nova');
   const [format, setFormat] = useState<'portrait' | 'landscape'>('portrait');
   const [duration, setDuration] = useState('medium');
@@ -75,9 +57,17 @@ export default function QuickVideoPage() {
   const [renderStage, setRenderStage] = useState('');
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [showBillingPopup, setShowBillingPopup] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [credits, setCredits] = useState<{ aiCreditsUsed: number; aiCreditsLimit: number }>({ aiCreditsUsed: 0, aiCreditsLimit: 0 });
+  const [userName, setUserName] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || '{}');
+      setUserName(u.name || u.email?.split('@')[0] || '');
+    } catch {}
+
     const fetchCredits = async () => {
       try {
         const token = localStorage.getItem('accessToken');
@@ -85,10 +75,7 @@ export default function QuickVideoPage() {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         if (res.data) {
-          setCredits({
-            aiCreditsUsed: res.data.aiCreditsUsed ?? 0,
-            aiCreditsLimit: res.data.aiCreditsLimit ?? 50,
-          });
+          setCredits({ aiCreditsUsed: res.data.aiCreditsUsed ?? 0, aiCreditsLimit: res.data.aiCreditsLimit ?? 0 });
         }
       } catch {
         setCredits({ aiCreditsUsed: 0, aiCreditsLimit: 0 });
@@ -97,12 +84,8 @@ export default function QuickVideoPage() {
     fetchCredits();
   }, []);
 
-  const selectedStyle = stylePresets.find(s => s.id === style) || stylePresets[0];
-
   const handleRender = async () => {
-    if (!title.trim()) { toast.error('Masukkan prompt video'); return; }
-
-    // Check credits
+    if (!prompt.trim()) { toast.error('Masukkan prompt video'); return; }
     if (credits.aiCreditsLimit === 0 || credits.aiCreditsUsed >= credits.aiCreditsLimit) {
       setShowBillingPopup(true);
       return;
@@ -110,33 +93,31 @@ export default function QuickVideoPage() {
 
     setIsRendering(true);
     setRenderProgress(5);
-    setRenderStage('🌐 Memproses prompt...');
+    setRenderStage('Memproses prompt...');
     setVideoUrl(null);
 
     const progressInterval = setInterval(() => {
       setRenderProgress(prev => {
-        if (prev < 15) { setRenderStage('🌐 Translating & enhancing prompt...'); return prev + 2; }
-        if (prev < 45) { setRenderStage('🎬 AI generating video frames...'); return prev + 0.6; }
-        if (prev < 65) { setRenderStage('🎙️ Generating voiceover (Bahasa Indonesia)...'); return prev + 0.8; }
-        if (prev < 75) { setRenderStage('🔗 Merging video + audio...'); return prev + 0.4; }
-        if (prev < 80) { setRenderStage('⏳ Finalizing...'); return prev + 0.2; }
+        if (prev < 15) { setRenderStage('Translating prompt...'); return prev + 2; }
+        if (prev < 45) { setRenderStage('Generating video...'); return prev + 0.6; }
+        if (prev < 65) { setRenderStage('Generating voiceover...'); return prev + 0.8; }
+        if (prev < 75) { setRenderStage('Merging audio + video...'); return prev + 0.4; }
+        if (prev < 80) { setRenderStage('Finalizing...'); return prev + 0.2; }
         return prev;
       });
     }, 2000);
 
     try {
       const authToken = localStorage.getItem('accessToken') || '';
+      const selectedStyle = stylePrompts[style] || '';
       const response = await fetch('https://nuviral-production.up.railway.app/render', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
         body: JSON.stringify({
-          title: title.trim(),
-          script: enableVoiceover ? (script.trim() || title.trim()) : '',
-          prompt: `${title.trim()}, ${selectedStyle.prompt}`,
-          voice,
-          format,
-          duration,
-          style: selectedStyle.id,
+          title: prompt.trim(),
+          script: enableVoiceover ? (narasi.trim() || prompt.trim()) : '',
+          prompt: `${prompt.trim()}, ${selectedStyle}`,
+          voice, format, duration, style,
         }),
       });
 
@@ -148,35 +129,31 @@ export default function QuickVideoPage() {
       }
 
       setRenderProgress(95);
-      setRenderStage('📥 Downloading video...');
+      setRenderStage('Downloading...');
 
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       setVideoUrl(url);
       setRenderProgress(100);
-      setRenderStage('✅ Selesai!');
-      toast.success('Video AI berhasil dibuat! 🎬');
+      setRenderStage('Selesai!');
+      toast.success('Video berhasil dibuat! 🎬');
 
-      // Save video to My Videos (localStorage)
+      // Save to My Videos
       try {
         const videoData = {
           id: `vid-${Date.now()}`,
-          title: title.trim(),
-          style: selectedStyle.label,
-          duration: duration,
-          format: format,
-          voice: voice,
-          blobUrl: url,
-          blobSize: blob.size,
+          title: prompt.trim(),
+          style: stylePresets.find(s => s.id === style)?.label || style,
+          duration, format, voice,
+          blobUrl: url, blobSize: blob.size,
           createdAt: new Date().toISOString(),
           status: 'completed',
         };
-        const savedVideos = JSON.parse(localStorage.getItem('nuviral-videos') || '[]');
-        savedVideos.unshift(videoData);
-        // Keep max 50 videos in history
-        if (savedVideos.length > 50) savedVideos.pop();
-        localStorage.setItem('nuviral-videos', JSON.stringify(savedVideos));
-      } catch (e) { /* ignore storage errors */ }
+        const saved = JSON.parse(localStorage.getItem('nuviral-videos') || '[]');
+        saved.unshift(videoData);
+        if (saved.length > 50) saved.pop();
+        localStorage.setItem('nuviral-videos', JSON.stringify(saved));
+      } catch {}
     } catch (err: any) {
       clearInterval(progressInterval);
       toast.error(`Gagal: ${err.message}`);
@@ -191,280 +168,180 @@ export default function QuickVideoPage() {
     if (!videoUrl) return;
     const link = document.createElement('a');
     link.href = videoUrl;
-    link.download = `nuviral-${title.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '-').substring(0, 30)}.mp4`;
+    link.download = `nuviral-${prompt.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '-').substring(0, 30)}.mp4`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success('Video downloaded!');
   };
 
-  const handleTemplate = (t: typeof templates[0]) => {
-    setTitle(t.title);
-    setScript(t.script);
-    toast.success('Template loaded');
-  };
-
-  const handleReset = () => {
-    setTitle(''); setScript(''); setVideoUrl(null); setRenderProgress(0); setRenderStage('');
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleRender();
+    }
   };
 
   return (
-    <div className="space-y-5">
-      {/* Billing Popup */}
-      <BillingPopup
-        isOpen={showBillingPopup}
-        onClose={() => setShowBillingPopup(false)}
-        creditsUsed={credits.aiCreditsUsed}
-        creditsLimit={credits.aiCreditsLimit}
-      />
+    <div className="flex flex-col h-[calc(100vh-7rem)] relative">
+      <BillingPopup isOpen={showBillingPopup} onClose={() => setShowBillingPopup(false)} creditsUsed={credits.aiCreditsUsed} creditsLimit={credits.aiCreditsLimit} />
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Wand2 className="h-6 w-6 text-primary" />
-            AI Video Studio
-          </h1>
-          <p className="text-muted-foreground mt-0.5 text-sm">Generate video AI realistis + voiceover Bahasa Indonesia otomatis</p>
-        </div>
-        {videoUrl && (
-          <button onClick={handleReset} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border hover:bg-accent text-sm transition">
-            <RotateCcw className="h-3.5 w-3.5" /> Buat Baru
-          </button>
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col items-center justify-center px-4">
+        {videoUrl ? (
+          /* Video Result */
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md text-center space-y-4">
+            <div className="rounded-2xl overflow-hidden border border-border shadow-xl">
+              <video src={videoUrl} controls autoPlay className={`w-full ${format === 'portrait' ? 'aspect-[9/16] max-h-[60vh]' : 'aspect-video'} object-contain bg-black`} />
+            </div>
+            <div className="flex gap-2 justify-center">
+              <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleDownload} className="flex items-center gap-2 px-6 py-3 rounded-xl gradient-primary text-white font-medium">
+                <Download className="h-4 w-4" /> Download MP4
+              </motion.button>
+              <button onClick={() => { setVideoUrl(null); setPrompt(''); setNarasi(''); setRenderProgress(0); }} className="flex items-center gap-2 px-4 py-3 rounded-xl border border-border hover:bg-accent transition">
+                <RotateCcw className="h-4 w-4" /> Baru
+              </button>
+            </div>
+          </motion.div>
+        ) : isRendering ? (
+          /* Rendering State */
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full max-w-md text-center space-y-6">
+            <div className="w-16 h-16 rounded-full gradient-primary flex items-center justify-center mx-auto">
+              <Loader2 className="h-8 w-8 text-white animate-spin" />
+            </div>
+            <div>
+              <p className="text-lg font-semibold">{renderStage}</p>
+              <p className="text-sm text-muted-foreground mt-1">{renderProgress}% — estimasi 2-5 menit</p>
+            </div>
+            <div className="h-2 rounded-full bg-muted overflow-hidden max-w-xs mx-auto">
+              <motion.div animate={{ width: `${renderProgress}%` }} className="h-full rounded-full gradient-primary" />
+            </div>
+          </motion.div>
+        ) : (
+          /* Welcome State (Gemini-style) */
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
+            <h1 className="text-3xl md:text-4xl font-semibold text-foreground mb-2">
+              Halo {userName || 'Creator'}, mau buat video apa?
+            </h1>
+            <p className="text-muted-foreground">Ketik prompt lalu tekan Enter untuk generate video AI</p>
+          </motion.div>
         )}
       </div>
 
-      {/* Templates */}
-      <div className="flex flex-wrap gap-2">
-        {templates.map((t) => (
-          <button key={t.label} onClick={() => handleTemplate(t)} className="px-3 py-1.5 rounded-lg text-xs font-medium border border-border hover:border-primary/50 hover:bg-primary/5 transition">
-            {t.label}
-          </button>
-        ))}
-      </div>
+      {/* Bottom Input Bar (Gemini-style) */}
+      {!videoUrl && !isRendering && (
+        <div className="sticky bottom-0 pb-4 px-4">
+          <div className="max-w-3xl mx-auto">
+            {/* Narasi expandable */}
+            <AnimatePresence>
+              {showNarasi && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-2">
+                  <div className="p-3 rounded-xl border border-border bg-card">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Mic className="h-3 w-3" /> Narasi / Voiceover</span>
+                      <button onClick={() => setShowNarasi(false)} className="p-1 rounded hover:bg-accent"><X className="h-3 w-3" /></button>
+                    </div>
+                    <textarea
+                      value={narasi}
+                      onChange={(e) => setNarasi(e.target.value)}
+                      placeholder="Tulis narasi bahasa Indonesia yang akan dibacakan AI..."
+                      rows={3}
+                      className="w-full px-3 py-2 rounded-lg bg-background border border-border text-sm resize-none focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-      <div className="grid lg:grid-cols-5 gap-5">
-        {/* Left: Input (3 cols) */}
-        <div className="lg:col-span-3 space-y-4">
-          {/* Prompt */}
-          <div className="p-4 rounded-2xl border border-border bg-card">
-            <label className="text-sm font-semibold mb-1.5 block flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              Video Prompt
-            </label>
-            <textarea
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Deskripsikan video yang ingin dibuat...\n\nContoh:\n- Sate kambing terbakar di atas bara api dengan asap mengepul\n- Mobil sport merah melaju di jalan cyberpunk malam hari\n- Kucing lucu bermain di taman bunga"
-              rows={3}
-              className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-sm resize-none"
-            />
-            <p className="text-[11px] text-muted-foreground mt-1">Bisa pakai Bahasa Indonesia — AI otomatis translate ke English untuk hasil terbaik</p>
-          </div>
+            {/* Main Input */}
+            <div className="relative rounded-2xl border border-border bg-card shadow-lg overflow-hidden">
+              <textarea
+                ref={textareaRef}
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Deskripsikan video yang ingin dibuat..."
+                rows={1}
+                className="w-full px-5 py-4 pr-32 text-sm bg-transparent resize-none focus:outline-none min-h-[56px] max-h-[120px]"
+                style={{ height: 'auto', overflow: 'hidden' }}
+                onInput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 120) + 'px'; }}
+              />
 
-          {/* Voiceover Script */}
-          <div className="p-4 rounded-2xl border border-border bg-card">
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-sm font-semibold flex items-center gap-2">
-                <Mic className="h-4 w-4 text-primary" />
-                Narasi / Voiceover
-              </label>
-              <button
-                onClick={() => setEnableVoiceover(!enableVoiceover)}
-                className={`w-9 h-5 rounded-full transition ${enableVoiceover ? 'bg-primary' : 'bg-muted'}`}
-              >
-                <div className={`w-4 h-4 rounded-full bg-white shadow transition-transform ${enableVoiceover ? 'translate-x-4' : 'translate-x-0.5'}`} />
-              </button>
-            </div>
-            {enableVoiceover && (
-              <>
-                <textarea
-                  value={script}
-                  onChange={(e) => setScript(e.target.value)}
-                  placeholder="Tulis narasi yang akan dibacakan AI (Bahasa Indonesia)...\nKosongkan untuk menggunakan prompt sebagai narasi."
-                  rows={4}
-                  className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:border-primary focus:ring-1 focus:ring-primary outline-none transition resize-none text-sm"
-                />
-                <p className="text-[11px] text-muted-foreground mt-1">Suara AI natural — support Bahasa Indonesia, English, dan 50+ bahasa lainnya</p>
-              </>
-            )}
-            {!enableVoiceover && (
-              <p className="text-xs text-muted-foreground py-2">Voiceover dimatikan — video tanpa suara narasi</p>
-            )}
-          </div>
+              {/* Bottom toolbar inside input */}
+              <div className="flex items-center justify-between px-3 pb-3">
+                <div className="flex items-center gap-1">
+                  {/* Style selector */}
+                  <div className="relative">
+                    <button onClick={() => setShowSettings(!showSettings)} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium hover:bg-accent transition text-muted-foreground">
+                      <Settings2 className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">{stylePresets.find(s => s.id === style)?.icon} {stylePresets.find(s => s.id === style)?.label}</span>
+                      <ChevronDown className="h-3 w-3" />
+                    </button>
+                  </div>
 
-          {/* Settings Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {/* Style */}
-            <div className="p-3 rounded-2xl border border-border bg-card">
-              <label className="text-xs font-semibold mb-2 block flex items-center gap-1.5">
-                <Film className="h-3.5 w-3.5 text-primary" />
-                Style
-              </label>
-              <div className="grid grid-cols-2 gap-1">
-                {stylePresets.map((s) => (
-                  <button
-                    key={s.id}
-                    onClick={() => setStyle(s.id)}
-                    className={`px-2 py-1.5 rounded-lg text-[10px] font-medium transition ${style === s.id ? 'bg-primary text-white' : 'bg-muted/50 hover:bg-muted text-muted-foreground'}`}
-                  >
-                    {s.label}
+                  {/* Format */}
+                  <button onClick={() => setFormat(f => f === 'portrait' ? 'landscape' : 'portrait')} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium hover:bg-accent transition text-muted-foreground">
+                    {format === 'portrait' ? <Smartphone className="h-3.5 w-3.5" /> : <Monitor className="h-3.5 w-3.5" />}
+                    <span className="hidden sm:inline">{format === 'portrait' ? '9:16' : '16:9'}</span>
                   </button>
-                ))}
-              </div>
-            </div>
 
-            {/* Format + Duration */}
-            <div className="p-3 rounded-2xl border border-border bg-card">
-              <label className="text-xs font-semibold mb-2 block flex items-center gap-1.5">
-                <Monitor className="h-3.5 w-3.5 text-primary" />
-                Format & Durasi
-              </label>
-              {/* Format */}
-              <div className="flex gap-1.5 mb-2">
-                <button onClick={() => setFormat('portrait')} className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-medium transition ${format === 'portrait' ? 'bg-primary text-white' : 'bg-muted/50 hover:bg-muted'}`}>
-                  <Smartphone className="h-3 w-3" /> 9:16
-                </button>
-                <button onClick={() => setFormat('landscape')} className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-medium transition ${format === 'landscape' ? 'bg-primary text-white' : 'bg-muted/50 hover:bg-muted'}`}>
-                  <Monitor className="h-3 w-3" /> 16:9
+                  {/* Duration */}
+                  <button onClick={() => setDuration(d => d === 'short' ? 'medium' : d === 'medium' ? 'long' : 'short')} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium hover:bg-accent transition text-muted-foreground">
+                    <Clock className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">{duration === 'short' ? '5s' : duration === 'medium' ? '10s' : '20s'}</span>
+                  </button>
+
+                  {/* Voice */}
+                  <button onClick={() => { const voices = voiceOptions.map(v => v.id); const i = voices.indexOf(voice); setVoice(voices[(i + 1) % voices.length]); }} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium hover:bg-accent transition text-muted-foreground">
+                    <Volume2 className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">{voice}</span>
+                  </button>
+
+                  {/* Narasi toggle */}
+                  <button onClick={() => setShowNarasi(!showNarasi)} className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${showNarasi ? 'bg-primary/10 text-primary' : 'hover:bg-accent text-muted-foreground'}`}>
+                    <Mic className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Narasi</span>
+                  </button>
+                </div>
+
+                {/* Send button */}
+                <button
+                  onClick={handleRender}
+                  disabled={!prompt.trim() || isRendering}
+                  className="p-2.5 rounded-xl gradient-primary text-white disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 transition"
+                >
+                  <Send className="h-4 w-4" />
                 </button>
               </div>
-              {/* Duration */}
-              <div className="flex gap-1.5">
-                {durationOptions.map((d) => (
-                  <button key={d.id} onClick={() => setDuration(d.id)} className={`flex-1 py-1.5 rounded-lg text-[10px] font-medium transition ${duration === d.id ? 'bg-primary text-white' : 'bg-muted/50 hover:bg-muted'}`}>
-                    {d.label}
-                  </button>
-                ))}
-              </div>
             </div>
 
-            {/* Voice */}
-            <div className="p-3 rounded-2xl border border-border bg-card">
-              <label className="text-xs font-semibold mb-2 block flex items-center gap-1.5">
-                <Volume2 className="h-3.5 w-3.5 text-primary" />
-                Suara AI
-              </label>
-              <div className="space-y-0.5">
-                {voiceOptions.map((v) => (
-                  <button key={v.id} onClick={() => setVoice(v.id)} className={`w-full flex items-center justify-between px-2 py-1 rounded-lg text-[10px] transition ${voice === v.id ? 'bg-primary/10 border border-primary/30 text-primary font-medium' : 'hover:bg-muted/50'}`}>
-                    <span>{v.label} — {v.desc}</span>
-                    <span>{v.lang}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Generate Button */}
-          <motion.button
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-            onClick={handleRender}
-            disabled={isRendering || !title.trim()}
-            className="w-full flex items-center justify-center gap-2 py-4 rounded-xl gradient-primary text-white font-semibold text-lg hover:opacity-90 transition disabled:opacity-50"
-          >
-            {isRendering ? (
-              <span className="flex items-center gap-2 text-sm">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                {renderStage}
-              </span>
-            ) : (
-              <>
-                <Zap className="h-5 w-5" />
-                Generate AI Video
-              </>
-            )}
-          </motion.button>
-
-          {/* Progress */}
-          {isRendering && (
-            <div className="space-y-1.5">
-              <div className="h-2 rounded-full bg-muted overflow-hidden">
-                <motion.div animate={{ width: `${renderProgress}%` }} className="h-full rounded-full gradient-primary" />
-              </div>
-              <div className="flex justify-between text-[10px] text-muted-foreground">
-                <span>{renderProgress}%</span>
-                <span>Estimasi: 2-5 menit</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Right: Video Preview (2 cols) */}
-        <div className="lg:col-span-2">
-          <div className="sticky top-20 space-y-3">
-            {videoUrl ? (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
-                <div className="rounded-2xl overflow-hidden border border-border shadow-lg">
-                  <video
-                    src={videoUrl}
-                    controls
-                    autoPlay
-                    className={`w-full ${format === 'portrait' ? 'aspect-[9/16] max-h-[480px]' : 'aspect-video'} object-contain bg-black`}
-                  />
-                </div>
-
-                <div className="flex gap-2">
-                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleDownload} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl gradient-primary text-white font-medium text-sm">
-                    <Download className="h-4 w-4" /> Download MP4
-                  </motion.button>
-                  <button onClick={handleReset} className="p-3 rounded-xl border border-border hover:bg-accent transition">
-                    <RotateCcw className="h-4 w-4" />
-                  </button>
-                </div>
-
-                <div className="p-3 rounded-xl border border-border bg-card text-[11px] space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Format</span>
-                    <span className="font-medium">{format === 'portrait' ? '1080×1920 (9:16)' : '1920×1080 (16:9)'}</span>
+            {/* Settings Panel */}
+            <AnimatePresence>
+              {showSettings && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute bottom-full left-0 right-0 mb-2 max-w-3xl mx-auto">
+                  <div className="p-4 rounded-2xl border border-border bg-card shadow-xl">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-medium">Style</span>
+                      <button onClick={() => setShowSettings(false)} className="p-1 rounded hover:bg-accent"><X className="h-4 w-4" /></button>
+                    </div>
+                    <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+                      {stylePresets.map(s => (
+                        <button key={s.id} onClick={() => { setStyle(s.id); setShowSettings(false); }} className={`flex flex-col items-center gap-1 p-2 rounded-xl transition ${style === s.id ? 'bg-primary/10 border border-primary/30' : 'hover:bg-accent border border-transparent'}`}>
+                          <span className="text-lg">{s.icon}</span>
+                          <span className="text-[10px] font-medium">{s.label}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Style</span>
-                    <span className="font-medium">{selectedStyle.label}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Voiceover</span>
-                    <span className="font-medium">{enableVoiceover ? `${voice} (TTS-HD)` : 'Disabled'}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Platform</span>
-                    <span className="font-medium">{format === 'portrait' ? 'TikTok, Reels, Shorts' : 'YouTube, Facebook'}</span>
-                  </div>
-                </div>
-              </motion.div>
-            ) : (
-              <div className="rounded-2xl border border-border bg-card overflow-hidden">
-                <div className={`flex items-center justify-center bg-gradient-to-br from-muted/30 to-muted/10 ${format === 'portrait' ? 'aspect-[9/16] max-h-[480px]' : 'aspect-video'}`}>
-                  <div className="text-center p-6">
-                    <Video className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-                    <p className="text-sm font-medium text-muted-foreground">Video AI akan muncul di sini</p>
-                    <p className="text-xs text-muted-foreground/60 mt-1">Ketik prompt → klik Generate</p>
-                  </div>
-                </div>
-                <div className="p-3 border-t border-border">
-                  <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                    <span className="flex items-center gap-1"><Film className="h-3 w-3" /> {format === 'portrait' ? '9:16' : '16:9'}</span>
-                    <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {durationOptions.find(d => d.id === duration)?.label}</span>
-                    <span className="flex items-center gap-1"><Mic className="h-3 w-3" /> {enableVoiceover ? voice : 'Off'}</span>
-                  </div>
-                </div>
-              </div>
-            )}
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-            {/* Tips */}
-            {!videoUrl && !isRendering && (
-              <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 text-[11px] space-y-1">
-                <p className="font-semibold text-primary">💡 Tips untuk hasil terbaik:</p>
-                <p className="text-muted-foreground">• Deskripsikan visual secara detail (warna, cahaya, gerakan)</p>
-                <p className="text-muted-foreground">• Pilih style yang sesuai dengan konten</p>
-                <p className="text-muted-foreground">• Narasi bahasa Indonesia akan dibacakan dengan suara natural</p>
-                <p className="text-muted-foreground">• Video 5 detik paling hemat credit</p>
-              </div>
-            )}
+            <p className="text-[10px] text-muted-foreground text-center mt-2">
+              Tekan Enter untuk generate • Shift+Enter untuk baris baru
+            </p>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
