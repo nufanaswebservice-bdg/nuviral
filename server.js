@@ -146,25 +146,24 @@ app.post('/render', requireAuth, async (req, res) => {
           body: JSON.stringify({
             model: 'gpt-4o-mini',
             messages: [
-              { role: 'system', content: `You are an expert AI video prompt optimizer. Your job is to convert user prompts into the BEST possible prompt for a 5-10 second AI video generation model.
+              { role: 'system', content: `You are an expert AI video prompt optimizer. Your job is to convert user prompts into the BEST possible prompt for a 5-10 second AI video generation model (Kling 3.0).
 
 CRITICAL RULES:
-1. The AI video model can ONLY generate 5-10 seconds of video
-2. Extract the SINGLE most visually dramatic/impactful moment from the user's description
-3. If the user describes a process (renovation, transformation, time-lapse), pick the FINAL dramatic result or the most action-packed moment
-4. ALWAYS include camera movement (slow pan, drone shot, tracking shot, zoom in, orbit around)
-5. ALWAYS include motion/action (flowing water, moving clouds, walking people, flying birds, swaying trees)
-6. ALWAYS include lighting details (golden hour, neon glow, dramatic shadows, sunset colors)
-7. ALWAYS include atmosphere (fog, rain, dust particles, lens flare)
-8. Keep cultural context (Indonesian/Asian elements if mentioned)
-9. Output EXACTLY 40-60 words in English
-10. Make it CINEMATIC and DYNAMIC — never static
+1. The model generates 5-10 seconds of HIGH QUALITY video
+2. It CAN do: time-lapse, transformations, motion, camera movement, realistic scenes
+3. PRESERVE the user's intent — if they want time-lapse, keep it as time-lapse
+4. PRESERVE transformation requests (before→after, renovation, growth, etc.)
+5. Add camera movement details (drone shot, tracking, orbit, zoom)
+6. Add lighting and atmosphere (golden hour, neon, fog, rain)
+7. Keep cultural context (Indonesian/Asian elements if mentioned)
+8. If prompt is already in English and detailed, keep it mostly intact but optimize for video generation
+9. Output 50-80 words in English
+10. Make it CINEMATIC and DYNAMIC
 
-FORMAT: [Camera movement], [Subject with action/motion], [Environment details], [Lighting/atmosphere], [Style keywords]
+FORMAT: [Camera/motion type], [Main subject with transformation/action], [Environment], [Lighting], [Style]
 
-Example input: "renovasi bangunan tua menjadi villa mewah modern"
-Example output: "Cinematic drone shot slowly orbiting around a stunning white modern villa with curved organic architecture, lush green plants on every balcony, warm string lights glowing at sunset, dense tropical forest surrounding, pink and purple sky, photorealistic, architectural visualization, 8K detail"` },
-              { role: 'user', content: videoPrompt.substring(0, 1000) }
+IMPORTANT: Do NOT remove time-lapse, transformation, or process descriptions from the prompt. The model supports these.` },
+              { role: 'user', content: videoPrompt.substring(0, 1500) }
             ],
             max_tokens: 150,
           }),
@@ -203,9 +202,13 @@ Example output: "Cinematic drone shot slowly orbiting around a stunning white mo
 
       let prediction = null;
 
-      // Use Wan 2.1 480p (cheapest: ~$0.10-0.20 per video) with good quality
-      // wavespeedai version is optimized and faster
+      // Use Kling 3.0 (best quality, time-lapse capable, ~$0.33/5s)
+      // Fallback to Wan 2.1 if Kling fails
       const models = [
+        {
+          name: 'kwaivgi/kling-v2.1',
+          input: { prompt: clipPrompt, duration: String(klingDuration), aspect_ratio: aspectRatio, cfg_scale: 0.5 }
+        },
         {
           name: 'wan-video/wan-2.1-1.3b',
           input: { prompt: clipPrompt, num_frames: klingDuration <= 5 ? 81 : 161, num_inference_steps: 20, fps: 16, aspect_ratio: aspectRatio }
@@ -550,15 +553,15 @@ app.post('/upload/youtube', async (req, res) => {
 // ============================================
 
 const PLANS = {
-  STARTER: { name: 'Starter', price: 225000, videoLimit: 37, aiCreditsLimit: 370, storageLimit: 10 * 1024 * 1024 * 1024 },
-  PRO: { name: 'Pro', price: 449000, videoLimit: 75, aiCreditsLimit: 750, storageLimit: 50 * 1024 * 1024 * 1024 },
-  AGENCY: { name: 'Agency', price: 1225000, videoLimit: 204, aiCreditsLimit: 2040, storageLimit: 200 * 1024 * 1024 * 1024 },
+  STARTER: { name: 'Starter', price: 225000, videoLimit: 21, aiCreditsLimit: 210, storageLimit: 10 * 1024 * 1024 * 1024 },
+  PRO: { name: 'Pro', price: 449000, videoLimit: 42, aiCreditsLimit: 420, storageLimit: 50 * 1024 * 1024 * 1024 },
+  AGENCY: { name: 'Agency', price: 1225000, videoLimit: 115, aiCreditsLimit: 1150, storageLimit: 200 * 1024 * 1024 * 1024 },
 };
-// Profit margin: 50% — user gets Rp worth of AI usage = 50% of subscription price
-// Cost per video: ~Rp 3.000 (Replicate $0.15-0.20 × Rp 16.000)
-// Starter: 225.000 × 50% = 112.500 / 3.000 = 37 videos
-// Pro: 449.000 × 50% = 224.500 / 3.000 = 75 videos
-// Agency: 1.225.000 × 50% = 612.500 / 3.000 = 204 videos
+// Profit margin: 50% — Kling 3.0 model
+// Cost per video: ~Rp 5.300 (Replicate $0.33 × Rp 16.000)
+// Starter: 225.000 × 50% = 112.500 / 5.300 = 21 videos
+// Pro: 449.000 × 50% = 224.500 / 5.300 = 42 videos
+// Agency: 1.225.000 × 50% = 612.500 / 5.300 = 115 videos
 
 // User usage tracking
 const USAGE_FILE = '/tmp/nuviral-usage.json';

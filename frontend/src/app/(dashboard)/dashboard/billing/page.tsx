@@ -31,8 +31,8 @@ const plans = [
     icon: Zap,
     popular: false,
     features: [
-      '37 video renders/bulan',
-      '370 AI credits/bulan',
+      '21 video renders/bulan',
+      '210 AI credits/bulan',
       '10GB storage',
       'Semua template',
       'Tanpa watermark',
@@ -47,8 +47,8 @@ const plans = [
     icon: CreditCard,
     popular: true,
     features: [
-      '75 video renders/bulan',
-      '750 AI credits/bulan',
+      '42 video renders/bulan',
+      '420 AI credits/bulan',
       '50GB storage',
       'Template premium',
       'Tanpa watermark',
@@ -66,8 +66,8 @@ const plans = [
     icon: Building2,
     popular: false,
     features: [
-      '204 video renders/bulan',
-      '2040 AI credits/bulan',
+      '115 video renders/bulan',
+      '1150 AI credits/bulan',
       '200GB storage',
       'Semua template + custom',
       'Unlimited akun sosial media',
