@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Image, Video, Play, X, Film } from 'lucide-react';
+import { Image, Video, Play, X } from 'lucide-react';
 
 interface VideoSample {
   id: string;
@@ -116,18 +116,26 @@ export default function MediaPage() {
               className="group rounded-2xl border border-border bg-card overflow-hidden hover:border-primary/30 hover:shadow-lg transition cursor-pointer"
             >
               {/* Video Thumbnail */}
-              <div className="aspect-[9/16] relative overflow-hidden">
+              <div className="aspect-[9/16] relative overflow-hidden bg-gradient-to-br from-violet-600/20 via-purple-700/30 to-indigo-800/40">
                 {sample.thumbnailUrl ? (
                   <img src={sample.thumbnailUrl} alt={sample.title} className="w-full h-full object-cover" loading="lazy" />
+                ) : sample.videoUrl ? (
+                  <video
+                    src={sample.videoUrl}
+                    className="w-full h-full object-cover"
+                    muted
+                    playsInline
+                    preload="metadata"
+                    onLoadedData={(e) => {
+                      // Seek to 1s for a better frame
+                      const vid = e.currentTarget;
+                      if (vid.duration > 1) vid.currentTime = 1;
+                    }}
+                  />
                 ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-violet-600/20 via-purple-700/30 to-indigo-800/40 relative">
-                    {/* Decorative background pattern */}
-                    <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)', backgroundSize: '20px 20px' }} />
-                    {/* Play icon */}
-                    <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center mb-2">
-                      <Play className="h-5 w-5 text-white/80 ml-0.5" />
-                    </div>
-                    <span className="text-[10px] text-white/50 font-medium">Tap to play</span>
+                  <div className="w-full h-full flex flex-col items-center justify-center">
+                    <Play className="h-8 w-8 text-white/50 mb-1" />
+                    <span className="text-[10px] text-white/40">No video</span>
                   </div>
                 )}
 
