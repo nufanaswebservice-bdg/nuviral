@@ -47,13 +47,13 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 max-w-full overflow-hidden">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Dashboard Overview</h1>
-          <p className="text-gray-400 text-sm mt-1">Welcome back, Super Admin</p>
+        <div className="min-w-0">
+          <h1 className="text-xl md:text-2xl font-bold">Dashboard Overview</h1>
+          <p className="text-gray-400 text-xs md:text-sm mt-1">Welcome back, Super Admin</p>
         </div>
-        <button onClick={fetchStats} className="p-2 rounded-lg hover:bg-white/5 transition">
+        <button onClick={fetchStats} className="p-2 rounded-lg hover:bg-white/5 transition flex-shrink-0">
           <RefreshCw className="h-5 w-5 text-gray-400" />
         </button>
       </div>
@@ -63,29 +63,29 @@ export default function AdminDashboard() {
       ) : (
         <>
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             {cards.map((card, i) => (
               <motion.div
                 key={card.label}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1 }}
-                className="p-5 rounded-2xl bg-gray-900 border border-white/5 hover:border-white/10 transition"
+                className="p-3.5 md:p-5 rounded-xl md:rounded-2xl bg-gray-900 border border-white/5 hover:border-white/10 transition"
               >
-                <div className="flex items-center justify-between mb-3">
-                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${card.color} flex items-center justify-center`}>
-                    <card.icon className="h-5 w-5 text-white" />
+                <div className="flex items-center justify-between mb-2 md:mb-3">
+                  <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-gradient-to-br ${card.color} flex items-center justify-center`}>
+                    <card.icon className="h-4 w-4 md:h-5 md:w-5 text-white" />
                   </div>
                 </div>
-                <p className="text-2xl font-bold">{card.value}</p>
-                <p className="text-sm text-gray-400">{card.label}</p>
+                <p className="text-lg md:text-2xl font-bold">{card.value}</p>
+                <p className="text-xs md:text-sm text-gray-400">{card.label}</p>
               </motion.div>
             ))}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
             {/* AI System Status */}
-            <div className="p-6 rounded-2xl bg-gray-900 border border-white/5">
+            <div className="p-4 md:p-6 rounded-xl md:rounded-2xl bg-gray-900 border border-white/5">
               <h3 className="font-semibold mb-4 flex items-center gap-2">
                 <Zap className="h-5 w-5 text-violet-400" />
                 AI System
@@ -115,7 +115,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* System Status */}
-            <div className="p-6 rounded-2xl bg-gray-900 border border-white/5">
+            <div className="p-4 md:p-6 rounded-xl md:rounded-2xl bg-gray-900 border border-white/5">
               <h3 className="font-semibold mb-4 flex items-center gap-2">
                 <Server className="h-5 w-5 text-violet-400" />
                 System Status

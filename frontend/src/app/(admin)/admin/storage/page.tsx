@@ -59,16 +59,16 @@ export default function AdminStoragePage() {
   const usagePercent = storage ? Math.min((storage.totalUsed / storage.totalLimit) * 100, 100) : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 max-w-full overflow-hidden">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Database className="h-6 w-6 text-violet-400" />
-            Storage Management
+        <div className="min-w-0">
+          <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+            <Database className="h-5 w-5 md:h-6 md:w-6 text-violet-400 flex-shrink-0" />
+            <span className="truncate">Storage Management</span>
           </h1>
-          <p className="text-gray-400 text-sm mt-1">Monitor dan kelola penyimpanan Cloudflare R2</p>
+          <p className="text-gray-400 text-xs md:text-sm mt-1">Monitor dan kelola penyimpanan Cloudflare R2</p>
         </div>
-        <button onClick={fetchStorage} className="p-2 rounded-lg hover:bg-white/5 transition">
+        <button onClick={fetchStorage} className="p-2 rounded-lg hover:bg-white/5 transition flex-shrink-0">
           <RefreshCw className="h-5 w-5 text-gray-400" />
         </button>
       </div>
@@ -115,7 +115,7 @@ export default function AdminStoragePage() {
           </div>
 
           {/* Usage Overview */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
             <div className="lg:col-span-2 p-5 rounded-xl bg-gray-900 border border-white/5">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-medium">Storage Usage</h3>

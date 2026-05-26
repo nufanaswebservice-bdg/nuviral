@@ -76,21 +76,21 @@ export default function AdminSecurityPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 max-w-full overflow-hidden">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Shield className="h-6 w-6 text-violet-400" />
+        <div className="min-w-0">
+          <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+            <Shield className="h-5 w-5 md:h-6 md:w-6 text-violet-400 flex-shrink-0" />
             Security
           </h1>
-          <p className="text-gray-400 text-sm mt-1">Rate limiting, IP blocking, dan firewall</p>
+          <p className="text-gray-400 text-xs md:text-sm mt-1">Rate limiting, IP blocking, dan firewall</p>
         </div>
-        <button onClick={fetchSecurity} className="p-2 rounded-lg hover:bg-white/5 transition">
+        <button onClick={fetchSecurity} className="p-2 rounded-lg hover:bg-white/5 transition flex-shrink-0">
           <RefreshCw className="h-5 w-5 text-gray-400" />
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         {/* Security Settings */}
         <div className="p-5 rounded-xl bg-gray-900 border border-white/5 space-y-4">
           <h3 className="font-medium flex items-center gap-2"><Activity className="h-4 w-4 text-violet-400" /> Security Settings</h3>
