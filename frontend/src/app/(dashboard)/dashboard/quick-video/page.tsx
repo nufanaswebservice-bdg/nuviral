@@ -37,7 +37,7 @@ const stylePrompts: Record<string, string> = {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nuviral-production.up.railway.app/api/v1';
 
 export default function QuickVideoPage() {
-  const [activeTab, setActiveTab] = useState<'video' | 'image' | 'chat'>('video');
+  const [activeTab, setActiveTab] = useState<'video' | 'image' | 'chat'>('chat');
   const [prompt, setPrompt] = useState('');
   const [narasi, setNarasi] = useState('');
   const [showNarasi, setShowNarasi] = useState(false);
@@ -163,9 +163,9 @@ export default function QuickVideoPage() {
       <div className="flex items-center justify-center pt-2 pb-4">
         <div className="flex gap-1 p-1 rounded-xl bg-muted/50">
           {[
-            { id: 'video', label: 'Video', icon: Video },
-            { id: 'image', label: 'Gambar', icon: ImageIcon },
             { id: 'chat', label: 'Chat AI', icon: MessageSquare },
+            { id: 'image', label: 'Gambar', icon: ImageIcon },
+            { id: 'video', label: 'Video', icon: Video },
           ].map(tab => (
             <button key={tab.id} onClick={() => { setActiveTab(tab.id as any); resetAll(); }} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === tab.id ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
               <tab.icon className="h-4 w-4" />
