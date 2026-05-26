@@ -27,8 +27,8 @@ interface SidebarProps {
 }
 
 const menuItems = [
+  { icon: Wand2, label: 'AI Studio', href: '/dashboard/quick-video' },
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-  { icon: Wand2, label: 'AI Video Studio', href: '/dashboard/quick-video' },
   { icon: Video, label: 'Videos', href: '/dashboard/videos' },
   { icon: TrendingUp, label: 'Trends', href: '/dashboard/trends' },
   { icon: Calendar, label: 'Schedule', href: '/dashboard/schedule' },
