@@ -156,11 +156,11 @@ export default function QuickVideoPage() {
   const resetAll = () => { setVideoUrl(null); setImageUrl(null); setPrompt(''); setNarasi(''); setRenderProgress(0); setRenderStage(''); };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-7rem)] relative">
+    <div className="flex flex-col h-[calc(100vh-7rem)]">
       <BillingPopup isOpen={showBillingPopup} onClose={() => setShowBillingPopup(false)} creditsUsed={credits.aiCreditsUsed} creditsLimit={credits.aiCreditsLimit} />
 
-      {/* Tab Selector */}
-      <div className="flex items-center justify-center pt-2 pb-4">
+      {/* Tab Selector - Fixed top */}
+      <div className="flex items-center justify-center py-3 flex-shrink-0">
         <div className="flex gap-1 p-1 rounded-xl bg-muted/50">
           {[
             { id: 'chat', label: 'Chat AI', icon: MessageSquare },
@@ -175,85 +175,96 @@ export default function QuickVideoPage() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 overflow-y-auto">
-        {/* VIDEO TAB */}
-        {activeTab === 'video' && (
-          videoUrl ? (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md text-center space-y-4">
-              <div className="rounded-2xl overflow-hidden border border-border shadow-xl">
-                <video src={videoUrl} controls autoPlay className={`w-full ${format === 'portrait' ? 'aspect-[9/16] max-h-[55vh]' : 'aspect-video'} object-contain bg-black`} />
+      {/* Main Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto px-4 pb-4">
+        <div className="max-w-3xl mx-auto">
+          {/* VIDEO TAB */}
+          {activeTab === 'video' && (
+            videoUrl ? (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center space-y-4 py-8">
+                <div className="rounded-2xl overflow-hidden border border-border shadow-xl w-full max-w-md">
+                  <video src={videoUrl} controls autoPlay className={`w-full ${format === 'portrait' ? 'aspect-[9/16] max-h-[50vh]' : 'aspect-video'} object-contain bg-black`} />
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => { const a = document.createElement('a'); a.href = videoUrl; a.download = 'nuviral-video.mp4'; a.click(); }} className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-primary text-white font-medium text-sm"><Download className="h-4 w-4" /> Download</button>
+                  <button onClick={resetAll} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border hover:bg-accent transition text-sm"><RotateCcw className="h-4 w-4" /> Baru</button>
+                </div>
+              </motion.div>
+            ) : isRendering ? (
+              <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                <Loader2 className="h-12 w-12 text-primary animate-spin" />
+                <p className="font-medium">{renderStage}</p>
+                <div className="h-2 rounded-full bg-muted overflow-hidden w-64"><motion.div animate={{ width: `${renderProgress}%` }} className="h-full gradient-primary rounded-full" /></div>
+                <p className="text-xs text-muted-foreground">{renderProgress}% — estimasi 2-5 menit</p>
               </div>
-              <div className="flex gap-2 justify-center">
-                <button onClick={() => { const a = document.createElement('a'); a.href = videoUrl; a.download = 'nuviral-video.mp4'; a.click(); }} className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-primary text-white font-medium text-sm"><Download className="h-4 w-4" /> Download</button>
-                <button onClick={resetAll} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border hover:bg-accent transition text-sm"><RotateCcw className="h-4 w-4" /> Baru</button>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20">
+                <h1 className="text-3xl font-semibold mb-2">Buat Video AI</h1>
+                <p className="text-muted-foreground">Ketik prompt, pilih style, tekan Enter</p>
               </div>
-            </motion.div>
-          ) : isRendering ? (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center space-y-4">
-              <Loader2 className="h-12 w-12 text-primary animate-spin mx-auto" />
-              <p className="font-medium">{renderStage}</p>
-              <div className="h-2 rounded-full bg-muted overflow-hidden w-64 mx-auto"><motion.div animate={{ width: `${renderProgress}%` }} className="h-full gradient-primary rounded-full" /></div>
-              <p className="text-xs text-muted-foreground">{renderProgress}% — estimasi 2-5 menit</p>
-            </motion.div>
-          ) : (
-            <div className="text-center"><h1 className="text-3xl font-semibold mb-2">Buat Video AI</h1><p className="text-muted-foreground">Ketik prompt, pilih style, tekan Enter</p></div>
-          )
-        )}
+            )
+          )}
 
-        {/* IMAGE TAB */}
-        {activeTab === 'image' && (
-          imageUrl ? (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md text-center space-y-4">
-              <div className="rounded-2xl overflow-hidden border border-border shadow-xl">
-                <img src={imageUrl} alt="Generated" className="w-full object-contain max-h-[60vh]" />
+          {/* IMAGE TAB */}
+          {activeTab === 'image' && (
+            imageUrl ? (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center space-y-4 py-8">
+                <div className="rounded-2xl overflow-hidden border border-border shadow-xl w-full max-w-md">
+                  <img src={imageUrl} alt="Generated" className="w-full object-contain max-h-[55vh]" />
+                </div>
+                <div className="flex gap-2">
+                  <a href={imageUrl} download="nuviral-image.png" target="_blank" className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-primary text-white font-medium text-sm"><Download className="h-4 w-4" /> Download</a>
+                  <button onClick={resetAll} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border hover:bg-accent transition text-sm"><RotateCcw className="h-4 w-4" /> Baru</button>
+                </div>
+              </motion.div>
+            ) : isGeneratingImage ? (
+              <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                <Loader2 className="h-12 w-12 text-primary animate-spin" />
+                <p className="font-medium">Generating gambar...</p>
+                <p className="text-xs text-muted-foreground">~10-30 detik</p>
               </div>
-              <div className="flex gap-2 justify-center">
-                <a href={imageUrl} download="nuviral-image.png" target="_blank" className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-primary text-white font-medium text-sm"><Download className="h-4 w-4" /> Download</a>
-                <button onClick={resetAll} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border hover:bg-accent transition text-sm"><RotateCcw className="h-4 w-4" /> Baru</button>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20">
+                <h1 className="text-3xl font-semibold mb-2">Generate Gambar AI</h1>
+                <p className="text-muted-foreground">Deskripsikan gambar yang ingin dibuat</p>
               </div>
-            </motion.div>
-          ) : isGeneratingImage ? (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center space-y-4">
-              <Loader2 className="h-12 w-12 text-primary animate-spin mx-auto" />
-              <p className="font-medium">Generating gambar...</p>
-              <p className="text-xs text-muted-foreground">~10-30 detik</p>
-            </motion.div>
-          ) : (
-            <div className="text-center"><h1 className="text-3xl font-semibold mb-2">Generate Gambar AI</h1><p className="text-muted-foreground">Deskripsikan gambar yang ingin dibuat</p></div>
-          )
-        )}
+            )
+          )}
 
-        {/* CHAT TAB */}
-        {activeTab === 'chat' && (
-          chatMessages.length === 0 ? (
-            <div className="text-center"><h1 className="text-3xl font-semibold mb-2">Halo {userName || 'Creator'} 👋</h1><p className="text-muted-foreground">Tanya apa saja — ide konten, script, strategi viral</p></div>
-          ) : (
-            <div className="w-full max-w-3xl space-y-4 pb-4">
-              {chatMessages.map((msg, i) => (
-                <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[80%] p-4 rounded-2xl ${msg.role === 'user' ? 'bg-primary text-white rounded-br-md' : 'bg-card border border-border rounded-bl-md'}`}>
-                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                    {msg.role === 'assistant' && (
-                      <button onClick={() => handleCopy(msg.content)} className="mt-2 text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1">
-                        {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />} Copy
-                      </button>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
-              {isChatLoading && (
-                <div className="flex justify-start"><div className="p-4 rounded-2xl bg-card border border-border rounded-bl-md"><Loader2 className="h-4 w-4 animate-spin text-primary" /></div></div>
-              )}
-              <div ref={chatEndRef} />
-            </div>
-          )
-        )}
+          {/* CHAT TAB */}
+          {activeTab === 'chat' && (
+            chatMessages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <h1 className="text-3xl font-semibold mb-2">Halo {userName || 'Creator'} 👋</h1>
+                <p className="text-muted-foreground">Tanya apa saja — ide konten, script, strategi viral</p>
+              </div>
+            ) : (
+              <div className="space-y-4 py-4">
+                {chatMessages.map((msg, i) => (
+                  <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[85%] p-4 rounded-2xl ${msg.role === 'user' ? 'bg-primary text-white rounded-br-sm' : 'bg-card border border-border rounded-bl-sm'}`}>
+                      <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                      {msg.role === 'assistant' && (
+                        <button onClick={() => handleCopy(msg.content)} className="mt-2 text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1">
+                          {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />} Copy
+                        </button>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+                {isChatLoading && (
+                  <div className="flex justify-start"><div className="p-4 rounded-2xl bg-card border border-border rounded-bl-sm"><Loader2 className="h-4 w-4 animate-spin text-primary" /></div></div>
+                )}
+                <div ref={chatEndRef} />
+              </div>
+            )
+          )}
+        </div>
       </div>
 
-      {/* Bottom Input Bar */}
+      {/* Bottom Input Bar - Fixed bottom */}
       {!(activeTab === 'video' && (videoUrl || isRendering)) && !(activeTab === 'image' && (imageUrl || isGeneratingImage)) && (
-        <div className="sticky bottom-0 pb-4 px-4">
+        <div className="flex-shrink-0 px-4 pb-4 pt-2 border-t border-border/50 bg-background">
           <div className="max-w-3xl mx-auto">
             {/* Narasi (video only) */}
             <AnimatePresence>
@@ -271,18 +282,18 @@ export default function QuickVideoPage() {
             </AnimatePresence>
 
             {/* Input */}
-            <div className="relative rounded-2xl border border-border bg-card shadow-lg overflow-hidden">
+            <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
               <textarea
                 value={prompt}
                 onChange={e => setPrompt(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={activeTab === 'video' ? 'Deskripsikan video...' : activeTab === 'image' ? 'Deskripsikan gambar...' : 'Tanya apa saja...'}
                 rows={1}
-                className="w-full px-5 py-4 pr-14 text-sm bg-transparent resize-none focus:outline-none min-h-[56px] max-h-[120px]"
-                onInput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 120) + 'px'; }}
+                className="w-full px-5 py-4 pr-14 text-sm bg-transparent resize-none focus:outline-none min-h-[52px] max-h-[100px]"
+                onInput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 100) + 'px'; }}
               />
               <div className="flex items-center justify-between px-3 pb-3">
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 flex-wrap">
                   {activeTab !== 'chat' && (
                     <>
                       <button onClick={() => setShowSettings(!showSettings)} className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs hover:bg-accent transition text-muted-foreground">
