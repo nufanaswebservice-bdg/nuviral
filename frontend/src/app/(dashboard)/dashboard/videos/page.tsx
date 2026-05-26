@@ -78,7 +78,7 @@ export default function VideosPage() {
   const filteredVideos = videos;
 
   return (
-    <div className="space-y-6 overflow-hidden">
+    <div className="space-y-6 w-full max-w-full overflow-x-hidden">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -142,7 +142,7 @@ export default function VideosPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.03 }}
-              className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:border-primary/30 transition group overflow-hidden"
+              className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:border-primary/30 transition group w-full max-w-full overflow-hidden"
             >
               {/* Thumbnail */}
               <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0">
@@ -150,18 +150,17 @@ export default function VideosPage() {
               </div>
 
               {/* Info */}
-              <div className="flex-1 min-w-0 overflow-hidden">
-                <h3 className="font-medium text-sm truncate">{video.title}</h3>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="flex items-center gap-1 text-xs text-green-500 flex-shrink-0">
+              <div className="flex-1 overflow-hidden" style={{ minWidth: 0 }}>
+                <h3 className="font-medium text-sm truncate block w-full">{video.title}</h3>
+                <div className="flex items-center gap-2 mt-1 overflow-hidden">
+                  <span className="flex items-center gap-1 text-xs text-green-500 whitespace-nowrap">
                     <CheckCircle className="h-3 w-3" />
                     Selesai
                   </span>
-                  <span className="text-xs text-muted-foreground flex-shrink-0">{video.style}</span>
-                  <span className="text-xs text-muted-foreground flex-shrink-0">{video.format === 'portrait' ? '9:16' : '16:9'}</span>
-                  <span className="text-xs text-muted-foreground flex-shrink-0">{video.duration === 'short' ? '5s' : video.duration === 'long' ? '20s' : '10s'}</span>
-                  <span className="text-xs text-muted-foreground flex-shrink-0">{formatSize(video.blobSize)}</span>
-                  <span className="text-xs text-muted-foreground flex-shrink-0">{formatDate(video.createdAt)}</span>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">{video.format === 'portrait' ? '9:16' : '16:9'}</span>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">{video.duration === 'short' ? '5s' : video.duration === 'long' ? '20s' : '10s'}</span>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">{formatSize(video.blobSize)}</span>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">{formatDate(video.createdAt)}</span>
                 </div>
               </div>
 
