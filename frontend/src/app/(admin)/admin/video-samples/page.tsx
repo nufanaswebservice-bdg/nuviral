@@ -313,7 +313,7 @@ export default function VideoSamplesPage() {
     }
   };
 
-  // Generate thumbnails for all samples that don't have one
+  // Generate thumbnails for all samples that don't have one (server-side with ffmpeg)
   const handleGenerateAllThumbnails = async () => {
     const samplesWithoutThumb = samples.filter(s => !s.thumbnailUrl && s.videoUrl);
     if (samplesWithoutThumb.length === 0) {
@@ -321,38 +321,26 @@ export default function VideoSamplesPage() {
       return;
     }
 
-    toast.info(`Generating thumbnails for ${samplesWithoutThumb.length} videos...`);
-    let success = 0;
+    toast.info(`Generating thumbnails for ${samplesWithoutThumb.length} videos via server (ffmpeg)...`);
+    
+    try {
+      const token = localStorage.getItem('accessToken') || '';
+      const res = await fetch(`${API_URL}/admin/generate-thumbnails`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      });
 
-    for (const sample of samplesWithoutThumb) {
-      try {
-        // Generate thumbnail from video URL using video element
-        const thumbBase64 = await generateThumbnailFromUrl(sample.videoUrl);
-        if (!thumbBase64) continue;
-
-        // Upload thumbnail
-        const token = localStorage.getItem('accessToken') || '';
-        const res = await fetch(`${API_URL}/admin/upload-thumbnail`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({
-            fileBase64: thumbBase64,
-            fileName: `thumb-${sample.id}.jpg`,
-            contentType: 'image/jpeg',
-            sampleId: sample.id,
-          }),
-        });
-
-        if (res.ok) {
-          success++;
-        }
-      } catch (e) {
-        console.log(`Failed to generate thumbnail for ${sample.title}:`, e);
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(`Generated ${data.generated}/${data.total} thumbnails!`);
+        loadSamples();
+      } else {
+        const err = await res.json();
+        toast.error(`Failed: ${err.error || 'Unknown error'}`);
       }
+    } catch (e: any) {
+      toast.error(`Error: ${e.message}`);
     }
-
-    toast.success(`Generated ${success}/${samplesWithoutThumb.length} thumbnails`);
-    loadSamples();
   };
 
   const handleEdit = (sample: VideoSample) => {

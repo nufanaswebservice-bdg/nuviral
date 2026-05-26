@@ -1292,6 +1292,94 @@ app.post('/api/v1/admin/upload-thumbnail', requireAdmin, async (req, res) => {
   }
 });
 
+// Generate thumbnails for all videos without one (admin) - uses ffmpeg
+app.post('/api/v1/admin/generate-thumbnails', requireAdmin, async (req, res) => {
+  const { exec } = require('child_process');
+  const samplesWithoutThumb = videoSamplesCache.filter(s => !s.thumbnailUrl && s.videoUrl);
+  
+  if (samplesWithoutThumb.length === 0) {
+    return res.json({ success: true, message: 'All videos already have thumbnails', generated: 0 });
+  }
+
+  console.log(`[thumbnails] Generating thumbnails for ${samplesWithoutThumb.length} videos...`);
+  let generated = 0;
+
+  for (const sample of samplesWithoutThumb) {
+    try {
+      const tmpInput = `/tmp/thumb_input_${Date.now()}.mp4`;
+      const tmpOutput = `/tmp/thumb_output_${Date.now()}.jpg`;
+
+      // Download first 5MB of video (enough for first frames)
+      console.log(`[thumbnails] Processing: ${sample.title}`);
+      
+      const downloadResponse = await fetch(sample.videoUrl, {
+        headers: { 'Range': 'bytes=0-5242880' }
+      });
+      
+      if (!downloadResponse.ok && downloadResponse.status !== 206) {
+        console.log(`[thumbnails] Failed to download ${sample.title}: ${downloadResponse.status}`);
+        continue;
+      }
+
+      const videoBuffer = Buffer.from(await downloadResponse.arrayBuffer());
+      fs.writeFileSync(tmpInput, videoBuffer);
+
+      // Extract frame at 1 second using ffmpeg
+      try {
+        execSync(`ffmpeg -i ${tmpInput} -ss 1 -vframes 1 -vf "scale=360:640:force_original_aspect_ratio=increase,crop=360:640" -q:v 3 -y ${tmpOutput}`, {
+          timeout: 15000,
+          stdio: 'pipe'
+        });
+      } catch (ffmpegErr) {
+        // Try without seeking (get first frame)
+        try {
+          execSync(`ffmpeg -i ${tmpInput} -vframes 1 -vf "scale=360:640:force_original_aspect_ratio=increase,crop=360:640" -q:v 3 -y ${tmpOutput}`, {
+            timeout: 15000,
+            stdio: 'pipe'
+          });
+        } catch {
+          console.log(`[thumbnails] ffmpeg failed for ${sample.title}`);
+          try { fs.unlinkSync(tmpInput); } catch {}
+          continue;
+        }
+      }
+
+      // Upload thumbnail to R2
+      if (fs.existsSync(tmpOutput)) {
+        const thumbBuffer = fs.readFileSync(tmpOutput);
+        const thumbKey = `thumbnails/${sample.id}.jpg`;
+        
+        try {
+          const thumbnailUrl = await uploadToR2(thumbBuffer, thumbKey, 'image/jpeg');
+          sample.thumbnailUrl = thumbnailUrl;
+          generated++;
+          console.log(`[thumbnails] ✅ Generated for: ${sample.title}`);
+        } catch (r2Err) {
+          console.log(`[thumbnails] R2 upload failed for ${sample.title}: ${r2Err.message}`);
+        }
+      }
+
+      // Cleanup
+      try { fs.unlinkSync(tmpInput); } catch {}
+      try { fs.unlinkSync(tmpOutput); } catch {}
+    } catch (err) {
+      console.log(`[thumbnails] Error processing ${sample.title}: ${err.message}`);
+    }
+  }
+
+  // Save updated metadata
+  if (generated > 0) {
+    saveSamplesToDisk(videoSamplesCache);
+    try {
+      const metadataBuffer = Buffer.from(JSON.stringify(videoSamplesCache, null, 2));
+      await uploadToR2(metadataBuffer, 'metadata/samples.json', 'application/json');
+    } catch {}
+  }
+
+  console.log(`[thumbnails] Done! Generated ${generated}/${samplesWithoutThumb.length} thumbnails`);
+  res.json({ success: true, generated, total: samplesWithoutThumb.length });
+});
+
 // Get all video samples (public)
 app.get('/api/v1/video-samples', (req, res) => {
   res.json(videoSamplesCache);
