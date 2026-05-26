@@ -78,7 +78,7 @@ export default function VideosPage() {
   const filteredVideos = videos;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-hidden">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -142,29 +142,25 @@ export default function VideosPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.03 }}
-              className="flex items-center gap-4 p-4 rounded-2xl border border-border bg-card hover:border-primary/30 transition group"
+              className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:border-primary/30 transition group"
             >
               {/* Thumbnail */}
-              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0">
-                <Film className="h-6 w-6 text-primary" />
+              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0">
+                <Film className="h-5 w-5 text-primary" />
               </div>
 
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <h3 className="font-medium truncate">{video.title}</h3>
-                <div className="flex items-center gap-3 mt-1 flex-wrap">
+                <h3 className="font-medium truncate text-sm">{video.title}</h3>
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
                   <span className="flex items-center gap-1 text-xs text-green-500">
                     <CheckCircle className="h-3 w-3" />
                     Selesai
                   </span>
                   <span className="text-xs text-muted-foreground">{video.style}</span>
-                  <span className="text-xs text-muted-foreground">•</span>
                   <span className="text-xs text-muted-foreground">{video.format === 'portrait' ? '9:16' : '16:9'}</span>
-                  <span className="text-xs text-muted-foreground">•</span>
                   <span className="text-xs text-muted-foreground">{video.duration === 'short' ? '5s' : video.duration === 'long' ? '20s' : '10s'}</span>
-                  <span className="text-xs text-muted-foreground">•</span>
                   <span className="text-xs text-muted-foreground">{formatSize(video.blobSize)}</span>
-                  <span className="text-xs text-muted-foreground">•</span>
                   <span className="text-xs text-muted-foreground">{formatDate(video.createdAt)}</span>
                 </div>
               </div>
