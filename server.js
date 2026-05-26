@@ -134,7 +134,9 @@ app.post('/render', requireAuth, async (req, res) => {
     if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
     const ts = Date.now();
 
-    // STEP 1: Translate & enhance VIDEO PROMPT to English while keeping visual context
+    // STEP 1: Optimize prompt for AI video model
+    // The video model can only generate 5-10s clips, so we need to extract
+    // the most visually impactful scene from long/complex prompts
     let englishPrompt = videoPrompt;
     if (OPENAI_API_KEY) {
       try {
@@ -144,19 +146,27 @@ app.post('/render', requireAuth, async (req, res) => {
           body: JSON.stringify({
             model: 'gpt-4o-mini',
             messages: [
-              { role: 'system', content: `You are a video prompt translator for AI video generation. 
-Rules:
-- Translate the user prompt to English for AI video generation
-- KEEP the cultural/visual context (Indonesian food, Asian people, local scenery, etc.)
-- If the prompt mentions Indonesian food (sate, nasi goreng, rendang, etc.), describe it visually in English but keep it as Indonesian/Asian food
-- If the prompt mentions Indonesian places (Bali, Jakarta, etc.), keep the location context
-- Add visual details: lighting, camera angle, movement, atmosphere
-- Output 30-50 words maximum
-- Output ONLY the English video prompt, nothing else
-- Include the style keywords if provided` },
-              { role: 'user', content: videoPrompt.substring(0, 300) }
+              { role: 'system', content: `You are an expert AI video prompt optimizer. Your job is to convert user prompts into the BEST possible prompt for a 5-10 second AI video generation model.
+
+CRITICAL RULES:
+1. The AI video model can ONLY generate 5-10 seconds of video
+2. Extract the SINGLE most visually dramatic/impactful moment from the user's description
+3. If the user describes a process (renovation, transformation, time-lapse), pick the FINAL dramatic result or the most action-packed moment
+4. ALWAYS include camera movement (slow pan, drone shot, tracking shot, zoom in, orbit around)
+5. ALWAYS include motion/action (flowing water, moving clouds, walking people, flying birds, swaying trees)
+6. ALWAYS include lighting details (golden hour, neon glow, dramatic shadows, sunset colors)
+7. ALWAYS include atmosphere (fog, rain, dust particles, lens flare)
+8. Keep cultural context (Indonesian/Asian elements if mentioned)
+9. Output EXACTLY 40-60 words in English
+10. Make it CINEMATIC and DYNAMIC — never static
+
+FORMAT: [Camera movement], [Subject with action/motion], [Environment details], [Lighting/atmosphere], [Style keywords]
+
+Example input: "renovasi bangunan tua menjadi villa mewah modern"
+Example output: "Cinematic drone shot slowly orbiting around a stunning white modern villa with curved organic architecture, lush green plants on every balcony, warm string lights glowing at sunset, dense tropical forest surrounding, pink and purple sky, photorealistic, architectural visualization, 8K detail"` },
+              { role: 'user', content: videoPrompt.substring(0, 1000) }
             ],
-            max_tokens: 100,
+            max_tokens: 150,
           }),
         });
         if (tr.ok) {
@@ -164,11 +174,11 @@ Rules:
           englishPrompt = d.choices?.[0]?.message?.content?.trim() || videoPrompt;
         }
       } catch (e) {
-        console.log('[render] Translation failed, using original prompt');
+        console.log('[render] Prompt optimization failed, using original');
       }
     }
-    englishPrompt = englishPrompt.substring(0, 200);
-    console.log(`[render] English prompt: "${englishPrompt}"`);
+    englishPrompt = englishPrompt.substring(0, 300);
+    console.log(`[render] Optimized prompt: "${englishPrompt}"`);
 
     // STEP 2: Generate video with Kling v2.1 Master (supports 5s and 10s native)
     console.log(`[render] Generating video with Kling v2.1 (${aspectRatio}, duration: ${duration})...`);
