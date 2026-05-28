@@ -1211,6 +1211,75 @@ app.get('/api/v1/admin/settings', requireAdmin, (req, res) => res.json(loadJsonF
 app.put('/api/v1/admin/settings', requireAdmin, (req, res) => { saveJsonFile(SETTINGS_FILE, req.body); res.json({ success: true }); });
 
 // ============================================
+// SUPPORT CHAT SYSTEM
+// ============================================
+
+const SUPPORT_FILE = '/tmp/nuviral-support.json';
+function loadSupport() { try { if (fs.existsSync(SUPPORT_FILE)) return JSON.parse(fs.readFileSync(SUPPORT_FILE, 'utf8')); } catch {} return []; }
+function saveSupport(data) { try { fs.writeFileSync(SUPPORT_FILE, JSON.stringify(data, null, 2)); } catch {} }
+let supportTickets = loadSupport();
+
+// User: Get their messages
+app.get('/api/v1/support/messages', requireAuth, (req, res) => {
+  const ticket = supportTickets.find(t => t.userEmail === req.userEmail);
+  if (!ticket) return res.json([]);
+  res.json(ticket.messages);
+});
+
+// User: Send message
+app.post('/api/v1/support/send', requireAuth, (req, res) => {
+  const { message } = req.body;
+  if (!message) return res.status(400).json({ error: 'message required' });
+
+  let ticket = supportTickets.find(t => t.userEmail === req.userEmail);
+  if (!ticket) {
+    // Get user name
+    let userName = req.userEmail.split('@')[0];
+    const user = usersCache.find(u => u.email === req.userEmail);
+    if (user) userName = user.name || userName;
+
+    ticket = {
+      id: `ticket-${Date.now()}`,
+      userEmail: req.userEmail,
+      userName,
+      messages: [],
+      status: 'open',
+      lastMessage: '',
+      createdAt: new Date().toISOString(),
+    };
+    supportTickets.unshift(ticket);
+  }
+
+  ticket.messages.push({ role: 'user', content: message, timestamp: new Date().toISOString() });
+  ticket.lastMessage = message;
+  ticket.status = 'open';
+  saveSupport(supportTickets);
+
+  res.json({ success: true });
+});
+
+// Admin: Get all tickets
+app.get('/api/v1/admin/support/tickets', requireAdmin, (req, res) => {
+  res.json(supportTickets);
+});
+
+// Admin: Reply to ticket
+app.post('/api/v1/admin/support/reply', requireAdmin, (req, res) => {
+  const { ticketId, message } = req.body;
+  if (!ticketId || !message) return res.status(400).json({ error: 'ticketId and message required' });
+
+  const ticket = supportTickets.find(t => t.id === ticketId);
+  if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
+
+  ticket.messages.push({ role: 'admin', content: message, timestamp: new Date().toISOString() });
+  ticket.status = 'replied';
+  ticket.lastMessage = message;
+  saveSupport(supportTickets);
+
+  res.json({ success: true });
+});
+
+// ============================================
 // CLOUDFLARE R2 STORAGE & VIDEO SAMPLES API
 // ============================================
 

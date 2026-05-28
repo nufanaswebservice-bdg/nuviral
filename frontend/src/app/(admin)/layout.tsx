@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   LayoutDashboard, Video, Users, CreditCard, Settings, Shield,
   Upload, BarChart3, Bell, LogOut, Menu, X, ChevronDown,
-  Database, Server, Zap, FileVideo, Globe,
+  Database, Server, Zap, FileVideo, Globe, MessageSquare,
 } from 'lucide-react';
 
 const ADMIN_EMAILS = ['nufanaswebservice@gmail.com', 'baranashira01@gmail.com', 'rufanaswebservice@gmail.com'];
@@ -21,6 +21,7 @@ const navItems = [
   { icon: Database, label: 'Storage', href: '/admin/storage' },
   { icon: Shield, label: 'Security', href: '/admin/security' },
   { icon: Globe, label: 'Content', href: '/admin/content' },
+  { icon: MessageSquare, label: 'Support Chat', href: '/admin/support' },
   { icon: Settings, label: 'Settings', href: '/admin/settings' },
 ];
 

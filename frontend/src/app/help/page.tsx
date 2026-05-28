@@ -312,23 +312,13 @@ export default function PublicHelpPage() {
           <section className="mt-12 p-6 md:p-8 rounded-2xl bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-950/30 dark:to-indigo-950/30 border border-violet-100 dark:border-violet-900/30 text-center">
             <MessageSquare className="h-8 w-8 text-violet-600 mx-auto mb-3" />
             <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Masih butuh bantuan?</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">Tim support kami siap membantu kamu 24/7</p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <a
-                href="mailto:nufanaswebservice@gmail.com"
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-violet-600 text-white font-medium text-sm hover:bg-violet-700 transition w-full sm:w-auto justify-center"
-              >
-                <Mail className="h-4 w-4" /> Email Support
-              </a>
-              <a
-                href="https://wa.me/6285156230541"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium text-sm transition w-full sm:w-auto justify-center text-gray-700 dark:text-gray-300"
-              >
-                <MessageSquare className="h-4 w-4" /> WhatsApp
-              </a>
-            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">Chat langsung dengan tim support kami di dashboard</p>
+            <Link
+              href="/dashboard/support"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-violet-600 text-white font-medium text-sm hover:bg-violet-700 transition"
+            >
+              <MessageSquare className="h-4 w-4" /> Chat Support
+            </Link>
           </section>
 
           {/* SEO Content */}

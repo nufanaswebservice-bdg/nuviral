@@ -343,7 +343,7 @@ export default function LandingPage() {
                       : 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100'
                   }`}
                 >
-                  {plan.price === 0 ? 'Mulai Gratis' : 'Pilih Paket'}
+                  Pilih Paket
                 </Link>
               </motion.div>
             ))}
@@ -593,7 +593,7 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
 
 // Pricing Data
 const pricingPlans = [
-  { name: 'Free', description: 'Cocok untuk mencoba', price: 0, priceLabel: 'Gratis', popular: false, features: ['5 video renders/bulan', '50 AI credits/bulan', '1GB storage', 'Template dasar', 'Watermark di video', '1 akun sosial media'] },
+  { name: 'Pemula', description: 'Cocok untuk mencoba', price: 45000, priceLabel: 'Rp 45.000', popular: false, features: ['5 video renders/bulan', '50 AI credits/bulan', '2GB storage', 'Template dasar', 'Tanpa watermark', '1 akun sosial media', 'Chat AI unlimited'] },
   { name: 'Starter', description: 'Untuk kreator individu', price: 225000, priceLabel: 'Rp 225.000', popular: false, features: ['21 video renders/bulan', '210 AI credits/bulan', '10GB storage', 'Semua template', 'Tanpa watermark', '3 akun sosial media', 'Analitik dasar', 'Email support'] },
   { name: 'Pro', description: 'Untuk kreator serius', price: 449000, priceLabel: 'Rp 449.000', popular: true, features: ['42 video renders/bulan', '420 AI credits/bulan', '50GB storage', 'Template premium', 'Tanpa watermark', '10 akun sosial media', 'Analitik lanjutan', 'AI workflow automation', 'Priority rendering', 'API access'] },
   { name: 'Agency', description: 'Untuk tim & agensi', price: 1225000, priceLabel: 'Rp 1.225.000', popular: false, features: ['115 video renders/bulan', '1.150 AI credits/bulan', '200GB storage', 'Custom template', 'Unlimited akun', 'Full analytics suite', 'White-label option', '20 team members', 'Dedicated support'] },

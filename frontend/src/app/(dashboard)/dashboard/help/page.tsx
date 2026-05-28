@@ -374,26 +374,15 @@ export default function HelpPage() {
         <MessageSquare className="h-8 w-8 text-primary mx-auto mb-3" />
         <h3 className="font-semibold mb-1">Masih butuh bantuan?</h3>
         <p className="text-sm text-muted-foreground mb-4">
-          Tim support kami siap membantu kamu
+          Chat langsung dengan tim support kami
         </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <a
-            href="mailto:nufanaswebservice@gmail.com"
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-primary text-white font-medium text-sm hover:opacity-90 transition w-full sm:w-auto justify-center"
-          >
-            <Mail className="h-4 w-4" />
-            Email Support
-          </a>
-          <a
-            href="https://wa.me/6285156230541"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border hover:bg-accent font-medium text-sm transition w-full sm:w-auto justify-center"
-          >
-            <MessageSquare className="h-4 w-4" />
-            WhatsApp
-          </a>
-        </div>
+        <a
+          href="/dashboard/support"
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl gradient-primary text-white font-medium text-sm hover:opacity-90 transition"
+        >
+          <MessageSquare className="h-4 w-4" />
+          Chat Support
+        </a>
       </div>
     </div>
   );
