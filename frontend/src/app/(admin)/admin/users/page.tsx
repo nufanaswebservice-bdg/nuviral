@@ -210,6 +210,7 @@ export default function AdminUsersPage() {
                   className="text-[11px] md:text-xs bg-gray-800 border border-white/10 rounded-lg px-2 py-1.5 text-gray-300 flex-1 md:flex-none"
                 >
                   <option value="NONE">No Plan</option>
+                  <option value="PEMULA">Pemula</option>
                   <option value="STARTER">Starter</option>
                   <option value="PRO">Pro</option>
                   <option value="AGENCY">Agency</option>
