@@ -73,7 +73,25 @@ export default function AdminSupportPage() {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { fetchTickets(); }, []);
-  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [selectedTicket]);
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [selectedTicket?.messages?.length]);
+
+  // Auto-poll for new messages every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      await fetchTickets();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Keep selected ticket in sync with fetched data
+  useEffect(() => {
+    if (selectedTicket) {
+      const updated = tickets.find(t => t.id === selectedTicket.id);
+      if (updated && updated.messages.length !== selectedTicket.messages.length) {
+        setSelectedTicket(updated);
+      }
+    }
+  }, [tickets]);
 
   const fetchTickets = async () => {
     try {

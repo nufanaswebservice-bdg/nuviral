@@ -32,6 +32,14 @@ export default function SupportPage() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Auto-poll for new messages every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadMessages();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   const loadMessages = async () => {
     try {
       const token = localStorage.getItem('accessToken') || '';
