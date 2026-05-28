@@ -441,6 +441,7 @@ export default function LandingPage() {
             <div>
               <h4 className="font-semibold text-gray-900 mb-3 text-sm">Support</h4>
               <ul className="space-y-2 text-sm text-gray-500">
+                <li><Link href="/help" className="hover:text-gray-900 transition">Help Center</Link></li>
                 <li><a href="#faq" className="hover:text-gray-900 transition">FAQ</a></li>
                 <li><a href="#" className="hover:text-gray-900 transition">Documentation</a></li>
                 <li><a href="#" className="hover:text-gray-900 transition">Contact Us</a></li>
