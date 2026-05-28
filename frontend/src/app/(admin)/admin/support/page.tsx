@@ -231,7 +231,22 @@ export default function AdminSupportPage() {
                         ? 'bg-white/5 border border-white/10 rounded-bl-sm'
                         : 'bg-violet-600/20 border border-violet-500/20 rounded-br-sm'
                     }`}>
-                      <p className="text-sm text-gray-200 whitespace-pre-wrap">{msg.content}</p>
+                      {(msg as any).imageUrl && (
+                        <div className="mb-2">
+                          <img
+                            src={(msg as any).imageUrl}
+                            alt="Screenshot dari user"
+                            className="max-w-full max-h-64 rounded-lg cursor-pointer hover:opacity-80 transition border border-white/10"
+                            onClick={() => window.open((msg as any).imageUrl, '_blank')}
+                          />
+                        </div>
+                      )}
+                      {msg.content && msg.content !== '📷 Screenshot' && (
+                        <p className="text-sm text-gray-200 whitespace-pre-wrap">{msg.content}</p>
+                      )}
+                      {msg.content === '📷 Screenshot' && !(msg as any).imageUrl && (
+                        <p className="text-sm text-gray-200 whitespace-pre-wrap">{msg.content}</p>
+                      )}
                       <p className="text-[10px] text-gray-500 mt-1">{formatTime(msg.timestamp)}</p>
                     </div>
                   </div>
