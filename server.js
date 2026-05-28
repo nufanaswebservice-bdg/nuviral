@@ -1226,14 +1226,13 @@ app.get('/api/v1/support/messages', requireAuth, (req, res) => {
   res.json(ticket.messages);
 });
 
-// User: Send message
-app.post('/api/v1/support/send', requireAuth, (req, res) => {
-  const { message } = req.body;
-  if (!message) return res.status(400).json({ error: 'message required' });
+// User: Send message (with optional image)
+app.post('/api/v1/support/send', requireAuth, async (req, res) => {
+  const { message, imageBase64 } = req.body;
+  if (!message && !imageBase64) return res.status(400).json({ error: 'message or image required' });
 
   let ticket = supportTickets.find(t => t.userEmail === req.userEmail);
   if (!ticket) {
-    // Get user name
     let userName = req.userEmail.split('@')[0];
     const user = usersCache.find(u => u.email === req.userEmail);
     if (user) userName = user.name || userName;
@@ -1250,12 +1249,25 @@ app.post('/api/v1/support/send', requireAuth, (req, res) => {
     supportTickets.unshift(ticket);
   }
 
-  ticket.messages.push({ role: 'user', content: message, timestamp: new Date().toISOString() });
-  ticket.lastMessage = message;
+  // Upload image to R2 if provided
+  let imageUrl = '';
+  if (imageBase64) {
+    try {
+      const imgBuffer = Buffer.from(imageBase64, 'base64');
+      const imgKey = `support/${Date.now()}-${req.userEmail.split('@')[0]}.jpg`;
+      imageUrl = await uploadToR2(imgBuffer, imgKey, 'image/jpeg');
+      console.log(`[support] Image uploaded: ${imageUrl}`);
+    } catch (e) {
+      console.log(`[support] Image upload failed: ${e.message}`);
+    }
+  }
+
+  ticket.messages.push({ role: 'user', content: message || '📷 Screenshot', imageUrl: imageUrl || undefined, timestamp: new Date().toISOString() });
+  ticket.lastMessage = message || '📷 Screenshot dikirim';
   ticket.status = 'open';
   saveSupport(supportTickets);
 
-  res.json({ success: true });
+  res.json({ success: true, imageUrl });
 });
 
 // Admin: Get all tickets
