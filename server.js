@@ -18,6 +18,7 @@ app.use(express.urlencoded({ extended: true, limit: '200mb' }));
 const PORT = process.env.PORT || 3001;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || process.env.OPENAI_KEY || '';
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || process.env.REPLICATE_TOKEN || '';
+const FAL_KEY = process.env.FAL_KEY || process.env.FAL_API_KEY || '';
 const YOUTUBE_CLIENT_ID = process.env.YOUTUBE_CLIENT_ID || '';
 const YOUTUBE_CLIENT_SECRET = process.env.YOUTUBE_CLIENT_SECRET || '';
 const YOUTUBE_REDIRECT_URI = 'https://nuviral-production.up.railway.app/auth/youtube/callback';
@@ -87,7 +88,7 @@ function hasFfmpeg() {
 }
 
 app.get('/', (req, res) => {
-  res.json({ status: 'ok', service: 'NuViral v4', replicate: !!REPLICATE_API_TOKEN, openai: !!OPENAI_API_KEY, midtrans: !!MIDTRANS_SERVER_KEY, r2: !!R2_ACCESS_KEY_ID, ffmpeg: hasFfmpeg() });
+  res.json({ status: 'ok', service: 'NuViral v5', fal: !!FAL_KEY, replicate: !!REPLICATE_API_TOKEN, openai: !!OPENAI_API_KEY, midtrans: !!MIDTRANS_SERVER_KEY, r2: !!R2_ACCESS_KEY_ID, ffmpeg: hasFfmpeg() });
 });
 
 app.post('/render', requireAuth, async (req, res) => {
@@ -128,7 +129,7 @@ app.post('/render', requireAuth, async (req, res) => {
     console.log(`[render] Voice text: "${voiceoverText.substring(0, 50)}"`);
     console.log(`[render] Format: ${format} | Aspect: ${aspectRatio} | Duration: ${duration}`);
 
-    if (!REPLICATE_API_TOKEN) throw new Error('REPLICATE_API_TOKEN not set');
+    if (!FAL_KEY && !REPLICATE_API_TOKEN) throw new Error('FAL_KEY or REPLICATE_API_TOKEN not set');
 
     const outputDir = '/tmp/renders';
     if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
@@ -201,67 +202,160 @@ IMPORTANT: Do NOT remove time-lapse, transformation, or process descriptions fro
       console.log(`[render] Generating clip ${clipIndex + 1}/${clipsNeeded} (${klingDuration}s)...`);
 
       let prediction = null;
+      let clipUrl = null;
 
-      // Use Kling 3.0 (best quality, time-lapse capable, ~$0.33/5s)
-      // Fallback to Wan 2.1 if Kling fails
-      const models = [
-        {
-          name: 'kwaivgi/kling-v2.1',
-          input: { prompt: clipPrompt, duration: String(klingDuration), aspect_ratio: aspectRatio, cfg_scale: 0.5 }
-        },
-        {
-          name: 'wan-video/wan-2.1-1.3b',
-          input: { prompt: clipPrompt, num_frames: klingDuration <= 5 ? 81 : 161, num_inference_steps: 20, fps: 16, aspect_ratio: aspectRatio }
-        },
-        {
-          name: 'minimax/video-01',
-          input: { prompt: clipPrompt, prompt_optimizer: true, aspect_ratio: aspectRatio }
-        },
-      ];
+      // PRIMARY: Use fal.ai (Kling 2.5 Turbo Pro - best quality/speed ratio)
+      // FALLBACK: Replicate (if fal.ai fails)
+      if (FAL_KEY) {
+        const falModels = [
+          {
+            id: 'fal-ai/kling-video/v2.5-turbo/pro/text-to-video',
+            name: 'Kling 2.5 Turbo Pro (fal.ai)',
+            input: { prompt: clipPrompt, duration: String(klingDuration), aspect_ratio: aspectRatio }
+          },
+          {
+            id: 'fal-ai/kling-video/v2.1/pro/text-to-video',
+            name: 'Kling 2.1 Pro (fal.ai)',
+            input: { prompt: clipPrompt, duration: String(klingDuration), aspect_ratio: aspectRatio }
+          },
+          {
+            id: 'fal-ai/minimax-video/video-01/text-to-video',
+            name: 'Minimax Video-01 (fal.ai)',
+            input: { prompt: clipPrompt, aspect_ratio: aspectRatio }
+          },
+        ];
 
-      for (const model of models) {
-        console.log(`[render] Trying ${model.name}...`);
-        try {
-          const res = await fetch(`https://api.replicate.com/v1/models/${model.name}/predictions`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ input: model.input }),
-          });
+        for (const model of falModels) {
+          console.log(`[render] Trying ${model.name}...`);
+          try {
+            // Submit to fal.ai queue
+            const submitRes = await fetch(`https://queue.fal.run/${model.id}`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Key ${FAL_KEY}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(model.input),
+            });
 
-          if (res.ok) {
-            prediction = await res.json();
-            console.log(`[render] ${model.name} prediction created: ${prediction.id}`);
-            break;
-          } else {
-            const errText = await res.text().catch(() => '');
-            console.log(`[render] ${model.name} failed (${res.status}): ${errText.substring(0, 150)}`);
+            if (!submitRes.ok) {
+              const errText = await submitRes.text().catch(() => '');
+              console.log(`[render] ${model.name} submit failed (${submitRes.status}): ${errText.substring(0, 150)}`);
+              continue;
+            }
+
+            const submitData = await submitRes.json();
+            const requestId = submitData.request_id;
+            console.log(`[render] ${model.name} queued: ${requestId}`);
+
+            // Poll for completion
+            const maxWait = 600000; // 10 min
+            const t0clip = Date.now();
+            let status = 'IN_QUEUE';
+
+            while (status !== 'COMPLETED' && status !== 'FAILED') {
+              if (Date.now() - t0clip > maxWait) throw new Error('Timeout (10min)');
+              await new Promise(r => setTimeout(r, 5000));
+
+              const statusRes = await fetch(`https://queue.fal.run/${model.id}/requests/${requestId}/status`, {
+                headers: { 'Authorization': `Key ${FAL_KEY}` },
+              });
+
+              if (statusRes.ok) {
+                const statusData = await statusRes.json();
+                status = statusData.status;
+                if (status === 'IN_PROGRESS') {
+                  console.log(`[render] ${model.name} processing...`);
+                }
+              }
+            }
+
+            if (status === 'FAILED') {
+              console.log(`[render] ${model.name} failed`);
+              continue;
+            }
+
+            // Get result
+            const resultRes = await fetch(`https://queue.fal.run/${model.id}/requests/${requestId}`, {
+              headers: { 'Authorization': `Key ${FAL_KEY}` },
+            });
+
+            if (resultRes.ok) {
+              const resultData = await resultRes.json();
+              clipUrl = resultData.video?.url || resultData.output?.url || (Array.isArray(resultData.video) ? resultData.video[0]?.url : null);
+              if (clipUrl) {
+                console.log(`[render] ✅ ${model.name} success: ${clipUrl.substring(0, 80)}`);
+                break;
+              }
+            }
+          } catch (e) {
+            console.log(`[render] ${model.name} error: ${e.message}`);
           }
-        } catch (e) {
-          console.log(`[render] ${model.name} error: ${e.message}`);
         }
       }
 
-      if (!prediction) throw new Error(`Video generation failed for clip ${clipIndex + 1} - all models unavailable`);
+      // FALLBACK: Use Replicate if fal.ai didn't produce a result
+      if (!clipUrl && REPLICATE_API_TOKEN) {
+        console.log('[render] Falling back to Replicate...');
+        const models = [
+          {
+            name: 'kwaivgi/kling-v2.1',
+            input: { prompt: clipPrompt, duration: String(klingDuration), aspect_ratio: aspectRatio, cfg_scale: 0.5 }
+          },
+          {
+            name: 'wan-video/wan-2.1-1.3b',
+            input: { prompt: clipPrompt, num_frames: klingDuration <= 5 ? 81 : 161, num_inference_steps: 20, fps: 16, aspect_ratio: aspectRatio }
+          },
+          {
+            name: 'minimax/video-01',
+            input: { prompt: clipPrompt, prompt_optimizer: true, aspect_ratio: aspectRatio }
+          },
+        ];
 
-      // Poll for completion
-      const pollUrl = prediction.urls?.get || `https://api.replicate.com/v1/predictions/${prediction.id}`;
-      const maxWait = 600000;
-      const t0clip = Date.now();
-      while (prediction.status !== 'succeeded' && prediction.status !== 'failed' && prediction.status !== 'canceled') {
-        if (Date.now() - t0clip > maxWait) throw new Error('Timeout (10min). Coba prompt lebih pendek.');
-        await new Promise(r => setTimeout(r, 5000));
-        const p = await fetch(pollUrl, { headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}` } });
-        prediction = await p.json();
-        if (prediction.status === 'processing') {
-          console.log(`[render] Clip ${clipIndex + 1} processing...`);
+        for (const model of models) {
+          console.log(`[render] Trying Replicate ${model.name}...`);
+          try {
+            const res = await fetch(`https://api.replicate.com/v1/models/${model.name}/predictions`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ input: model.input }),
+            });
+
+            if (res.ok) {
+              prediction = await res.json();
+              console.log(`[render] ${model.name} prediction created: ${prediction.id}`);
+              break;
+            } else {
+              const errText = await res.text().catch(() => '');
+              console.log(`[render] ${model.name} failed (${res.status}): ${errText.substring(0, 150)}`);
+            }
+          } catch (e) {
+            console.log(`[render] ${model.name} error: ${e.message}`);
+          }
+        }
+
+        if (prediction) {
+          // Poll Replicate for completion
+          const pollUrl = prediction.urls?.get || `https://api.replicate.com/v1/predictions/${prediction.id}`;
+          const maxWait = 600000;
+          const t0clip = Date.now();
+          while (prediction.status !== 'succeeded' && prediction.status !== 'failed' && prediction.status !== 'canceled') {
+            if (Date.now() - t0clip > maxWait) throw new Error('Timeout (10min)');
+            await new Promise(r => setTimeout(r, 5000));
+            const p = await fetch(pollUrl, { headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}` } });
+            prediction = await p.json();
+            if (prediction.status === 'processing') {
+              console.log(`[render] Replicate clip ${clipIndex + 1} processing...`);
+            }
+          }
+          if (prediction.status !== 'succeeded') {
+            throw new Error(`Video generation failed: ${prediction.error || 'model error'}`);
+          }
+          clipUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
         }
       }
-      if (prediction.status !== 'succeeded') {
-        console.error(`[render] Clip ${clipIndex + 1} failed:`, prediction.error || 'unknown error');
-        throw new Error(`Video generation failed: ${prediction.error || 'model error'}`);
-      }
 
-      const clipUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+      if (!clipUrl) throw new Error(`Video generation failed for clip ${clipIndex + 1} - all models unavailable`);
       if (!clipUrl) throw new Error(`No output URL for clip ${clipIndex + 1}`);
 
       // Download clip
@@ -591,13 +685,13 @@ Jawab dalam bahasa yang sama dengan user (Indonesia/English). Buat jawaban singk
 });
 
 // ============================================
-// AI IMAGE GENERATION (Flux via Replicate)
+// AI IMAGE GENERATION (Flux via fal.ai / Replicate fallback)
 // ============================================
 
 app.post('/api/v1/ai/generate-image', requireAuth, async (req, res) => {
   const { prompt, aspect_ratio = '9:16', style = '' } = req.body;
   if (!prompt) return res.status(400).json({ error: 'prompt required' });
-  if (!REPLICATE_API_TOKEN) return res.status(500).json({ error: 'Replicate not configured' });
+  if (!FAL_KEY && !REPLICATE_API_TOKEN) return res.status(500).json({ error: 'AI not configured' });
 
   const userEmail = req.userEmail;
   // Check limits (images cost less, allow more)
@@ -607,32 +701,54 @@ app.post('/api/v1/ai/generate-image', requireAuth, async (req, res) => {
   }
 
   try {
-    // Use Flux Schnell (fast, cheap ~$0.003/image)
     const fullPrompt = style ? `${prompt}, ${style}` : prompt;
-    
-    const createRes = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ input: { prompt: fullPrompt, aspect_ratio, num_outputs: 1 } }),
-    });
+    let imageUrl = null;
 
-    if (!createRes.ok) throw new Error('Failed to create image prediction');
-    let prediction = await createRes.json();
+    // PRIMARY: fal.ai Flux Schnell (~$0.003/image)
+    if (FAL_KEY) {
+      try {
+        const falRes = await fetch('https://fal.run/fal-ai/flux/schnell', {
+          method: 'POST',
+          headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: fullPrompt, image_size: aspect_ratio === '9:16' ? 'portrait_16_9' : 'landscape_16_9', num_images: 1 }),
+        });
 
-    // Poll
-    const pollUrl = prediction.urls?.get || `https://api.replicate.com/v1/predictions/${prediction.id}`;
-    const maxWait = 60000;
-    const t0 = Date.now();
-    while (prediction.status !== 'succeeded' && prediction.status !== 'failed') {
-      if (Date.now() - t0 > maxWait) throw new Error('Timeout');
-      await new Promise(r => setTimeout(r, 2000));
-      const p = await fetch(pollUrl, { headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}` } });
-      prediction = await p.json();
+        if (falRes.ok) {
+          const falData = await falRes.json();
+          imageUrl = falData.images?.[0]?.url;
+          if (imageUrl) console.log(`[image] ✅ fal.ai Flux success`);
+        }
+      } catch (e) {
+        console.log(`[image] fal.ai failed: ${e.message}`);
+      }
     }
 
-    if (prediction.status !== 'succeeded') throw new Error('Image generation failed');
+    // FALLBACK: Replicate
+    if (!imageUrl && REPLICATE_API_TOKEN) {
+      const createRes = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input: { prompt: fullPrompt, aspect_ratio, num_outputs: 1 } }),
+      });
 
-    const imageUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+      if (!createRes.ok) throw new Error('Failed to create image prediction');
+      let prediction = await createRes.json();
+
+      const pollUrl = prediction.urls?.get || `https://api.replicate.com/v1/predictions/${prediction.id}`;
+      const maxWait = 60000;
+      const t0 = Date.now();
+      while (prediction.status !== 'succeeded' && prediction.status !== 'failed') {
+        if (Date.now() - t0 > maxWait) throw new Error('Timeout');
+        await new Promise(r => setTimeout(r, 2000));
+        const p = await fetch(pollUrl, { headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}` } });
+        prediction = await p.json();
+      }
+
+      if (prediction.status !== 'succeeded') throw new Error('Image generation failed');
+      imageUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+    }
+
+    if (!imageUrl) throw new Error('Image generation failed - no providers available');
     res.json({ imageUrl });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -648,10 +764,10 @@ const PLANS = {
   PRO: { name: 'Pro', price: 449000, videoLimit: 42, aiCreditsLimit: 420, storageLimit: 50 * 1024 * 1024 * 1024 },
   AGENCY: { name: 'Agency', price: 1225000, videoLimit: 115, aiCreditsLimit: 1150, storageLimit: 200 * 1024 * 1024 * 1024 },
 };
-// Profit margin: 50% — Kling 3.0 model
-// Cost per video: ~Rp 5.300 (Replicate $0.33 × Rp 16.000)
-// Starter: 225.000 × 50% = 112.500 / 5.300 = 21 videos
-// Pro: 449.000 × 50% = 224.500 / 5.300 = 42 videos
+// Profit margin: 50% — Kling 2.5 via fal.ai
+// Cost per video: ~Rp 4.000 (fal.ai Kling ~$0.25 × Rp 16.000)
+// Starter: 225.000 × 50% = 112.500 / 4.000 = 28 videos
+// Pro: 449.000 × 50% = 224.500 / 4.000 = 56 videos
 // Agency: 1.225.000 × 50% = 612.500 / 5.300 = 115 videos
 
 // User usage tracking
@@ -1075,6 +1191,7 @@ app.get('/api/v1/admin/ai-config', requireAdmin, (req, res) => {
     ],
     status: {
       replicate_api: !!REPLICATE_API_TOKEN,
+      fal_api: !!FAL_KEY,
       openai_api: !!OPENAI_API_KEY,
       midtrans: !!MIDTRANS_SERVER_KEY,
       r2_storage: !!R2_ACCESS_KEY_ID,
@@ -1460,7 +1577,7 @@ app.put('/api/v1/admin/video-samples/:id', requireAdmin, (req, res) => {
 });
 
 app.listen(PORT, async () => {
-  console.log(`🎬 NuViral v4 | port ${PORT} | Replicate:${!!REPLICATE_API_TOKEN} | OpenAI:${!!OPENAI_API_KEY} | Midtrans:${!!MIDTRANS_SERVER_KEY} | R2:${!!R2_ACCESS_KEY_ID} | FFmpeg:${hasFfmpeg()}`);
+  console.log(`🎬 NuViral v5 | port ${PORT} | fal.ai:${!!FAL_KEY} | Replicate:${!!REPLICATE_API_TOKEN} | OpenAI:${!!OPENAI_API_KEY} | Midtrans:${!!MIDTRANS_SERVER_KEY} | R2:${!!R2_ACCESS_KEY_ID} | FFmpeg:${hasFfmpeg()}`);
 
   // Load all data from R2 on startup (persistent across deploys)
   if (R2_PUBLIC_URL) {
