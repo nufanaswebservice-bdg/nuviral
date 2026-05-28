@@ -17,6 +17,7 @@ import {
   CreditCard,
   Users,
   Workflow,
+  HelpCircle,
   X,
 } from 'lucide-react';
 
@@ -38,6 +39,7 @@ const menuItems = [
   { icon: Workflow, label: 'Workflows', href: '/dashboard/workflows' },
   { icon: Users, label: 'Accounts', href: '/dashboard/accounts' },
   { icon: CreditCard, label: 'Billing', href: '/dashboard/billing' },
+  { icon: HelpCircle, label: 'Help Center', href: '/dashboard/help' },
   { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
 ];
 
