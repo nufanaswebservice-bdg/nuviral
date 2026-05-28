@@ -25,6 +25,22 @@ declare global {
 
 const plans = [
   {
+    name: 'Pemula',
+    key: 'PEMULA',
+    priceIdr: 45000,
+    icon: Sparkles,
+    popular: false,
+    features: [
+      '5 video renders/bulan',
+      '50 AI credits/bulan',
+      '2GB storage',
+      'Template dasar',
+      'Tanpa watermark',
+      '1 akun sosial media',
+      'Chat AI unlimited',
+    ],
+  },
+  {
     name: 'Starter',
     key: 'STARTER',
     priceIdr: 225000,
@@ -297,7 +313,7 @@ export default function BillingPage() {
       {/* Plans */}
       <div>
         <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Pilih Paket Berlangganan</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {plans.map((plan, index) => (
             <motion.div
               key={plan.name}

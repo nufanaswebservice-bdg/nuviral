@@ -760,15 +760,17 @@ app.post('/api/v1/ai/generate-image', requireAuth, async (req, res) => {
 // ============================================
 
 const PLANS = {
+  PEMULA: { name: 'Pemula', price: 45000, videoLimit: 5, aiCreditsLimit: 50, storageLimit: 2 * 1024 * 1024 * 1024 },
   STARTER: { name: 'Starter', price: 225000, videoLimit: 21, aiCreditsLimit: 210, storageLimit: 10 * 1024 * 1024 * 1024 },
   PRO: { name: 'Pro', price: 449000, videoLimit: 42, aiCreditsLimit: 420, storageLimit: 50 * 1024 * 1024 * 1024 },
   AGENCY: { name: 'Agency', price: 1225000, videoLimit: 115, aiCreditsLimit: 1150, storageLimit: 200 * 1024 * 1024 * 1024 },
 };
 // Profit margin: 50% — Kling 2.5 via fal.ai
 // Cost per video: ~Rp 4.000 (fal.ai Kling ~$0.25 × Rp 16.000)
+// Pemula: 45.000 × 50% = 22.500 / 4.000 = 5 videos
 // Starter: 225.000 × 50% = 112.500 / 4.000 = 28 videos
 // Pro: 449.000 × 50% = 224.500 / 4.000 = 56 videos
-// Agency: 1.225.000 × 50% = 612.500 / 5.300 = 115 videos
+// Agency: 1.225.000 × 50% = 612.500 / 4.000 = 115 videos
 
 // User usage tracking
 const USAGE_FILE = '/tmp/nuviral-usage.json';
