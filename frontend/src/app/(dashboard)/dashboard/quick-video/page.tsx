@@ -6,10 +6,10 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import { BillingPopup } from '@/components/billing-popup';
 import {
-  Video, Download, Loader2, Sparkles, RotateCcw, Mic, Film,
+  Video, Download, Loader2, Sparkles, RotateCcw, Mic,
   Smartphone, Monitor, Wand2, Clock, Zap, Volume2, Send,
   ChevronDown, Settings2, X, Image as ImageIcon, MessageSquare,
-  Copy, Check,
+  Copy, Check, ListTodo, ArrowRight, Trash2, ChevronRight,
 } from 'lucide-react';
 
 const voiceOptions = ['nova', 'alloy', 'echo', 'onyx', 'shimmer'];
@@ -36,6 +36,60 @@ const stylePrompts: Record<string, string> = {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nuviral-production.up.railway.app/api/v1';
 
+interface Task {
+  id: string;
+  title: string;
+  type: 'chat' | 'image' | 'video';
+  messages: { role: string; content: string }[];
+  createdAt: string;
+}
+
+// Generate suggested follow-up questions from AI response
+function generateSuggestions(reply: string, originalQuestion: string): string[] {
+  // Extract key topics from reply for contextual suggestions
+  const lowerReply = reply.toLowerCase();
+  const lowerQ = originalQuestion.toLowerCase();
+
+  const suggestions: string[] = [];
+
+  if (lowerQ.includes('ide') || lowerQ.includes('konten') || lowerReply.includes('ide')) {
+    suggestions.push('Buatkan script lengkap untuk ide nomor 1');
+    suggestions.push('Buatkan caption dan 30 hashtag viral untuk konten ini');
+    suggestions.push('Bagaimana strategi posting terbaik untuk konten ini?');
+  }
+  if (lowerQ.includes('script') || lowerReply.includes('script')) {
+    suggestions.push('Buatkan versi yang lebih pendek (30 detik)');
+    suggestions.push('Tambahkan hook yang lebih kuat di awal');
+    suggestions.push('Buat variasi script untuk Instagram Reels');
+  }
+  if (lowerQ.includes('hashtag') || lowerReply.includes('hashtag') || lowerReply.includes('#')) {
+    suggestions.push('Analisis performa hashtag ini di TikTok vs Instagram');
+    suggestions.push('Buatkan caption yang cocok untuk hashtag ini');
+    suggestions.push('Rekomendasikan niche hashtag yang kurang kompetitif');
+  }
+  if (lowerQ.includes('strategi') || lowerReply.includes('strategi') || lowerReply.includes('algoritma')) {
+    suggestions.push('Berikan contoh jadwal posting selama 1 bulan');
+    suggestions.push('Bagaimana cara meningkatkan engagement rate?');
+    suggestions.push('Analisis waktu posting terbaik untuk setiap platform');
+  }
+  if (lowerReply.includes('tren') || lowerReply.includes('viral') || lowerQ.includes('tren')) {
+    suggestions.push('Tren apa yang paling potensial bulan ini?');
+    suggestions.push('Bagaimana cara memanfaatkan tren ini dengan cepat?');
+    suggestions.push('Buatkan konten yang mengikuti tren ini');
+  }
+
+  // Generic suggestions if nothing specific
+  if (suggestions.length < 3) {
+    suggestions.push('Jelaskan lebih detail dengan contoh nyata');
+    suggestions.push('Buatkan template yang bisa langsung digunakan');
+    suggestions.push('Apa langkah pertama yang harus saya lakukan sekarang?');
+    suggestions.push('Berikan tips tambahan yang sering diabaikan creator');
+  }
+
+  // Always return 3 unique suggestions
+  return suggestions.slice(0, 3);
+}
+
 export default function QuickVideoPage() {
   const [activeTab, setActiveTab] = useState<'video' | 'image' | 'chat'>('chat');
   const [prompt, setPrompt] = useState('');
@@ -58,10 +112,16 @@ export default function QuickVideoPage() {
   const [credits, setCredits] = useState<{ aiCreditsUsed: number; aiCreditsLimit: number }>({ aiCreditsUsed: 0, aiCreditsLimit: 0 });
   const [userName, setUserName] = useState('');
   const [copied, setCopied] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [showTasks, setShowTasks] = useState(false);
+  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     try { const u = JSON.parse(localStorage.getItem('user') || '{}'); setUserName(u.name || u.email?.split('@')[0] || ''); } catch {}
+    // Load saved tasks
+    try { const saved = JSON.parse(localStorage.getItem('nuviral-tasks') || '[]'); setTasks(saved); } catch {}
     const fetchCredits = async () => {
       try {
         const token = localStorage.getItem('accessToken');
@@ -127,8 +187,9 @@ export default function QuickVideoPage() {
   const handleChat = async () => {
     if (!prompt.trim()) return;
     const userMsg = { role: 'user', content: prompt.trim() };
+    const questionText = prompt.trim();
     setChatMessages(prev => [...prev, userMsg]);
-    setPrompt(''); setIsChatLoading(true);
+    setPrompt(''); setIsChatLoading(true); setSuggestions([]);
     try {
       const token = localStorage.getItem('accessToken') || '';
       const res = await fetch(`${API_URL}/ai/chat`, {
@@ -138,9 +199,45 @@ export default function QuickVideoPage() {
       });
       if (!res.ok) throw new Error('Chat failed');
       const data = await res.json();
-      setChatMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
+      const newMessages = [...chatMessages, userMsg, { role: 'assistant', content: data.reply }];
+      setChatMessages(newMessages);
+      // Generate suggestions based on reply
+      setSuggestions(generateSuggestions(data.reply, questionText));
+      // Save task
+      const taskTitle = questionText.length > 50 ? questionText.substring(0, 50) + '...' : questionText;
+      const newTask: Task = {
+        id: currentTaskId || `task-${Date.now()}`,
+        title: taskTitle,
+        type: 'chat',
+        messages: newMessages,
+        createdAt: new Date().toISOString(),
+      };
+      setCurrentTaskId(newTask.id);
+      setTasks(prev => {
+        const existing = prev.find(t => t.id === newTask.id);
+        const updated = existing ? prev.map(t => t.id === newTask.id ? newTask : t) : [newTask, ...prev];
+        try { localStorage.setItem('nuviral-tasks', JSON.stringify(updated.slice(0, 50))); } catch {}
+        return updated.slice(0, 50);
+      });
     } catch { setChatMessages(prev => [...prev, { role: 'assistant', content: 'Maaf, terjadi error. Coba lagi.' }]); }
     finally { setIsChatLoading(false); }
+  };
+
+  const loadTask = (task: Task) => {
+    setChatMessages(task.messages);
+    setCurrentTaskId(task.id);
+    setSuggestions([]);
+    setShowTasks(false);
+    setActiveTab('chat');
+  };
+
+  const deleteTask = (id: string) => {
+    setTasks(prev => {
+      const updated = prev.filter(t => t.id !== id);
+      try { localStorage.setItem('nuviral-tasks', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+    if (currentTaskId === id) { setChatMessages([]); setCurrentTaskId(null); }
   };
 
   const handleSubmit = () => {
@@ -151,8 +248,9 @@ export default function QuickVideoPage() {
 
   const handleKeyDown = (e: React.KeyboardEvent) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(); } };
 
-  const handleCopy = (text: string) => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); };
+  const handleCopy = (text: string, idx: number) => { navigator.clipboard.writeText(text); setCopied(idx); setTimeout(() => setCopied(false as any), 2000); };
 
+  const startNewChat = () => { setChatMessages([]); setCurrentTaskId(null); setSuggestions([]); setPrompt(''); };
   const resetAll = () => { setVideoUrl(null); setImageUrl(null); setPrompt(''); setNarasi(''); setRenderProgress(0); setRenderStage(''); };
 
   return (
@@ -160,20 +258,64 @@ export default function QuickVideoPage() {
       <BillingPopup isOpen={showBillingPopup} onClose={() => setShowBillingPopup(false)} creditsUsed={credits.aiCreditsUsed} creditsLimit={credits.aiCreditsLimit} />
 
       {/* Tab Selector - Fixed top */}
-      <div className="flex items-center justify-center py-2 md:py-3 flex-shrink-0">
+      <div className="flex items-center justify-between py-2 md:py-3 flex-shrink-0 px-1">
         <div className="flex gap-1 p-1 rounded-xl bg-muted/50">
           {[
             { id: 'chat', label: 'Chat AI', icon: MessageSquare },
             { id: 'image', label: 'Gambar', icon: ImageIcon },
             { id: 'video', label: 'Video', icon: Video },
           ].map(tab => (
-            <button key={tab.id} onClick={() => { setActiveTab(tab.id as any); resetAll(); }} className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition ${activeTab === tab.id ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+            <button key={tab.id} onClick={() => { setActiveTab(tab.id as any); }} className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition ${activeTab === tab.id ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
               <tab.icon className="h-3.5 w-3.5 md:h-4 md:w-4" />
               {tab.label}
             </button>
           ))}
         </div>
+        {/* All Tasks Button */}
+        <button
+          onClick={() => setShowTasks(!showTasks)}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition border ${showTasks ? 'bg-primary/10 border-primary/30 text-primary' : 'border-border hover:bg-accent text-muted-foreground'}`}
+        >
+          <ListTodo className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">All Tasks</span>
+          {tasks.length > 0 && <span className="bg-primary text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center">{tasks.length > 9 ? '9+' : tasks.length}</span>}
+        </button>
       </div>
+
+      {/* All Tasks Panel */}
+      <AnimatePresence>
+        {showTasks && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="flex-shrink-0 border-b border-border overflow-hidden"
+          >
+            <div className="p-3 bg-muted/30">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold">Riwayat Chat ({tasks.length})</span>
+                <button onClick={startNewChat} className="text-xs text-primary hover:underline flex items-center gap-1">
+                  + Chat Baru
+                </button>
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {tasks.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-2">Belum ada riwayat chat</p>
+                ) : tasks.map(task => (
+                  <div key={task.id} className={`flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs cursor-pointer transition max-w-[160px] ${currentTaskId === task.id ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-card border-border hover:border-primary/30'}`}
+                    onClick={() => loadTask(task)}>
+                    <MessageSquare className="h-3 w-3 flex-shrink-0" />
+                    <span className="truncate">{task.title}</span>
+                    <button onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }} className="flex-shrink-0 hover:text-destructive ml-1">
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Main Content - Scrollable */}
       <div className="flex-1 overflow-y-auto px-2 md:px-4 pb-4">
@@ -245,15 +387,45 @@ export default function QuickVideoPage() {
                     <div className={`max-w-[90%] md:max-w-[85%] p-3 md:p-4 rounded-2xl ${msg.role === 'user' ? 'bg-primary text-white rounded-br-sm' : 'bg-card border border-border rounded-bl-sm'}`}>
                       <p className="text-sm whitespace-pre-wrap leading-relaxed break-words">{msg.content}</p>
                       {msg.role === 'assistant' && (
-                        <button onClick={() => handleCopy(msg.content)} className="mt-2 text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1">
-                          {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />} Copy
+                        <button onClick={() => handleCopy(msg.content, i)} className="mt-2 text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1">
+                          {copied === i ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />} Copy
                         </button>
                       )}
                     </div>
                   </motion.div>
                 ))}
                 {isChatLoading && (
-                  <div className="flex justify-start"><div className="p-4 rounded-2xl bg-card border border-border rounded-bl-sm"><Loader2 className="h-4 w-4 animate-spin text-primary" /></div></div>
+                  <div className="flex justify-start">
+                    <div className="p-4 rounded-2xl bg-card border border-border rounded-bl-sm flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                      <span className="text-xs text-muted-foreground">AI sedang menjawab...</span>
+                    </div>
+                  </div>
+                )}
+                {/* Suggested Follow-ups */}
+                {suggestions.length > 0 && !isChatLoading && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-2"
+                  >
+                    <p className="text-[10px] text-muted-foreground mb-1.5 flex items-center gap-1">
+                      <Sparkles className="h-3 w-3 text-primary" />
+                      Suggested follow-ups
+                    </p>
+                    <div className="flex flex-col gap-1.5">
+                      {suggestions.map((sug, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => { setPrompt(sug); setSuggestions([]); }}
+                          className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border bg-card hover:bg-accent hover:border-primary/30 transition text-left text-xs group"
+                        >
+                          <ArrowRight className="h-3 w-3 text-primary flex-shrink-0" />
+                          <span className="text-muted-foreground group-hover:text-foreground">{sug}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
                 )}
                 <div ref={chatEndRef} />
               </div>
