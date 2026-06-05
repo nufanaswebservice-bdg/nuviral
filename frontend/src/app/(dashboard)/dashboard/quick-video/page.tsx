@@ -45,7 +45,7 @@ function generateSuggestions(reply: string, question: string): string[] {
 }
 
 export default function AIStudioPage() {
-  const [activeTab, setActiveTab] = useState<'chat' | 'image' | 'video' | 'img2vid' | 'tts' | '3d'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'image' | 'video' | 'img2vid' | 'tts' | 'music' | 'sfx' | 'clone' | '3d'>('chat');
   const [prompt, setPrompt] = useState('');
   const [voice, setVoice] = useState('nova');
   const [format, setFormat] = useState<'portrait' | 'landscape'>('portrait');
@@ -202,6 +202,9 @@ export default function AIStudioPage() {
     else if (activeTab === 'video') handleVideo();
     else if (activeTab === 'img2vid') handleImg2Vid();
     else if (activeTab === 'tts') handleTTS();
+    else if (activeTab === 'music') handleMusic();
+    else if (activeTab === 'sfx') handleSFX();
+    else if (activeTab === 'clone') handleVoiceClone();
     else if (activeTab === '3d') handle3D();
   };
 
@@ -218,12 +221,63 @@ export default function AIStudioPage() {
   const loadTask = (t: Task) => { setChatMessages(t.messages); setCurrentTaskId(t.id); setSuggestions([]); setShowTasks(false); setActiveTab('chat'); };
   const deleteTask = (id: string) => { setTasks(prev => { const u = prev.filter(x => x.id !== id); try { localStorage.setItem('nuviral-tasks', JSON.stringify(u)); } catch {} return u; }); if (currentTaskId === id) startNewChat(); };
 
+  // === TEXT-TO-MUSIC ===
+  const handleMusic = async () => {
+    if (!prompt.trim()) { toast.error('Deskripsikan musik yang diinginkan'); return; }
+    if (!checkCredits()) return;
+    setIsLoading(true); setResultUrl(null); setResultType(null);
+    try {
+      const res = await fetch(`${API_URL}/ai/generate-music`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ prompt: prompt.trim(), duration: duration === 'short' ? 15 : duration === 'long' ? 60 : 30 }) });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Failed'); }
+      const data = await res.json();
+      setResultUrl(data.audioUrl); setResultType('audio');
+      toast.success('Musik berhasil di-generate! 🎵');
+    } catch (e: any) { toast.error(`Gagal: ${e.message}`); }
+    finally { setIsLoading(false); }
+  };
+
+  // === SOUND EFFECTS ===
+  const handleSFX = async () => {
+    if (!prompt.trim()) { toast.error('Deskripsikan efek suara'); return; }
+    if (!checkCredits()) return;
+    setIsLoading(true); setResultUrl(null); setResultType(null);
+    try {
+      const res = await fetch(`${API_URL}/ai/generate-sfx`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ prompt: prompt.trim(), duration: duration === 'short' ? 5 : duration === 'long' ? 30 : 10 }) });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Failed'); }
+      const data = await res.json();
+      setResultUrl(data.audioUrl); setResultType('audio');
+      toast.success('Sound effect berhasil! 🔊');
+    } catch (e: any) { toast.error(`Gagal: ${e.message}`); }
+    finally { setIsLoading(false); }
+  };
+
+  // === VOICE CLONE ===
+  const handleVoiceClone = async () => {
+    if (!prompt.trim()) { toast.error('Masukkan teks yang ingin diucapkan'); return; }
+    if (!imageFile) { toast.error('Upload sample suara (audio) untuk di-clone'); return; }
+    if (!checkCredits()) return;
+    setIsLoading(true); setResultUrl(null); setResultType(null);
+    try {
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve) => { reader.onload = () => resolve((reader.result as string).split(',')[1]); reader.readAsDataURL(imageFile!); });
+      const res = await fetch(`${API_URL}/ai/voice-clone`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ text: prompt.trim(), audioBase64: base64 }) });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Failed'); }
+      const data = await res.json();
+      setResultUrl(data.audioUrl); setResultType('audio');
+      toast.success('Voice clone berhasil! 🎤');
+    } catch (e: any) { toast.error(`Gagal: ${e.message}`); }
+    finally { setIsLoading(false); }
+  };
+
   const tabs = [
     { id: 'chat', label: 'Chat', icon: MessageSquare },
     { id: 'image', label: 'Gambar', icon: ImageIcon },
     { id: 'video', label: 'Video', icon: Video },
     { id: 'img2vid', label: 'Img→Vid', icon: Play },
     { id: 'tts', label: 'Voice', icon: Volume2 },
+    { id: 'music', label: 'Music', icon: Zap },
+    { id: 'sfx', label: 'SFX', icon: Sparkles },
+    { id: 'clone', label: 'Clone', icon: Mic },
     { id: '3d', label: '3D', icon: Box },
   ];
 
@@ -307,7 +361,10 @@ export default function AIStudioPage() {
               {activeTab === 'image' && <><h1 className="text-xl md:text-2xl font-semibold mb-2 text-center">Generate Gambar AI</h1><p className="text-sm text-muted-foreground text-center">Flux Pro Ultra — photorealistic & akurat</p></>}
               {activeTab === 'video' && <><h1 className="text-xl md:text-2xl font-semibold mb-2 text-center">Generate Video AI</h1><p className="text-sm text-muted-foreground text-center">Kling 3.0 Pro — cinematic & realistis</p></>}
               {activeTab === 'img2vid' && <><h1 className="text-xl md:text-2xl font-semibold mb-2 text-center">Image to Video</h1><p className="text-sm text-muted-foreground text-center">Animasikan gambar menjadi video</p></>}
-              {activeTab === 'tts' && <><h1 className="text-xl md:text-2xl font-semibold mb-2 text-center">Text to Speech</h1><p className="text-sm text-muted-foreground text-center">Ubah teks menjadi audio voiceover</p></>}
+              {activeTab === 'tts' && <><h1 className="text-xl md:text-2xl font-semibold mb-2 text-center">Text to Speech</h1><p className="text-sm text-muted-foreground text-center">Ubah teks menjadi voiceover natural</p></>}
+              {activeTab === 'music' && <><h1 className="text-xl md:text-2xl font-semibold mb-2 text-center">🎵 Text to Music</h1><p className="text-sm text-muted-foreground text-center">Generate musik/lagu dari deskripsi teks</p></>}
+              {activeTab === 'sfx' && <><h1 className="text-xl md:text-2xl font-semibold mb-2 text-center">🔊 Sound Effects</h1><p className="text-sm text-muted-foreground text-center">Generate efek suara dari deskripsi</p></>}
+              {activeTab === 'clone' && <><h1 className="text-xl md:text-2xl font-semibold mb-2 text-center">🎤 Voice Clone</h1><p className="text-sm text-muted-foreground text-center">Clone suara dari sample audio</p></>}
               {activeTab === '3d' && <><h1 className="text-xl md:text-2xl font-semibold mb-2 text-center">3D Generation</h1><p className="text-sm text-muted-foreground text-center">Buat model 3D dari teks atau gambar</p></>}
             </div>
           )}
@@ -357,10 +414,14 @@ export default function AIStudioPage() {
       {!resultUrl && !isLoading && (
         <div className="flex-shrink-0 px-2 md:px-4 pb-3 pt-3 border-t border-border bg-background">
           <div className="max-w-3xl mx-auto">
-            {/* Image Upload Preview (for img2vid & 3d) */}
-            {(activeTab === 'img2vid' || activeTab === '3d') && imagePreview && (
+            {/* Image Upload Preview (for img2vid & 3d & clone) */}
+            {(activeTab === 'img2vid' || activeTab === '3d' || activeTab === 'clone') && imagePreview && (
               <div className="mb-2 flex items-center gap-2 p-2 rounded-lg border border-border bg-muted/20">
-                <img src={imagePreview} alt="Upload" className="h-12 rounded-lg border border-border" />
+                {activeTab === 'clone' ? (
+                  <div className="flex items-center gap-2"><Mic className="h-4 w-4 text-primary" /><span className="text-xs text-muted-foreground">Audio sample uploaded</span></div>
+                ) : (
+                  <img src={imagePreview} alt="Upload" className="h-12 rounded-lg border border-border" />
+                )}
                 <button onClick={() => { setImageFile(null); setImagePreview(null); }} className="text-xs text-destructive hover:underline">Hapus</button>
               </div>
             )}
@@ -377,6 +438,9 @@ export default function AIStudioPage() {
                   activeTab === 'video' ? 'Deskripsikan video...' :
                   activeTab === 'img2vid' ? 'Deskripsikan gerakan (opsional)...' :
                   activeTab === 'tts' ? 'Tulis teks yang ingin diucapkan...' :
+                  activeTab === 'music' ? 'Deskripsikan musik (genre, mood, instrumen)...' :
+                  activeTab === 'sfx' ? 'Deskripsikan efek suara (hujan, ledakan, dll)...' :
+                  activeTab === 'clone' ? 'Tulis teks yang ingin diucapkan dengan suara clone...' :
                   'Deskripsikan objek 3D...'
                 }
                 rows={1}
@@ -385,13 +449,18 @@ export default function AIStudioPage() {
               />
               <div className="flex items-center justify-between px-3 pb-2.5">
                 <div className="flex items-center gap-1 flex-wrap">
-                  {/* Upload button for img2vid / 3d */}
+                  {/* Upload button for img2vid / 3d / clone */}
                   {(activeTab === 'img2vid' || activeTab === '3d') && (
                     <button onClick={() => fileRef.current?.click()} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] hover:bg-accent text-muted-foreground border border-border hover:border-primary/20 transition">
                       <ImageIcon className="h-3 w-3" /> Upload Gambar
                     </button>
                   )}
-                  <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setImageFile(f); setImagePreview(URL.createObjectURL(f)); } e.target.value = ''; }} />
+                  {activeTab === 'clone' && (
+                    <button onClick={() => fileRef.current?.click()} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] hover:bg-accent text-muted-foreground border border-border hover:border-primary/20 transition">
+                      <Mic className="h-3 w-3" /> Upload Sample Suara
+                    </button>
+                  )}
+                  <input ref={fileRef} type="file" accept={activeTab === 'clone' ? 'audio/*' : 'image/*'} className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setImageFile(f); setImagePreview(URL.createObjectURL(f)); } e.target.value = ''; }} />
 
                   {/* Style selector (image & video) */}
                   {(activeTab === 'image' || activeTab === 'video') && (
@@ -405,10 +474,10 @@ export default function AIStudioPage() {
                       {format === 'portrait' ? <Smartphone className="h-3 w-3" /> : <Monitor className="h-3 w-3" />} {format === 'portrait' ? '9:16' : '16:9'}
                     </button>
                   )}
-                  {/* Duration (video) */}
-                  {activeTab === 'video' && (
+                  {/* Duration (video, music, sfx) */}
+                  {(activeTab === 'video' || activeTab === 'music' || activeTab === 'sfx') && (
                     <button onClick={() => setDuration(d => d === 'short' ? 'medium' : d === 'medium' ? 'long' : 'short')} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] hover:bg-accent text-muted-foreground border border-border hover:border-primary/20 transition">
-                      <Clock className="h-3 w-3" /> {duration === 'short' ? '5s' : duration === 'medium' ? '10s' : '20s'}
+                      <Clock className="h-3 w-3" /> {activeTab === 'video' ? (duration === 'short' ? '5s' : duration === 'medium' ? '10s' : '20s') : (duration === 'short' ? '15s' : duration === 'medium' ? '30s' : '60s')}
                     </button>
                   )}
                   {/* Voice (tts) */}

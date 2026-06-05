@@ -884,6 +884,131 @@ app.post('/api/v1/ai/generate-image', requireAuth, async (req, res) => {
 });
 
 // ============================================
+// AI TEXT-TO-MUSIC (MiniMax Music 2.0 via fal.ai)
+// ============================================
+
+app.post('/api/v1/ai/generate-music', requireAuth, async (req, res) => {
+  const { prompt, duration = 30 } = req.body;
+  if (!prompt) return res.status(400).json({ error: 'prompt required' });
+  if (!FAL_KEY) return res.status(500).json({ error: 'AI not configured' });
+
+  try {
+    console.log(`[music] Generating: "${prompt.substring(0, 80)}" (${duration}s)`);
+    const submitRes = await fetch('https://queue.fal.run/fal-ai/minimax-music/v2', {
+      method: 'POST',
+      headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, duration: Number(duration) }),
+    });
+    if (!submitRes.ok) throw new Error('Submit failed');
+    const { request_id } = await submitRes.json();
+
+    let status = 'IN_QUEUE';
+    const maxWait = 300000;
+    const t0 = Date.now();
+    while (status !== 'COMPLETED' && status !== 'FAILED') {
+      if (Date.now() - t0 > maxWait) throw new Error('Timeout');
+      await new Promise(r => setTimeout(r, 5000));
+      const sr = await fetch(`https://queue.fal.run/fal-ai/minimax-music/v2/requests/${request_id}/status`, { headers: { 'Authorization': `Key ${FAL_KEY}` } });
+      if (sr.ok) { const d = await sr.json(); status = d.status; }
+    }
+    if (status === 'FAILED') throw new Error('Music generation failed');
+
+    const resultRes = await fetch(`https://queue.fal.run/fal-ai/minimax-music/v2/requests/${request_id}`, { headers: { 'Authorization': `Key ${FAL_KEY}` } });
+    const result = await resultRes.json();
+    const audioUrl = result.audio?.url || result.output?.url;
+    if (!audioUrl) throw new Error('No audio URL');
+    console.log(`[music] ✅ Success`);
+    res.json({ audioUrl });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
+// AI SOUND EFFECTS (ElevenLabs SFX via fal.ai)
+// ============================================
+
+app.post('/api/v1/ai/generate-sfx', requireAuth, async (req, res) => {
+  const { prompt, duration = 10 } = req.body;
+  if (!prompt) return res.status(400).json({ error: 'prompt required' });
+  if (!FAL_KEY) return res.status(500).json({ error: 'AI not configured' });
+
+  try {
+    console.log(`[sfx] Generating: "${prompt.substring(0, 80)}" (${duration}s)`);
+    const falRes = await fetch('https://fal.run/fal-ai/elevenlabs/sound-effects/v2', {
+      method: 'POST',
+      headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: prompt, duration_seconds: Number(duration) }),
+    });
+    if (!falRes.ok) {
+      // Fallback to cassetteai
+      const fallbackRes = await fetch('https://fal.run/cassetteai/sound-effects-generator', {
+        method: 'POST',
+        headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, duration: Number(duration) }),
+      });
+      if (!fallbackRes.ok) throw new Error('SFX generation failed');
+      const data = await fallbackRes.json();
+      return res.json({ audioUrl: data.audio?.url || data.audio_file?.url });
+    }
+    const data = await falRes.json();
+    const audioUrl = data.audio?.url || data.audio_file?.url;
+    if (!audioUrl) throw new Error('No audio URL');
+    console.log(`[sfx] ✅ Success`);
+    res.json({ audioUrl });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
+// AI VOICE CLONE (Zonos via fal.ai)
+// ============================================
+
+app.post('/api/v1/ai/voice-clone', requireAuth, async (req, res) => {
+  const { text, audioBase64 } = req.body;
+  if (!text || !audioBase64) return res.status(400).json({ error: 'text and audioBase64 required' });
+  if (!FAL_KEY) return res.status(500).json({ error: 'AI not configured' });
+
+  try {
+    console.log(`[voice-clone] Cloning voice for: "${text.substring(0, 50)}"`);
+    // Upload audio sample to R2
+    const audioBuffer = Buffer.from(audioBase64, 'base64');
+    const audioKey = `temp/${Date.now()}-voice-sample.wav`;
+    let audioUrl;
+    try { audioUrl = await uploadToR2(audioBuffer, audioKey, 'audio/wav'); }
+    catch { return res.status(500).json({ error: 'Failed to upload audio sample' }); }
+
+    // Use fal.ai Zonos voice clone
+    const falRes = await fetch('https://fal.run/fal-ai/zonos', {
+      method: 'POST',
+      headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, audio_url: audioUrl }),
+    });
+
+    if (!falRes.ok) {
+      // Fallback to F5-TTS
+      const f5Res = await fetch('https://fal.run/fal-ai/f5-tts', {
+        method: 'POST',
+        headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gen_text: text, ref_audio_url: audioUrl }),
+      });
+      if (!f5Res.ok) throw new Error('Voice clone failed');
+      const data = await f5Res.json();
+      return res.json({ audioUrl: data.audio_url?.url || data.audio?.url });
+    }
+
+    const data = await falRes.json();
+    const resultUrl = data.audio?.url || data.audio_url;
+    if (!resultUrl) throw new Error('No audio URL');
+    console.log(`[voice-clone] ✅ Success`);
+    res.json({ audioUrl: resultUrl });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
 // AI IMAGE-TO-VIDEO (Kling via fal.ai)
 // ============================================
 
