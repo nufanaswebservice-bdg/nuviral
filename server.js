@@ -653,7 +653,7 @@ app.post('/upload/youtube', async (req, res) => {
 // AI CHAT (fal.ai any-llm - Llama 4 Maverick / Gemini Flash)
 // ============================================
 
-// Helper: call fal.ai LLM
+// Helper: call fal.ai LLM (via openrouter)
 async function falLLM(systemPrompt, userMessage, history = [], maxTokens = 2000) {
   if (!FAL_KEY) throw new Error('FAL_KEY not set');
   
@@ -663,34 +663,38 @@ async function falLLM(systemPrompt, userMessage, history = [], maxTokens = 2000)
     { role: 'user', content: userMessage },
   ];
 
-  const res = await fetch('https://fal.run/fal-ai/any-llm', {
-    method: 'POST',
-    headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'meta-llama/llama-4-maverick',
-      messages,
-      max_tokens: maxTokens,
-    }),
-  });
+  // Try models in order: Llama 4 Maverick → Gemini Flash 2.0 → Llama 3.3 70B
+  const models = [
+    'meta-llama/llama-4-maverick',
+    'google/gemini-flash-2.0',
+    'meta-llama/llama-3.3-70b-instruct',
+  ];
 
-  if (!res.ok) {
-    // Fallback to Gemini Flash
-    const res2 = await fetch('https://fal.run/fal-ai/any-llm', {
-      method: 'POST',
-      headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'google/gemini-flash-2.0',
-        messages,
-        max_tokens: maxTokens,
-      }),
-    });
-    if (!res2.ok) throw new Error('fal.ai LLM failed');
-    const d2 = await res2.json();
-    return d2.output || d2.choices?.[0]?.message?.content || '';
+  for (const model of models) {
+    try {
+      const res = await fetch('https://fal.run/fal-ai/any-llm', {
+        method: 'POST',
+        headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model, messages, max_tokens: maxTokens }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const output = data.output || data.choices?.[0]?.message?.content || '';
+        if (output && output.length > 10) {
+          console.log(`[llm] ✅ ${model} success`);
+          return output;
+        }
+      } else {
+        const errText = await res.text().catch(() => '');
+        console.log(`[llm] ${model} failed (${res.status}): ${errText.substring(0, 100)}`);
+      }
+    } catch (e) {
+      console.log(`[llm] ${model} error: ${e.message}`);
+    }
   }
 
-  const data = await res.json();
-  return data.output || data.choices?.[0]?.message?.content || '';
+  throw new Error('All fal.ai LLM models failed');
 }
 
 app.post('/api/v1/ai/chat', requireAuth, async (req, res) => {
@@ -699,34 +703,42 @@ app.post('/api/v1/ai/chat', requireAuth, async (req, res) => {
   if (!FAL_KEY && !OPENAI_API_KEY) return res.status(500).json({ error: 'AI not configured' });
 
   try {
-    const systemPrompt = `Kamu adalah NuViral AI Assistant — asisten kreatif cerdas untuk content creator Indonesia.
+    const systemPrompt = `Kamu adalah NuViral AI Assistant — asisten AI kreatif level expert untuk content creator Indonesia.
 
-KEMAMPUAN UTAMA:
-- Brainstorm ide konten viral untuk TikTok, Instagram Reels, YouTube Shorts
-- Menulis script video pendek yang engaging dan viral
-- Membuat caption yang menarik + hashtag yang tepat
-- Strategi konten, tips growth hacking, analisis kompetitor
-- Ide thumbnail, visual storytelling, hook opening
-- Analisis tren terkini dan niche market
-- Tips editing, timing posting, algoritma platform
+## KEPRIBADIAN & GAYA
+- Jawab SEPERTI MENTOR BERPENGALAMAN yang tahu segalanya tentang konten viral
+- TIDAK pernah memberikan jawaban singkat — selalu detail, komprehensif, dan actionable
+- Gunakan data spesifik, angka, contoh nyata, dan referensi tren terkini
+- Format jawaban SELALU menggunakan: heading, bullet points, numbering, dan bold untuk poin penting
 
-CARA MENJAWAB:
-- Jawaban DETAIL, LENGKAP, dan ACTIONABLE — bukan jawaban singkat
-- Gunakan format yang terstruktur (nomor, bullet points, bold)
-- Berikan contoh konkret, script siap pakai, atau template
-- Jika diminta script, tulis FULL script tidak setengah-setengah
-- Jika diminta ide, berikan 5-10 ide dengan penjelasan masing-masing
-- Gunakan Bahasa Indonesia yang natural dan engaging
-- Sertakan data/angka spesifik jika relevan
-- Selalu akhiri dengan actionable next step
+## KEMAMPUAN UTAMA
+1. **Script & Konten**: Tulis full script TikTok/Reels/Shorts yang siap pakai
+2. **Ide Viral**: Brainstorm 5-10+ ide konten unik dengan penjelasan detail tiap ide
+3. **Caption & Hashtag**: Buat caption hooks yang eye-catching + 20-30 hashtag relevan
+4. **Strategi Growth**: Analisis algoritma, timing posting, engagement tactics
+5. **Hook Opening**: Ciptakan hook 3 detik pertama yang stop-scrolling
+6. **Analisis Tren**: Identifikasi tren viral dan cara memanfaatkannya
+7. **Prompt Video/Gambar**: Buat prompt AI yang detail untuk generate visual
 
-Jawab dalam bahasa yang sama dengan user.`;
+## FORMAT JAWABAN WAJIB
+- Untuk **ide konten**: Berikan 7-10 ide, tiap ide ada: judul, hook, script outline, target audience, potensi viral
+- Untuk **script**: Tulis script PENUH dengan: hook (0-3 detik), body, CTA, caption + hashtag
+- Untuk **strategi**: Berikan framework langkah-langkah dengan timeline
+- Untuk **analisis**: Berikan data, perbandingan, pro/cons, rekomendasi konkret
+- SELALU akhiri dengan **"Action Steps Hari Ini:"** berisi 3-5 hal yang bisa langsung dilakukan
+
+## ATURAN
+- Jawab dalam Bahasa Indonesia yang natural dan engaging
+- Panjang jawaban MINIMAL 300 kata — tidak boleh kurang
+- Jika pertanyaan ambigu, jawab dari berbagai sudut pandang
+- Sertakan contoh konkret dari brand/creator sukses jika relevan
+- Gunakan emoji secukupnya untuk visual hierarchy`;
 
     let reply;
 
     if (FAL_KEY) {
       try {
-        reply = await falLLM(systemPrompt, message, history);
+        reply = await falLLM(systemPrompt, message, history, 3000);
       } catch (e) {
         console.log(`[chat] fal.ai failed: ${e.message}, trying OpenAI...`);
       }
@@ -734,7 +746,7 @@ Jawab dalam bahasa yang sama dengan user.`;
 
     // Fallback to OpenAI if fal.ai fails
     if (!reply && OPENAI_API_KEY) {
-      const messages = [
+      const msgs = [
         { role: 'system', content: systemPrompt },
         ...history.slice(-10).map(h => ({ role: h.role, content: h.content })),
         { role: 'user', content: message },
@@ -742,7 +754,7 @@ Jawab dalam bahasa yang sama dengan user.`;
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'gpt-4o-mini', messages, max_tokens: 2000 }),
+        body: JSON.stringify({ model: 'gpt-4o-mini', messages: msgs, max_tokens: 3000 }),
       });
       if (response.ok) {
         const data = await response.json();
