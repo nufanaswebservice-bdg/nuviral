@@ -121,17 +121,17 @@ export default function LandingPage() {
               </div>
 
               {/* Feature Grid */}
-              <div className="p-4 md:p-6 grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
+              <div className="p-4 md:p-6 grid grid-cols-2 md:grid-cols-6 gap-3 md:gap-4">
                 {/* Text to Image */}
-                <div className="rounded-xl border border-gray-100 p-3 hover:border-violet-200 transition group">
-                  <div className="aspect-square rounded-lg bg-gradient-to-br from-pink-100 to-rose-50 mb-2 flex items-center justify-center overflow-hidden">
-                    <div className="text-center p-2">
-                      <span className="text-2xl">🖼️</span>
-                      <p className="text-[8px] text-gray-400 mt-1 italic">&quot;kucing astronaut di bulan&quot;</p>
+                <div className="rounded-xl border border-gray-100 p-3 hover:border-violet-200 transition group col-span-2 md:col-span-2">
+                  <div className="aspect-[16/10] rounded-lg bg-gradient-to-br from-pink-100 to-rose-50 mb-2 overflow-hidden relative">
+                    <img src="/img/textoimage.jpg" alt="Text to Image - Rainforest Infographic" className="w-full h-full object-cover rounded-lg" />
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                      <p className="text-[8px] text-white/90 italic leading-tight">&quot;Infographic: The Layers of the Rainforest — vertical cross-section with labeled canopy, understory, forest floor, lush green palette...&quot;</p>
                     </div>
                   </div>
                   <p className="text-[10px] font-semibold text-gray-700">Text to Image</p>
-                  <p className="text-[9px] text-gray-400">Flux Pro Ultra</p>
+                  <p className="text-[9px] text-gray-400">Flux Pro Ultra — photorealistic & ultra detailed</p>
                 </div>
 
                 {/* Text to Music */}
