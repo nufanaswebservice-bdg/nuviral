@@ -884,6 +884,155 @@ app.post('/api/v1/ai/generate-image', requireAuth, async (req, res) => {
 });
 
 // ============================================
+// AI IMAGE-TO-VIDEO (Kling via fal.ai)
+// ============================================
+
+app.post('/api/v1/ai/image-to-video', requireAuth, async (req, res) => {
+  const { imageBase64, prompt = 'smooth cinematic motion', duration = '5' } = req.body;
+  if (!imageBase64) return res.status(400).json({ error: 'imageBase64 required' });
+  if (!FAL_KEY) return res.status(500).json({ error: 'AI not configured' });
+
+  try {
+    // Upload image to get URL
+    const imgBuffer = Buffer.from(imageBase64, 'base64');
+    const imgKey = `temp/${Date.now()}-input.jpg`;
+    let imageUrl;
+    try { imageUrl = await uploadToR2(imgBuffer, imgKey, 'image/jpeg'); }
+    catch { return res.status(500).json({ error: 'Failed to upload image' }); }
+
+    // Submit to fal.ai Kling image-to-video
+    const submitRes = await fetch('https://queue.fal.run/fal-ai/kling-video/v2.5-turbo/pro/image-to-video', {
+      method: 'POST',
+      headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image_url: imageUrl, prompt, duration }),
+    });
+    if (!submitRes.ok) throw new Error('Submit failed');
+    const { request_id } = await submitRes.json();
+
+    // Poll
+    let status = 'IN_QUEUE';
+    const maxWait = 600000;
+    const t0 = Date.now();
+    while (status !== 'COMPLETED' && status !== 'FAILED') {
+      if (Date.now() - t0 > maxWait) throw new Error('Timeout');
+      await new Promise(r => setTimeout(r, 5000));
+      const sr = await fetch(`https://queue.fal.run/fal-ai/kling-video/v2.5-turbo/pro/image-to-video/requests/${request_id}/status`, { headers: { 'Authorization': `Key ${FAL_KEY}` } });
+      if (sr.ok) { const d = await sr.json(); status = d.status; }
+    }
+    if (status === 'FAILED') throw new Error('Generation failed');
+
+    const resultRes = await fetch(`https://queue.fal.run/fal-ai/kling-video/v2.5-turbo/pro/image-to-video/requests/${request_id}`, { headers: { 'Authorization': `Key ${FAL_KEY}` } });
+    const result = await resultRes.json();
+    const videoUrl = result.video?.url || result.output?.url;
+    if (!videoUrl) throw new Error('No video URL');
+
+    res.json({ videoUrl });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
+// AI TEXT-TO-SPEECH (fal.ai)
+// ============================================
+
+app.post('/api/v1/ai/text-to-speech', requireAuth, async (req, res) => {
+  const { text, voice = 'nova' } = req.body;
+  if (!text) return res.status(400).json({ error: 'text required' });
+
+  try {
+    // Try OpenAI TTS first (best quality for Indonesian)
+    if (OPENAI_API_KEY) {
+      const tts = await fetch('https://api.openai.com/v1/audio/speech', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'tts-1-hd', voice, input: text.substring(0, 4096), speed: 0.95 }),
+      });
+      if (tts.ok) {
+        const audioBuffer = Buffer.from(await tts.arrayBuffer());
+        const key = `audio/${Date.now()}-tts.mp3`;
+        try {
+          const audioUrl = await uploadToR2(audioBuffer, key, 'audio/mpeg');
+          return res.json({ audioUrl });
+        } catch {
+          // Return as base64 data URI if R2 fails
+          return res.json({ audioUrl: `data:audio/mpeg;base64,${audioBuffer.toString('base64')}` });
+        }
+      }
+    }
+
+    // Fallback: fal.ai TTS
+    if (FAL_KEY) {
+      const falRes = await fetch('https://fal.run/fal-ai/playht/tts/v3', {
+        method: 'POST',
+        headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input: text.substring(0, 2000) }),
+      });
+      if (falRes.ok) {
+        const data = await falRes.json();
+        return res.json({ audioUrl: data.audio?.url || data.audio_url });
+      }
+    }
+
+    throw new Error('TTS not available');
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
+// AI 3D GENERATION (fal.ai)
+// ============================================
+
+app.post('/api/v1/ai/generate-3d', requireAuth, async (req, res) => {
+  const { prompt, imageBase64 } = req.body;
+  if (!prompt && !imageBase64) return res.status(400).json({ error: 'prompt or imageBase64 required' });
+  if (!FAL_KEY) return res.status(500).json({ error: 'AI not configured' });
+
+  try {
+    let input = {};
+    if (imageBase64) {
+      const imgBuffer = Buffer.from(imageBase64, 'base64');
+      const imgKey = `temp/${Date.now()}-3d-input.jpg`;
+      const imageUrl = await uploadToR2(imgBuffer, imgKey, 'image/jpeg');
+      input = { image_url: imageUrl };
+    } else {
+      input = { prompt };
+    }
+
+    // Submit to fal.ai 3D generation (Hunyuan3D)
+    const submitRes = await fetch('https://queue.fal.run/fal-ai/hunyuan3d-v2', {
+      method: 'POST',
+      headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
+    if (!submitRes.ok) throw new Error('Submit failed');
+    const { request_id } = await submitRes.json();
+
+    // Poll
+    let status = 'IN_QUEUE';
+    const maxWait = 300000;
+    const t0 = Date.now();
+    while (status !== 'COMPLETED' && status !== 'FAILED') {
+      if (Date.now() - t0 > maxWait) throw new Error('Timeout');
+      await new Promise(r => setTimeout(r, 5000));
+      const sr = await fetch(`https://queue.fal.run/fal-ai/hunyuan3d-v2/requests/${request_id}/status`, { headers: { 'Authorization': `Key ${FAL_KEY}` } });
+      if (sr.ok) { const d = await sr.json(); status = d.status; }
+    }
+    if (status === 'FAILED') throw new Error('3D generation failed');
+
+    const resultRes = await fetch(`https://queue.fal.run/fal-ai/hunyuan3d-v2/requests/${request_id}`, { headers: { 'Authorization': `Key ${FAL_KEY}` } });
+    const result = await resultRes.json();
+    const modelUrl = result.model_mesh?.url || result.glb?.url || result.output?.url;
+    const videoUrl = result.video?.url;
+
+    res.json({ modelUrl, videoUrl });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
 // MIDTRANS PAYMENT GATEWAY
 // ============================================
 
