@@ -136,12 +136,12 @@ export default function LandingPage() {
 
                 {/* Text to Music */}
                 <div className="rounded-xl border border-gray-100 p-3 hover:border-violet-200 transition group col-span-2 md:col-span-2">
-                  <div className="rounded-lg bg-gradient-to-br from-indigo-100 to-blue-50 mb-2 p-3 relative overflow-hidden">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xl">🎵</span>
-                      <p className="text-[9px] text-gray-500 italic leading-tight">&quot;A hopeful cinematic piano piece that slowly opens into strings and subtle electronic percussion. Smooth, warm, coastal road feeling.&quot;</p>
+                  <div className="rounded-lg overflow-hidden mb-2 relative">
+                    <img src="/img/cover1.jpg" alt="Text to Music Cover" className="w-full h-32 md:h-40 object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-3">
+                      <p className="text-[9px] text-white/80 italic leading-tight mb-2">&quot;A hopeful cinematic piano piece that slowly opens into strings and subtle electronic percussion. Smooth, warm, coastal road feeling.&quot;</p>
+                      <audio src="/img/texttoaudio.mp3" controls className="w-full h-7 rounded" preload="metadata" />
                     </div>
-                    <audio src="/img/texttoaudio.mp3" controls className="w-full h-8 rounded-lg" preload="metadata" />
                   </div>
                   <p className="text-[10px] font-semibold text-gray-700">Text to Music</p>
                   <p className="text-[9px] text-gray-400">MiniMax Music 2.0 — cinematic & original</p>
