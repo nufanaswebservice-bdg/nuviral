@@ -148,15 +148,15 @@ export default function LandingPage() {
                 </div>
 
                 {/* Image to Video */}
-                <div className="rounded-xl border border-gray-100 p-3 hover:border-violet-200 transition group">
-                  <div className="aspect-square rounded-lg bg-gradient-to-br from-emerald-100 to-green-50 mb-2 flex items-center justify-center">
-                    <div className="text-center p-2">
-                      <span className="text-2xl">🎬</span>
-                      <p className="text-[8px] text-gray-400 mt-1 italic">foto → video cinematic</p>
+                <div className="rounded-xl border border-gray-100 p-3 hover:border-violet-200 transition group col-span-2 md:col-span-2">
+                  <div className="rounded-lg overflow-hidden mb-2 relative">
+                    <video src="/img/sample-img2vid.mp4" className="w-full h-32 md:h-40 object-cover rounded-lg" muted autoPlay loop playsInline />
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                      <p className="text-[8px] text-white/90 italic leading-tight">&quot;Portrait: 31-year-old Black British architect in a cream blazer, standing in a brutalist concrete stairwell, soft directional skylight...&quot;</p>
                     </div>
                   </div>
                   <p className="text-[10px] font-semibold text-gray-700">Image to Video</p>
-                  <p className="text-[9px] text-gray-400">Kling 3.0 Pro</p>
+                  <p className="text-[9px] text-gray-400">Kling 3.0 Pro — cinematic motion from image</p>
                 </div>
 
                 {/* Text to Effects */}
