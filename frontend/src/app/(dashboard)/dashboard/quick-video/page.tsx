@@ -232,19 +232,19 @@ export default function AIStudioPage() {
       <BillingPopup isOpen={showBillingPopup} onClose={() => setShowBillingPopup(false)} creditsUsed={credits.aiCreditsUsed} creditsLimit={credits.aiCreditsLimit} />
 
       {/* Tabs + Tasks */}
-      <div className="flex items-center justify-between py-2 px-1 flex-shrink-0 gap-2 overflow-x-auto">
-        <div className="flex gap-0.5 p-0.5 rounded-xl bg-muted/50 flex-shrink-0">
+      <div className="flex items-center justify-between py-2 px-2 flex-shrink-0 gap-2 overflow-x-auto border-b border-border">
+        <div className="flex gap-1 p-1 rounded-xl bg-muted/30 border border-border flex-shrink-0">
           {tabs.map(tab => (
-            <button key={tab.id} onClick={() => { setActiveTab(tab.id as any); resetResult(); }} className={`flex items-center gap-1 px-2.5 md:px-3 py-1.5 md:py-2 rounded-lg text-[11px] md:text-xs font-medium transition whitespace-nowrap ${activeTab === tab.id ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-              <tab.icon className="h-3 w-3 md:h-3.5 md:w-3.5" />
+            <button key={tab.id} onClick={() => { setActiveTab(tab.id as any); resetResult(); }} className={`flex items-center gap-1.5 px-3 md:px-3.5 py-2 md:py-2 rounded-lg text-[11px] md:text-xs font-medium transition whitespace-nowrap border ${activeTab === tab.id ? 'bg-card shadow-sm text-foreground border-border' : 'text-muted-foreground border-transparent hover:text-foreground hover:bg-accent hover:border-border'}`}>
+              <tab.icon className="h-3.5 w-3.5 md:h-4 md:w-4" />
               {tab.label}
             </button>
           ))}
         </div>
-        <button onClick={() => setShowTasks(!showTasks)} className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border flex-shrink-0 ${showTasks ? 'bg-primary/10 border-primary/30 text-primary' : 'border-border text-muted-foreground hover:bg-accent'}`}>
-          <ListTodo className="h-3 w-3" />
+        <button onClick={() => setShowTasks(!showTasks)} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-medium border flex-shrink-0 transition ${showTasks ? 'bg-primary/10 border-primary/30 text-primary' : 'border-border text-muted-foreground hover:bg-accent hover:text-foreground hover:border-primary/20'}`}>
+          <ListTodo className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Tasks</span>
-          {tasks.length > 0 && <span className="bg-primary text-white text-[9px] rounded-full w-3.5 h-3.5 flex items-center justify-center">{tasks.length}</span>}
+          {tasks.length > 0 && <span className="bg-primary text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center">{tasks.length}</span>}
         </button>
       </div>
 
@@ -252,17 +252,17 @@ export default function AIStudioPage() {
       <AnimatePresence>
         {showTasks && (
           <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden border-b border-border flex-shrink-0">
-            <div className="p-2 bg-muted/20">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11px] font-medium">Riwayat ({tasks.length})</span>
-                <button onClick={startNewChat} className="text-[11px] text-primary">+ Baru</button>
+            <div className="p-3 bg-muted/20 border-b border-border">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-semibold">Riwayat ({tasks.length})</span>
+                <button onClick={startNewChat} className="text-[11px] text-primary hover:underline">+ Chat Baru</button>
               </div>
               <div className="flex gap-1.5 overflow-x-auto pb-1">
                 {tasks.map(t => (
-                  <button key={t.id} onClick={() => loadTask(t)} className={`flex-shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg border text-[10px] max-w-[140px] ${currentTaskId === t.id ? 'bg-primary/10 border-primary/30' : 'bg-card border-border'}`}>
+                  <button key={t.id} onClick={() => loadTask(t)} className={`flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[10px] max-w-[150px] transition ${currentTaskId === t.id ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-card border-border hover:border-primary/20 hover:bg-accent'}`}>
                     <MessageSquare className="h-2.5 w-2.5 flex-shrink-0" />
                     <span className="truncate">{t.title}</span>
-                    <X className="h-2 w-2 flex-shrink-0 opacity-50 hover:opacity-100" onClick={(e) => { e.stopPropagation(); deleteTask(t.id); }} />
+                    <X className="h-2.5 w-2.5 flex-shrink-0 opacity-40 hover:opacity-100 hover:text-destructive" onClick={(e) => { e.stopPropagation(); deleteTask(t.id); }} />
                   </button>
                 ))}
               </div>
@@ -355,18 +355,18 @@ export default function AIStudioPage() {
 
       {/* INPUT BAR */}
       {!resultUrl && !isLoading && (
-        <div className="flex-shrink-0 px-2 md:px-4 pb-3 pt-2 border-t border-border/50 bg-background">
+        <div className="flex-shrink-0 px-2 md:px-4 pb-3 pt-3 border-t border-border bg-background">
           <div className="max-w-3xl mx-auto">
             {/* Image Upload Preview (for img2vid & 3d) */}
             {(activeTab === 'img2vid' || activeTab === '3d') && imagePreview && (
-              <div className="mb-2 flex items-center gap-2">
+              <div className="mb-2 flex items-center gap-2 p-2 rounded-lg border border-border bg-muted/20">
                 <img src={imagePreview} alt="Upload" className="h-12 rounded-lg border border-border" />
-                <button onClick={() => { setImageFile(null); setImagePreview(null); }} className="text-xs text-destructive">Hapus</button>
+                <button onClick={() => { setImageFile(null); setImagePreview(null); }} className="text-xs text-destructive hover:underline">Hapus</button>
               </div>
             )}
 
             {/* Input */}
-            <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+            <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden hover:border-primary/20 transition">
               <textarea
                 value={prompt}
                 onChange={e => setPrompt(e.target.value)}
@@ -387,7 +387,7 @@ export default function AIStudioPage() {
                 <div className="flex items-center gap-1 flex-wrap">
                   {/* Upload button for img2vid / 3d */}
                   {(activeTab === 'img2vid' || activeTab === '3d') && (
-                    <button onClick={() => fileRef.current?.click()} className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] hover:bg-accent text-muted-foreground border border-border">
+                    <button onClick={() => fileRef.current?.click()} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] hover:bg-accent text-muted-foreground border border-border hover:border-primary/20 transition">
                       <ImageIcon className="h-3 w-3" /> Upload Gambar
                     </button>
                   )}
@@ -395,25 +395,25 @@ export default function AIStudioPage() {
 
                   {/* Style selector (image & video) */}
                   {(activeTab === 'image' || activeTab === 'video') && (
-                    <button onClick={() => setShowSettings(!showSettings)} className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] hover:bg-accent text-muted-foreground">
+                    <button onClick={() => setShowSettings(!showSettings)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] hover:bg-accent text-muted-foreground border border-border hover:border-primary/20 transition">
                       <Settings2 className="h-3 w-3" /> {stylePresets.find(s => s.id === style)?.icon} <ChevronDown className="h-2.5 w-2.5" />
                     </button>
                   )}
                   {/* Format (image & video) */}
                   {(activeTab === 'image' || activeTab === 'video') && (
-                    <button onClick={() => setFormat(f => f === 'portrait' ? 'landscape' : 'portrait')} className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] hover:bg-accent text-muted-foreground">
+                    <button onClick={() => setFormat(f => f === 'portrait' ? 'landscape' : 'portrait')} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] hover:bg-accent text-muted-foreground border border-border hover:border-primary/20 transition">
                       {format === 'portrait' ? <Smartphone className="h-3 w-3" /> : <Monitor className="h-3 w-3" />} {format === 'portrait' ? '9:16' : '16:9'}
                     </button>
                   )}
                   {/* Duration (video) */}
                   {activeTab === 'video' && (
-                    <button onClick={() => setDuration(d => d === 'short' ? 'medium' : d === 'medium' ? 'long' : 'short')} className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] hover:bg-accent text-muted-foreground">
+                    <button onClick={() => setDuration(d => d === 'short' ? 'medium' : d === 'medium' ? 'long' : 'short')} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] hover:bg-accent text-muted-foreground border border-border hover:border-primary/20 transition">
                       <Clock className="h-3 w-3" /> {duration === 'short' ? '5s' : duration === 'medium' ? '10s' : '20s'}
                     </button>
                   )}
                   {/* Voice (tts) */}
                   {activeTab === 'tts' && (
-                    <button onClick={() => { const i = voiceOptions.indexOf(voice); setVoice(voiceOptions[(i + 1) % voiceOptions.length]); }} className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] hover:bg-accent text-muted-foreground">
+                    <button onClick={() => { const i = voiceOptions.indexOf(voice); setVoice(voiceOptions[(i + 1) % voiceOptions.length]); }} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] hover:bg-accent text-muted-foreground border border-border hover:border-primary/20 transition">
                       <Mic className="h-3 w-3" /> {voice}
                     </button>
                   )}
