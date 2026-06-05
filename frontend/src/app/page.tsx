@@ -101,93 +101,92 @@ export default function LandingPage() {
             </div>
           </motion.div>
 
-          {/* Dashboard Preview */}
+          {/* AI Feature Showcase */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.3 }}
             className="mt-16 relative"
           >
-            <div className="rounded-2xl border border-gray-200 overflow-hidden shadow-2xl shadow-gray-200/50">
-              {/* Browser Chrome */}
-              <div className="bg-gray-50 p-3 border-b border-gray-200 flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-400" />
-                <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                <div className="w-3 h-3 rounded-full bg-green-400" />
-                <div className="ml-4 flex-1 h-7 rounded-lg bg-white border border-gray-200 flex items-center px-3">
-                  <span className="text-xs text-gray-400">app.NuViral.com/dashboard</span>
+            <div className="rounded-2xl border border-gray-200 overflow-hidden shadow-2xl shadow-gray-200/50 bg-white">
+              {/* Header */}
+              <div className="bg-gray-50 p-3 border-b border-gray-200 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-red-400" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                  <div className="w-3 h-3 rounded-full bg-green-400" />
+                </div>
+                <span className="text-[10px] text-gray-400 font-medium">NuViral AI Studio — 9 Tools in 1</span>
+                <div />
+              </div>
+
+              {/* Feature Grid */}
+              <div className="p-4 md:p-6 grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
+                {/* Text to Image */}
+                <div className="rounded-xl border border-gray-100 p-3 hover:border-violet-200 transition group">
+                  <div className="aspect-square rounded-lg bg-gradient-to-br from-pink-100 to-rose-50 mb-2 flex items-center justify-center overflow-hidden">
+                    <div className="text-center p-2">
+                      <span className="text-2xl">🖼️</span>
+                      <p className="text-[8px] text-gray-400 mt-1 italic">&quot;kucing astronaut di bulan&quot;</p>
+                    </div>
+                  </div>
+                  <p className="text-[10px] font-semibold text-gray-700">Text to Image</p>
+                  <p className="text-[9px] text-gray-400">Flux Pro Ultra</p>
+                </div>
+
+                {/* Text to Music */}
+                <div className="rounded-xl border border-gray-100 p-3 hover:border-violet-200 transition group">
+                  <div className="aspect-square rounded-lg bg-gradient-to-br from-indigo-100 to-blue-50 mb-2 flex items-center justify-center">
+                    <div className="text-center p-2">
+                      <span className="text-2xl">🎵</span>
+                      <p className="text-[8px] text-gray-400 mt-1 italic">&quot;lo-fi chill beat 30s&quot;</p>
+                    </div>
+                  </div>
+                  <p className="text-[10px] font-semibold text-gray-700">Text to Music</p>
+                  <p className="text-[9px] text-gray-400">MiniMax Music 2.0</p>
+                </div>
+
+                {/* Image to Video */}
+                <div className="rounded-xl border border-gray-100 p-3 hover:border-violet-200 transition group">
+                  <div className="aspect-square rounded-lg bg-gradient-to-br from-emerald-100 to-green-50 mb-2 flex items-center justify-center">
+                    <div className="text-center p-2">
+                      <span className="text-2xl">🎬</span>
+                      <p className="text-[8px] text-gray-400 mt-1 italic">foto → video cinematic</p>
+                    </div>
+                  </div>
+                  <p className="text-[10px] font-semibold text-gray-700">Image to Video</p>
+                  <p className="text-[9px] text-gray-400">Kling 3.0 Pro</p>
+                </div>
+
+                {/* Text to Effects */}
+                <div className="rounded-xl border border-gray-100 p-3 hover:border-violet-200 transition group">
+                  <div className="aspect-square rounded-lg bg-gradient-to-br from-red-100 to-orange-50 mb-2 flex items-center justify-center">
+                    <div className="text-center p-2">
+                      <span className="text-2xl">🔊</span>
+                      <p className="text-[8px] text-gray-400 mt-1 italic">&quot;hujan deras + petir&quot;</p>
+                    </div>
+                  </div>
+                  <p className="text-[10px] font-semibold text-gray-700">Sound Effects</p>
+                  <p className="text-[9px] text-gray-400">ElevenLabs SFX</p>
+                </div>
+
+                {/* Text to 3D */}
+                <div className="rounded-xl border border-gray-100 p-3 hover:border-violet-200 transition group">
+                  <div className="aspect-square rounded-lg bg-gradient-to-br from-teal-100 to-cyan-50 mb-2 flex items-center justify-center">
+                    <div className="text-center p-2">
+                      <span className="text-2xl">🧊</span>
+                      <p className="text-[8px] text-gray-400 mt-1 italic">&quot;sneaker futuristik 3D&quot;</p>
+                    </div>
+                  </div>
+                  <p className="text-[10px] font-semibold text-gray-700">Text to 3D</p>
+                  <p className="text-[9px] text-gray-400">Hunyuan3D v2</p>
                 </div>
               </div>
 
-              {/* Dashboard Content */}
-              <div className="bg-[#f8f9fc] flex">
-                {/* Mini Sidebar */}
-                <div className="w-48 border-r border-gray-200 bg-white p-3 hidden md:block">
-                  <div className="flex items-center gap-2 mb-6 px-2">
-                    <div className="w-6 h-6 rounded-md gradient-primary flex items-center justify-center">
-                      <Sparkles className="h-3 w-3 text-white" />
-                    </div>
-                    <span className="text-sm font-bold text-gray-900">NuViral</span>
-                  </div>
-                  <div className="space-y-1">
-                    {['Dashboard', 'AI Generator', 'Quick Video', 'Videos', 'Trends', 'Schedule', 'Analytics'].map((item, i) => (
-                      <div key={item} className={`px-3 py-1.5 rounded-lg text-xs ${i === 0 ? 'bg-violet-50 text-violet-700 font-medium' : 'text-gray-500'}`}>
-                        {item}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Main Content */}
-                <div className="flex-1 p-4 md:p-6 min-h-[400px]">
-                  {/* Stats Cards */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-                    {[
-                      { label: 'Total Views', value: '2.4M', change: '+12%', color: 'bg-blue-500' },
-                      { label: 'Engagement', value: '8.7%', change: '+3.2%', color: 'bg-emerald-500' },
-                      { label: 'Videos', value: '156', change: '+24', color: 'bg-violet-500' },
-                      { label: 'Viral Score', value: '87', change: '+5', color: 'bg-amber-500' },
-                    ].map((stat) => (
-                      <div key={stat.label} className="p-3 rounded-xl bg-white border border-gray-100 shadow-card">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className={`w-2 h-2 rounded-full ${stat.color}`} />
-                          <span className="text-[10px] text-emerald-600 font-medium">{stat.change}</span>
-                        </div>
-                        <p className="text-lg font-bold text-gray-900">{stat.value}</p>
-                        <p className="text-[10px] text-gray-400">{stat.label}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Chart + List */}
-                  <div className="grid md:grid-cols-3 gap-3">
-                    <div className="md:col-span-2 p-4 rounded-xl bg-white border border-gray-100 shadow-card">
-                      <div className="flex items-center justify-between mb-4">
-                        <span className="text-xs font-semibold text-gray-700">Performance</span>
-                        <span className="text-[10px] text-gray-400">Last 30 days</span>
-                      </div>
-                      <div className="flex items-end gap-1.5 h-28">
-                        {[40, 65, 45, 80, 55, 90, 70, 85, 60, 95, 75, 88].map((h, i) => (
-                          <div key={i} className="flex-1 rounded-t-sm bg-gradient-to-t from-violet-200 to-violet-400" style={{ height: `${h}%` }} />
-                        ))}
-                      </div>
-                    </div>
-                    <div className="p-4 rounded-xl bg-white border border-gray-100 shadow-card">
-                      <span className="text-xs font-semibold text-gray-700">Recent</span>
-                      <div className="mt-3 space-y-2.5">
-                        {[1, 2, 3, 4].map((i) => (
-                          <div key={i} className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-violet-50 flex-shrink-0" />
-                            <div className="flex-1">
-                              <div className="h-2 w-full rounded bg-gray-100 mb-1" />
-                              <div className="h-2 w-2/3 rounded bg-gray-50" />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              {/* Bottom bar */}
+              <div className="border-t border-gray-100 px-4 py-2 bg-gray-50 flex items-center justify-between">
+                <span className="text-[9px] text-gray-400">Powered by fal.ai • Kling • Flux • MiniMax • ElevenLabs • Hunyuan3D</span>
+                <span className="text-[9px] text-violet-500 font-medium">Coba sekarang →</span>
               </div>
             </div>
             {/* Glow behind */}
