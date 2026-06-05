@@ -18,7 +18,7 @@ const helpCategories: HelpCategory[] = [
     title: 'Memulai NuViral',
     description: 'Panduan dasar untuk pemula',
     faqs: [
-      { question: 'Apa itu NuViral AI Video Generator?', answer: 'NuViral adalah platform AI SaaS buatan Indonesia untuk content creator. Dengan NuViral, kamu bisa generate video pendek, gambar, script, dan brainstorm ide konten viral menggunakan kecerdasan buatan. Platform ini mendukung pembuatan konten untuk TikTok, YouTube Shorts, Instagram Reels, dan Facebook Reels secara otomatis.' },
+      { question: 'Apa itu NuNuViral Video Generator?', answer: 'NuViral adalah platform AI SaaS buatan Indonesia untuk content creator. Dengan NuViral, kamu bisa generate video pendek, gambar, script, dan brainstorm ide konten viral menggunakan kecerdasan buatan. Platform ini mendukung pembuatan konten untuk TikTok, YouTube Shorts, Instagram Reels, dan Facebook Reels secara otomatis.' },
       { question: 'Bagaimana cara membuat video AI pertama di NuViral?', answer: 'Langkah-langkahnya sangat mudah: 1) Daftar/login dengan akun Google di nuviral.cloud, 2) Pilih paket berlangganan (mulai Rp 45.000/bulan), 3) Buka menu AI Studio, 4) Pilih tab Video, 5) Ketik deskripsi video yang kamu inginkan dalam Bahasa Indonesia, 6) Pilih style (Cinematic, Anime, dll) dan durasi, 7) Tekan Enter dan tunggu 2-5 menit. Video siap download!' },
       { question: 'Apakah NuViral bisa generate video dalam Bahasa Indonesia?', answer: 'Ya! NuViral sepenuhnya mendukung Bahasa Indonesia. Kamu bisa mengetik prompt dalam Bahasa Indonesia dan AI akan otomatis menerjemahkan serta mengoptimalkan untuk menghasilkan video berkualitas tinggi. Narasi/voiceover juga tersedia dalam Bahasa Indonesia.' },
       { question: 'Format dan durasi video apa yang didukung NuViral?', answer: 'NuViral mendukung: Portrait 9:16 (untuk TikTok, Reels, Shorts) dan Landscape 16:9 (untuk YouTube). Durasi yang tersedia: Short (5 detik), Medium (10 detik), dan Long (20 detik). Resolusi output hingga 1080p.' },
@@ -156,7 +156,7 @@ export default function PublicHelpPage() {
               Help Center
             </h1>
             <p className="text-base md:text-lg text-gray-500 dark:text-gray-400 mb-8">
-              Panduan lengkap menggunakan NuViral AI Video Generator
+              Panduan lengkap menggunakan NuNuViral Video Generator
             </p>
 
             {/* Search */}
@@ -323,7 +323,7 @@ export default function PublicHelpPage() {
 
           {/* SEO Content */}
           <section className="mt-12 prose prose-sm dark:prose-invert max-w-none">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Tentang NuViral AI Video Generator</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Tentang NuNuViral Video Generator</h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
               NuViral adalah platform AI video generator pertama di Indonesia yang memungkinkan content creator membuat video viral secara otomatis. 
               Dengan teknologi AI terdepan (Kling 2.5, Flux, GPT-4), NuViral mengubah teks menjadi video berkualitas tinggi dalam hitungan menit. 
@@ -358,3 +358,4 @@ export default function PublicHelpPage() {
     </>
   );
 }
+

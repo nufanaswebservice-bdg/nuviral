@@ -27,7 +27,9 @@ import { TrendsModule } from './modules/trends/trends.module';
     // Configuration
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '../.env',
+      // Don't specify envFilePath in production (Railway injects env vars directly)
+      // In local dev, .env is loaded from the root automatically
+      envFilePath: process.env.NODE_ENV === 'production' ? undefined : '../.env',
     }),
 
     // Rate Limiting
@@ -41,13 +43,19 @@ import { TrendsModule } from './modules/trends/trends.module';
     // Task Scheduling
     ScheduleModule.forRoot(),
 
-    // Queue System
+    // Queue System - supports both REDIS_URL (Railway) and separate host/port
     BullModule.forRoot({
-      connection: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
-        password: process.env.REDIS_PASSWORD || undefined,
-      },
+      connection: process.env.REDIS_URL
+        ? {
+            // Railway provides REDIS_URL as a full URL (supports TLS with rediss://)
+            url: process.env.REDIS_URL,
+          }
+        : {
+            host: process.env.REDIS_HOST || 'localhost',
+            port: parseInt(process.env.REDIS_PORT || '6379'),
+            password: process.env.REDIS_PASSWORD || undefined,
+            tls: process.env.REDIS_TLS === 'true' ? {} : undefined,
+          },
     }),
 
     // Database

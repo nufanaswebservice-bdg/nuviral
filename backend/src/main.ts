@@ -36,6 +36,12 @@ async function bootstrap() {
     }),
   );
 
+  // Health check endpoint (before global prefix, for Railway healthcheck)
+  const httpAdapter = app.getHttpAdapter();
+  httpAdapter.get('/api/v1/health', (_req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
   // API Prefix
   app.setGlobalPrefix('api/v1');
 

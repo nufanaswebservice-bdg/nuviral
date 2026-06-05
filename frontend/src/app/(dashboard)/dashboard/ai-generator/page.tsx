@@ -298,7 +298,7 @@ export default function AiGeneratorPage() {
 
   const handleCreateVideo = () => {
     // Save script data to localStorage for the Create Video page
-    localStorage.setItem('viralai-script-data', JSON.stringify(result));
+    localStorage.setItem('NuViral-script-data', JSON.stringify(result));
     toast.success('Script loaded! Redirecting to Video Creator...');
     setTimeout(() => {
       router.push('/dashboard/create-video');
@@ -718,3 +718,4 @@ export default function AiGeneratorPage() {
     </div>
   );
 }
+

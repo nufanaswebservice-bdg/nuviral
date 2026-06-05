@@ -36,7 +36,7 @@ export const useAuthStore = create<AuthState>()(
         set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false });
       },
     }),
-    { name: 'viralai-auth' },
+    { name: 'nuviral-auth' },
   ),
 );
 
@@ -53,3 +53,4 @@ export const useAppStore = create<AppState>((set) => ({
   currentProject: null,
   setCurrentProject: (id) => set({ currentProject: id }),
 }));
+

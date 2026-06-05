@@ -135,7 +135,7 @@ export default function CreateVideoPage() {
 
   useEffect(() => {
     // Load script data from localStorage (passed from AI Generator)
-    const saved = localStorage.getItem('viralai-script-data');
+    const saved = localStorage.getItem('NuViral-script-data');
     if (saved) {
       setScriptData(JSON.parse(saved));
     }
@@ -259,7 +259,7 @@ export default function CreateVideoPage() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                       title: scriptData?.title || 'NuViral Video',
-                      script: scriptData?.script || 'Welcome to NuViral AI. Create viral videos automatically.',
+                      script: scriptData?.script || 'Welcome to NuNuViral. Create viral videos automatically.',
                       duration: 15,
                       voice: 'nova',
                     }),
@@ -273,7 +273,7 @@ export default function CreateVideoPage() {
                   const url = URL.createObjectURL(blob);
                   const link = document.createElement('a');
                   link.href = url;
-                  link.download = `viralai-video-${Date.now()}.mp4`;
+                  link.download = `NuViral-video-${Date.now()}.mp4`;
                   document.body.appendChild(link);
                   link.click();
                   document.body.removeChild(link);
@@ -554,3 +554,4 @@ export default function CreateVideoPage() {
     </div>
   );
 }
+

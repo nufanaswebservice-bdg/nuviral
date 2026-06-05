@@ -38,7 +38,7 @@ function escapeFFmpeg(text: string): string {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { title = 'ViralAI Video', script = '', duration = 15, useVoiceover = true } = body;
+    const { title = 'NuViral Video', script = '', duration = 15, useVoiceover = true } = body;
 
     const ffmpeg = getFFmpegPath();
     const outputDir = path.join(process.cwd(), 'public', 'renders');
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     let textFilters = '';
     const safeTitle = escapeFFmpeg(title);
     textFilters += `,drawtext=text='${safeTitle}':fontsize=48:fontcolor=white:borderw=3:bordercolor=black:x=(w-text_w)/2:y=100:fontfile='C\\:/Windows/Fonts/arialbd.ttf'`;
-    textFilters += `,drawtext=text='NuViral AI':fontsize=20:fontcolor=0x7c3aed:borderw=1:bordercolor=black:x=(w-text_w)/2:y=170:fontfile='C\\:/Windows/Fonts/arial.ttf'`;
+    textFilters += `,drawtext=text='NuNuViral':fontsize=20:fontcolor=0x7c3aed:borderw=1:bordercolor=black:x=(w-text_w)/2:y=170:fontfile='C\\:/Windows/Fonts/arial.ttf'`;
 
     sentences.forEach((sentence: string, i: number) => {
       const start = (i * segDuration).toFixed(2);
@@ -137,3 +137,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Render failed', detail: error.message?.substring(0, 300) }, { status: 500 });
   }
 }
+

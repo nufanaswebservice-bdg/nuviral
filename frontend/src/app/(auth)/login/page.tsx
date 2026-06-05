@@ -64,7 +64,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2">
             <Sparkles className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold gradient-text">ViralAI</span>
+            <span className="text-2xl font-bold gradient-text">NuViral</span>
           </Link>
           <h1 className="text-2xl font-bold mt-6 mb-2">Welcome back</h1>
           <p className="text-muted-foreground">Sign in to your account to continue</p>
@@ -189,3 +189,4 @@ export default function LoginPage() {
     </div>
   );
 }
+

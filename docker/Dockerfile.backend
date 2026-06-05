@@ -2,23 +2,26 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies
-COPY package.json package-lock.json* ./
-COPY backend/package.json ./backend/
-COPY shared/package.json ./shared/
+# Copy prisma schema first (needed for prisma generate)
 COPY prisma/ ./prisma/
 
-RUN npm ci --workspace=backend --workspace=shared
+# Copy backend package files
+COPY backend/package.json backend/package-lock.json* ./
 
-# Copy source
-COPY shared/ ./shared/
-COPY backend/ ./backend/
+# Install all dependencies (including devDeps for build)
+RUN npm ci
+
+# Copy nest CLI config and tsconfig
+COPY backend/nest-cli.json backend/tsconfig.json ./
+
+# Copy backend source
+COPY backend/src/ ./src/
 
 # Generate Prisma client
 RUN npx prisma generate
 
-# Build
-RUN npm run build --workspace=backend
+# Build NestJS app
+RUN npx nest build
 
 # Production image
 FROM node:20-alpine AS runner
@@ -27,10 +30,17 @@ WORKDIR /app
 
 RUN apk add --no-cache ffmpeg
 
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/backend/dist ./dist
+# Copy prisma schema and migrations for runtime
 COPY --from=builder /app/prisma ./prisma
+
+# Copy built app and node_modules
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
 
 EXPOSE 4000
 
+ENV PORT=4000
+ENV NODE_ENV=production
+
+# Run prisma migrate deploy then start the app
 CMD ["node", "dist/main.js"]

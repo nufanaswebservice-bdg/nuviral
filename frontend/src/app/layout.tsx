@@ -7,9 +7,9 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'NuViral - AI Video & Content Generator',
-  description: 'Platform AI video generator terdepan di Indonesia. Buat video viral untuk TikTok, YouTube Shorts, Instagram Reels secara otomatis.',
-  keywords: 'AI video generator, NuViral, TikTok automation, content creator, viral content, short video, Indonesia',
+  title: 'NuViral - AI Creative Studio | 9 AI Tools dalam 1 Platform',
+  description: 'Platform AI creative studio terdepan di Indonesia. Generate video, gambar, musik, efek suara, 3D model, voice clone, dan brainstorm ide konten — semua dalam satu dashboard.',
+  keywords: 'AI video generator, NuViral, AI creative studio, text to image, text to video, text to music, voice clone, 3D generation, content creator, Indonesia',
   icons: {
     icon: '/favicon.svg',
   },

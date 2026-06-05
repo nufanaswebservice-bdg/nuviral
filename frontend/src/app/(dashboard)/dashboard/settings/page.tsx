@@ -33,9 +33,9 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('profile');
   const [profile, setProfile] = useState({
     name: 'Demo User',
-    email: 'demo@viralai.com',
+    email: 'demo@NuViral.com',
     bio: 'Content creator using AI to go viral 🚀',
-    website: 'https://viralai.com',
+    website: 'https://NuViral.com',
   });
   const [notifications, setNotifications] = useState({
     renderComplete: true,
@@ -465,7 +465,7 @@ export default function SettingsPage() {
               <div className="p-6 rounded-2xl border border-border bg-card space-y-6">
                 <h2 className="text-lg font-semibold">API Access</h2>
                 <p className="text-sm text-muted-foreground">
-                  Use your API key to integrate ViralAI with external tools and services.
+                  Use your API key to integrate NuViral with external tools and services.
                   Available on Pro and Agency plans.
                 </p>
 
@@ -525,3 +525,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+

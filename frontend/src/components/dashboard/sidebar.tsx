@@ -93,9 +93,10 @@ export function Sidebar({ isOpen, onToggle, onClose }: SidebarProps) {
       {/* Footer */}
       <div className="p-3 border-t border-border flex-shrink-0">
         <div className="px-3 py-2">
-          <p className="text-[10px] text-muted-foreground text-center">NuViral AI © 2024</p>
+          <p className="text-[10px] text-muted-foreground text-center">NuNuViral © 2024</p>
         </div>
       </div>
     </aside>
   );
 }
+

@@ -2,18 +2,18 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
-COPY worker/package.json ./worker/
-COPY shared/package.json ./shared/
-COPY prisma/ ./prisma/
+# Copy worker package files (standalone, no monorepo)
+COPY worker/package.json worker/package-lock.json* ./
 
-RUN npm ci --workspace=worker --workspace=shared
+# Install all dependencies (including TypeScript devDeps for build)
+RUN npm ci
 
-COPY shared/ ./shared/
-COPY worker/ ./worker/
+# Copy worker source and tsconfig
+COPY worker/src/ ./src/
+COPY worker/tsconfig.json ./
 
-RUN npx prisma generate
-RUN npm run build --workspace=worker
+# Build TypeScript to JavaScript
+RUN npx tsc
 
 # Production image
 FROM node:20-alpine AS runner
@@ -23,8 +23,13 @@ WORKDIR /app
 # Install FFmpeg for video processing
 RUN apk add --no-cache ffmpeg
 
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/worker/dist ./dist
-COPY --from=builder /app/prisma ./prisma
+# Copy package.json and install production deps only
+COPY worker/package.json ./
+RUN npm install --omit=dev
+
+# Copy compiled output
+COPY --from=builder /app/dist ./dist
+
+ENV NODE_ENV=production
 
 CMD ["node", "dist/index.js"]

@@ -16,7 +16,7 @@ export default function LandingPage() {
               <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
                 <Sparkles className="h-4 w-4 text-white" />
               </div>
-              <span className="text-xl font-bold text-gray-900">ViralAI</span>
+              <span className="text-xl font-bold text-gray-900">NuViral</span>
             </div>
             <div className="hidden md:flex items-center gap-8">
               <a href="#features" className="text-sm text-gray-600 hover:text-gray-900 transition font-medium">Features</a>
@@ -115,7 +115,7 @@ export default function LandingPage() {
                 <div className="w-3 h-3 rounded-full bg-yellow-400" />
                 <div className="w-3 h-3 rounded-full bg-green-400" />
                 <div className="ml-4 flex-1 h-7 rounded-lg bg-white border border-gray-200 flex items-center px-3">
-                  <span className="text-xs text-gray-400">app.viralai.com/dashboard</span>
+                  <span className="text-xs text-gray-400">app.NuViral.com/dashboard</span>
                 </div>
               </div>
 
@@ -127,7 +127,7 @@ export default function LandingPage() {
                     <div className="w-6 h-6 rounded-md gradient-primary flex items-center justify-center">
                       <Sparkles className="h-3 w-3 text-white" />
                     </div>
-                    <span className="text-sm font-bold text-gray-900">ViralAI</span>
+                    <span className="text-sm font-bold text-gray-900">NuViral</span>
                   </div>
                   <div className="space-y-1">
                     {['Dashboard', 'AI Generator', 'Quick Video', 'Videos', 'Trends', 'Schedule', 'Analytics'].map((item, i) => (
@@ -206,7 +206,7 @@ export default function LandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">See ViralAI in Action</h2>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">See NuViral in Action</h2>
               <p className="text-gray-500 text-lg max-w-2xl mx-auto">
                 Watch how creators generate viral videos in minutes — from prompt to publish.
               </p>
@@ -369,7 +369,7 @@ export default function LandingPage() {
               viewport={{ once: true }}
             >
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Frequently Asked Questions</h2>
-              <p className="text-gray-500 text-lg">Everything you need to know about ViralAI</p>
+              <p className="text-gray-500 text-lg">Everything you need to know about NuViral</p>
             </motion.div>
           </div>
 
@@ -381,7 +381,7 @@ export default function LandingPage() {
 
           <div className="mt-12 text-center p-8 rounded-2xl bg-white border border-gray-200 shadow-card">
             <p className="text-gray-500 mb-3">Still have questions?</p>
-            <a href="mailto:support@viralai.com" className="text-violet-600 font-semibold hover:text-violet-700 transition">
+            <a href="mailto:support@NuViral.com" className="text-violet-600 font-semibold hover:text-violet-700 transition">
               Contact our support team →
             </a>
           </div>
@@ -427,7 +427,7 @@ export default function LandingPage() {
                 <div className="w-7 h-7 rounded-md gradient-primary flex items-center justify-center">
                   <Sparkles className="h-3.5 w-3.5 text-white" />
                 </div>
-                <span className="font-bold text-gray-900">ViralAI</span>
+                <span className="font-bold text-gray-900">NuViral</span>
               </div>
               <p className="text-sm text-gray-500 leading-relaxed">
                 AI-powered content creation platform for short-form video creators.
@@ -462,7 +462,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="border-t border-gray-100 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-gray-400 text-sm">&copy; 2024 ViralAI. All rights reserved.</p>
+            <p className="text-gray-400 text-sm">&copy; 2024 NuViral. All rights reserved.</p>
             <div className="flex items-center gap-4 text-sm text-gray-400">
               <a href="#" className="hover:text-gray-600 transition">Twitter</a>
               <a href="#" className="hover:text-gray-600 transition">Instagram</a>
@@ -605,7 +605,7 @@ const pricingPlans = [
 
 // FAQ Data
 const faqItems = [
-  { question: 'Apa itu ViralAI?', answer: 'ViralAI adalah platform SaaS berbasis AI yang membantu content creator membuat video viral untuk TikTok, YouTube Shorts, Instagram Reels, dan Facebook Reels secara otomatis.' },
+  { question: 'Apa itu NuViral?', answer: 'NuViral adalah platform SaaS berbasis AI yang membantu content creator membuat video viral untuk TikTok, YouTube Shorts, Instagram Reels, dan Facebook Reels secara otomatis.' },
   { question: 'Apakah saya perlu keahlian editing video?', answer: 'Tidak! Cukup ketik topik atau prompt, AI akan generate script, membuat video dengan subtitle, voiceover, dan efek secara otomatis.' },
   { question: 'Platform apa saja yang didukung?', answer: 'TikTok, YouTube Shorts, Instagram Reels, dan Facebook Reels. Anda bisa menghubungkan multiple akun dan menjadwalkan upload ke semua platform sekaligus.' },
   { question: 'Bagaimana cara kerja AI Video Generator?', answer: 'Masukkan topik atau script. AI akan membuat voiceover, subtitle animasi, background music, dan merender video dalam format 9:16 siap upload.' },
@@ -684,3 +684,4 @@ const features = [
     example: '"Sepatu sneaker futuristik berwarna putih dengan aksen neon biru, desain minimalis, high-poly 3D"',
   },
 ];
+
