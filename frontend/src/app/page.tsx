@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { Sparkles, Video, TrendingUp, Calendar, Zap, Shield, Check, ChevronDown, ChevronUp, ArrowRight, Play } from 'lucide-react';
+import { Sparkles, Video, TrendingUp, Calendar, Zap, Shield, Check, ChevronDown, ChevronUp, ArrowRight, Play, Image as ImageIcon, MessageSquare, Volume2, Mic, Box } from 'lucide-react';
 
 export default function LandingPage() {
   return (
@@ -65,16 +65,16 @@ export default function LandingPage() {
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-50 border border-violet-100 mb-8">
               <Sparkles className="h-4 w-4 text-violet-600" />
-              <span className="text-sm text-violet-700 font-medium">AI-Powered Content Creation</span>
+              <span className="text-sm text-violet-700 font-medium">AI-Powered Creative Platform — 9 Tools in 1</span>
             </div>
             <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-gray-900 mb-6 leading-[1.1]">
-              Create Viral Videos
+              AI Creative Studio
               <br />
-              <span className="gradient-text">Automatically with AI</span>
+              <span className="gradient-text">9 Tools dalam 1 Platform</span>
             </h1>
             <p className="text-base md:text-xl text-gray-500 max-w-2xl mx-auto mb-8 md:mb-10 leading-relaxed px-2">
-              Generate scripts, render videos, add subtitles, and publish to TikTok, YouTube Shorts,
-              Instagram Reels & Facebook Reels — all on autopilot.
+              Generate video, gambar, musik, efek suara, 3D model, voice clone, dan brainstorm ide konten —
+              semuanya dengan AI terdepan, dalam satu dashboard.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
               <Link
@@ -95,9 +95,9 @@ export default function LandingPage() {
 
             {/* Trust badges */}
             <div className="mt-8 md:mt-12 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 text-xs sm:text-sm text-gray-400">
-              <span>✓ No credit card required</span>
-              <span>✓ 5 free videos/month</span>
-              <span>✓ Cancel anytime</span>
+              <span>✓ 9 AI Tools</span>
+              <span>✓ Mulai Rp 45.000/bln</span>
+              <span>✓ Bahasa Indonesia</span>
             </div>
           </motion.div>
 
@@ -256,28 +256,32 @@ export default function LandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Everything You Need to Go Viral</h2>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">9 AI Tools dalam 1 Platform</h2>
               <p className="text-gray-500 text-lg max-w-2xl mx-auto">
-                From AI script generation to automated publishing — one platform for all your short-form content needs.
+                Semua kebutuhan kreasi konten AI kamu — dari teks, gambar, video, audio, hingga 3D — tersedia dalam satu dashboard.
               </p>
             </motion.div>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {features.map((feature, index) => (
               <motion.div
                 key={feature.title}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
+                transition={{ duration: 0.5, delay: index * 0.07 }}
                 viewport={{ once: true }}
-                className="p-6 rounded-2xl bg-white border border-gray-100 shadow-card hover:shadow-card-hover hover:border-gray-200 transition-all duration-300 group"
+                className="p-6 rounded-2xl bg-white border border-gray-100 shadow-card hover:shadow-card-hover hover:border-violet-200 transition-all duration-300 group"
               >
-                <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform ${feature.color}`}>
                   <feature.icon className="h-6 w-6 text-white" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">{feature.title}</h3>
-                <p className="text-gray-500 leading-relaxed">{feature.description}</p>
+                <p className="text-gray-500 text-sm leading-relaxed mb-3">{feature.description}</p>
+                <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                  <p className="text-[11px] font-medium text-gray-400 mb-1">Contoh prompt:</p>
+                  <p className="text-xs text-gray-600 italic">{feature.example}</p>
+                </div>
               </motion.div>
             ))}
           </div>
@@ -616,10 +620,67 @@ const faqItems = [
 
 // Features Data
 const features = [
-  { icon: Sparkles, title: 'AI Script Generator', description: 'Generate viral scripts, hooks, captions, and hashtags automatically with GPT-4.' },
-  { icon: Video, title: 'Auto Video Creation', description: 'Transform text into professional videos with AI voiceover, subtitles, and B-roll.' },
-  { icon: TrendingUp, title: 'Trend Analyzer', description: 'Discover trending topics, viral hashtags, and optimal posting times with AI.' },
-  { icon: Calendar, title: 'Smart Scheduler', description: 'Schedule and auto-publish to TikTok, YouTube, Instagram, and Facebook.' },
-  { icon: Zap, title: 'Workflow Automation', description: 'Create end-to-end content pipelines from script to publish — fully automated.' },
-  { icon: Shield, title: 'Multi-Platform', description: 'Manage multiple accounts across all major short-video platforms in one place.' },
+  {
+    icon: MessageSquare,
+    title: 'AI Chat Assistant',
+    color: 'bg-gradient-to-br from-violet-500 to-purple-600',
+    description: 'Brainstorm ide konten viral, tulis script, caption, hashtag, dan strategi marketing. Jawaban detail dan actionable — seperti punya mentor kreatif pribadi.',
+    example: '"Buatkan 10 ide konten TikTok tentang skincare untuk pemula, lengkap dengan hook dan CTA"',
+  },
+  {
+    icon: ImageIcon,
+    title: 'Text to Image',
+    color: 'bg-gradient-to-br from-pink-500 to-rose-600',
+    description: 'Generate gambar ultra-realistis dari deskripsi teks menggunakan Flux Pro 1.1 Ultra. Akurat terhadap prompt, detail tinggi, cocok untuk thumbnail & poster.',
+    example: '"Kucing persia putih memakai topi koboi, duduk di padang rumput saat golden hour, fotorealistis, 4K"',
+  },
+  {
+    icon: Video,
+    title: 'Text to Video',
+    color: 'bg-gradient-to-br from-blue-500 to-cyan-600',
+    description: 'Buat video cinematic 5-20 detik dari teks. Model Kling 3.0 Pro menghasilkan motion natural, lighting realistis, dan visual setara film profesional.',
+    example: '"Drone shot cinematic, kota Jakarta saat matahari terbenam, lampu gedung menyala satu per satu, time-lapse"',
+  },
+  {
+    icon: Play,
+    title: 'Image to Video',
+    color: 'bg-gradient-to-br from-emerald-500 to-green-600',
+    description: 'Animasikan gambar statis menjadi video bergerak. Upload foto produk, artwork, atau potret — AI akan menambahkan gerakan cinematic yang natural.',
+    example: 'Upload foto produk → "Kamera orbit 360° perlahan, background blur bokeh, studio lighting profesional"',
+  },
+  {
+    icon: Volume2,
+    title: 'Text to Speech',
+    color: 'bg-gradient-to-br from-amber-500 to-orange-600',
+    description: 'Ubah teks menjadi voiceover berkualitas tinggi. 5 pilihan suara natural, support Bahasa Indonesia, cocok untuk narasi video, podcast, dan audiobook.',
+    example: '"Halo semuanya! Hari ini kita akan bahas 5 tips untuk meningkatkan engagement di TikTok..." (Voice: Nova)',
+  },
+  {
+    icon: Zap,
+    title: 'Text to Music',
+    color: 'bg-gradient-to-br from-indigo-500 to-blue-600',
+    description: 'Generate musik original dari deskripsi. Buat background music, jingle, atau lagu lengkap dengan vocal. Cocok untuk konten yang butuh musik tanpa copyright.',
+    example: '"Upbeat lo-fi hip hop, santai, piano jazz dengan beat chill, cocok untuk video study, 30 detik"',
+  },
+  {
+    icon: Sparkles,
+    title: 'Sound Effects',
+    color: 'bg-gradient-to-br from-red-500 to-pink-600',
+    description: 'Generate efek suara berkualitas studio dari teks. Ledakan, alam, ambient, transisi — semua tersedia tanpa perlu cari sound library.',
+    example: '"Suara petir dengan hujan deras dan angin kencang di hutan, cinematic, dramatic mood"',
+  },
+  {
+    icon: Mic,
+    title: 'Voice Clone',
+    color: 'bg-gradient-to-br from-purple-500 to-violet-600',
+    description: 'Clone suara siapa saja dari sample audio 5-30 detik. Generate speech dengan suara yang di-clone — cocok untuk dubbing, personalisasi, dan branding.',
+    example: 'Upload audio 10 detik → "Selamat datang di channel saya, hari ini kita akan membahas..."',
+  },
+  {
+    icon: Box,
+    title: '3D Generation',
+    color: 'bg-gradient-to-br from-teal-500 to-cyan-600',
+    description: 'Buat model 3D dari teks atau gambar menggunakan Hunyuan3D v2. Output dalam format GLB siap digunakan untuk game, AR, e-commerce, dan presentasi.',
+    example: '"Sepatu sneaker futuristik berwarna putih dengan aksen neon biru, desain minimalis, high-poly 3D"',
+  },
 ];
