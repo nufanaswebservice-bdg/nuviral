@@ -135,49 +135,56 @@ app.post('/render', requireAuth, async (req, res) => {
     if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
     const ts = Date.now();
 
-    // STEP 1: Optimize prompt for AI video model
-    // The video model can only generate 5-10s clips, so we need to extract
-    // the most visually impactful scene from long/complex prompts
+    // STEP 1: Optimize prompt for AI video model using fal.ai LLM
     let englishPrompt = videoPrompt;
-    if (OPENAI_API_KEY) {
-      try {
+    
+    // Use fal.ai LLM first, fallback to OpenAI
+    const promptOptimizerSystem = `You are an expert AI video prompt engineer specializing in Kling 3.0 video generation model.
+
+Convert the user's prompt into the BEST possible prompt for generating a photorealistic, cinematic ${klingDuration}-second video.
+
+CRITICAL RULES:
+1. Output ONLY the optimized prompt in English, no explanations
+2. PRESERVE the user's exact intent — if they want time-lapse, renovation, transformation, keep it
+3. Add SPECIFIC camera movement: "slow drone shot", "tracking shot", "orbital camera", "dolly zoom"
+4. Add CINEMATIC details: lighting type, color grading, depth of field, lens type
+5. Add MOTION descriptions: what moves, how it moves, speed
+6. Add ATMOSPHERE: time of day, weather, mood, ambience
+7. Keep Indonesian cultural elements if present
+8. Format: [Camera motion], [Main subject + action], [Environment details], [Lighting], [Cinematic style]
+9. Max 120 words — concise but ultra detailed
+10. For time-lapse/transformation: explicitly state "time-lapse", "hyperlapse", "before-to-after"`;
+
+    try {
+      let optimized = '';
+      if (FAL_KEY) {
+        optimized = await falLLM(promptOptimizerSystem, videoPrompt.substring(0, 1500), [], 200);
+      } else if (OPENAI_API_KEY) {
         const tr = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             model: 'gpt-4o-mini',
             messages: [
-              { role: 'system', content: `You are an expert AI video prompt optimizer. Your job is to convert user prompts into the BEST possible prompt for a 5-10 second AI video generation model (Kling 3.0).
-
-CRITICAL RULES:
-1. The model generates 5-10 seconds of HIGH QUALITY video
-2. It CAN do: time-lapse, transformations, motion, camera movement, realistic scenes
-3. PRESERVE the user's intent — if they want time-lapse, keep it as time-lapse
-4. PRESERVE transformation requests (before→after, renovation, growth, etc.)
-5. Add camera movement details (drone shot, tracking, orbit, zoom)
-6. Add lighting and atmosphere (golden hour, neon, fog, rain)
-7. Keep cultural context (Indonesian/Asian elements if mentioned)
-8. If prompt is already in English and detailed, keep it mostly intact but optimize for video generation
-9. Output 50-80 words in English
-10. Make it CINEMATIC and DYNAMIC
-
-FORMAT: [Camera/motion type], [Main subject with transformation/action], [Environment], [Lighting], [Style]
-
-IMPORTANT: Do NOT remove time-lapse, transformation, or process descriptions from the prompt. The model supports these.` },
+              { role: 'system', content: promptOptimizerSystem },
               { role: 'user', content: videoPrompt.substring(0, 1500) }
             ],
-            max_tokens: 150,
+            max_tokens: 200,
           }),
         });
         if (tr.ok) {
           const d = await tr.json();
-          englishPrompt = d.choices?.[0]?.message?.content?.trim() || videoPrompt;
+          optimized = d.choices?.[0]?.message?.content?.trim() || '';
         }
-      } catch (e) {
-        console.log('[render] Prompt optimization failed, using original');
       }
+      if (optimized && optimized.length > 20) {
+        englishPrompt = optimized;
+      }
+    } catch (e) {
+      console.log('[render] Prompt optimization failed, using original');
     }
-    englishPrompt = englishPrompt.substring(0, 300);
+    
+    englishPrompt = englishPrompt.substring(0, 400);
     console.log(`[render] Optimized prompt: "${englishPrompt}"`);
 
     // STEP 2: Generate video with Kling v2.1 Master (supports 5s and 10s native)
@@ -643,49 +650,115 @@ app.post('/upload/youtube', async (req, res) => {
 });
 
 // ============================================
-// AI CHAT (GPT-4o-mini)
+// AI CHAT (fal.ai any-llm - Llama 4 Maverick / Gemini Flash)
 // ============================================
+
+// Helper: call fal.ai LLM
+async function falLLM(systemPrompt, userMessage, history = [], maxTokens = 2000) {
+  if (!FAL_KEY) throw new Error('FAL_KEY not set');
+  
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    ...history.slice(-10).map(h => ({ role: h.role, content: h.content })),
+    { role: 'user', content: userMessage },
+  ];
+
+  const res = await fetch('https://fal.run/fal-ai/any-llm', {
+    method: 'POST',
+    headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'meta-llama/llama-4-maverick',
+      messages,
+      max_tokens: maxTokens,
+    }),
+  });
+
+  if (!res.ok) {
+    // Fallback to Gemini Flash
+    const res2 = await fetch('https://fal.run/fal-ai/any-llm', {
+      method: 'POST',
+      headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'google/gemini-flash-2.0',
+        messages,
+        max_tokens: maxTokens,
+      }),
+    });
+    if (!res2.ok) throw new Error('fal.ai LLM failed');
+    const d2 = await res2.json();
+    return d2.output || d2.choices?.[0]?.message?.content || '';
+  }
+
+  const data = await res.json();
+  return data.output || data.choices?.[0]?.message?.content || '';
+}
 
 app.post('/api/v1/ai/chat', requireAuth, async (req, res) => {
   const { message, history = [] } = req.body;
   if (!message) return res.status(400).json({ error: 'message required' });
-  if (!OPENAI_API_KEY) return res.status(500).json({ error: 'OpenAI not configured' });
+  if (!FAL_KEY && !OPENAI_API_KEY) return res.status(500).json({ error: 'AI not configured' });
 
   try {
-    const messages = [
-      { role: 'system', content: `Kamu adalah NuViral AI Assistant — asisten kreatif untuk content creator. 
-Kamu membantu:
-- Brainstorm ide konten viral untuk TikTok, Reels, Shorts
-- Menulis script video pendek
-- Membuat caption dan hashtag
-- Strategi konten dan tips viral
-- Ide thumbnail dan visual
-- Analisis tren
-Jawab dalam bahasa yang sama dengan user (Indonesia/English). Buat jawaban singkat, actionable, dan kreatif.` },
-      ...history.slice(-10).map((h) => ({ role: h.role, content: h.content })),
-      { role: 'user', content: message },
-    ];
+    const systemPrompt = `Kamu adalah NuViral AI Assistant — asisten kreatif cerdas untuk content creator Indonesia.
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'gpt-4o-mini', messages, max_tokens: 1000 }),
-    });
+KEMAMPUAN UTAMA:
+- Brainstorm ide konten viral untuk TikTok, Instagram Reels, YouTube Shorts
+- Menulis script video pendek yang engaging dan viral
+- Membuat caption yang menarik + hashtag yang tepat
+- Strategi konten, tips growth hacking, analisis kompetitor
+- Ide thumbnail, visual storytelling, hook opening
+- Analisis tren terkini dan niche market
+- Tips editing, timing posting, algoritma platform
 
-    if (!response.ok) {
-      const err = await response.text();
-      throw new Error(`OpenAI error: ${err.substring(0, 100)}`);
+CARA MENJAWAB:
+- Jawaban DETAIL, LENGKAP, dan ACTIONABLE — bukan jawaban singkat
+- Gunakan format yang terstruktur (nomor, bullet points, bold)
+- Berikan contoh konkret, script siap pakai, atau template
+- Jika diminta script, tulis FULL script tidak setengah-setengah
+- Jika diminta ide, berikan 5-10 ide dengan penjelasan masing-masing
+- Gunakan Bahasa Indonesia yang natural dan engaging
+- Sertakan data/angka spesifik jika relevan
+- Selalu akhiri dengan actionable next step
+
+Jawab dalam bahasa yang sama dengan user.`;
+
+    let reply;
+
+    if (FAL_KEY) {
+      try {
+        reply = await falLLM(systemPrompt, message, history);
+      } catch (e) {
+        console.log(`[chat] fal.ai failed: ${e.message}, trying OpenAI...`);
+      }
     }
 
-    const data = await response.json();
-    res.json({ reply: data.choices[0].message.content });
+    // Fallback to OpenAI if fal.ai fails
+    if (!reply && OPENAI_API_KEY) {
+      const messages = [
+        { role: 'system', content: systemPrompt },
+        ...history.slice(-10).map(h => ({ role: h.role, content: h.content })),
+        { role: 'user', content: message },
+      ];
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'gpt-4o-mini', messages, max_tokens: 2000 }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        reply = data.choices[0].message.content;
+      }
+    }
+
+    if (!reply) throw new Error('AI chat failed - no provider available');
+    res.json({ reply });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // ============================================
-// AI IMAGE GENERATION (Flux via fal.ai / Replicate fallback)
+// AI IMAGE GENERATION (Flux Pro 1.1 Ultra via fal.ai — ultra realistic)
 // ============================================
 
 app.post('/api/v1/ai/generate-image', requireAuth, async (req, res) => {
@@ -694,58 +767,101 @@ app.post('/api/v1/ai/generate-image', requireAuth, async (req, res) => {
   if (!FAL_KEY && !REPLICATE_API_TOKEN) return res.status(500).json({ error: 'AI not configured' });
 
   const userEmail = req.userEmail;
-  // Check limits (images cost less, allow more)
   if (!ADMIN_EMAILS.includes(userEmail)) {
     const usage = getUserUsage(userEmail);
     if (!usage.plan) return res.status(403).json({ error: 'Belum berlangganan' });
   }
 
   try {
-    const fullPrompt = style ? `${prompt}, ${style}` : prompt;
-    let imageUrl = null;
-
-    // PRIMARY: fal.ai Flux Schnell (~$0.003/image)
+    // Enhance prompt using fal.ai LLM for better image accuracy
+    let enhancedPrompt = style ? `${prompt}, ${style}` : prompt;
     if (FAL_KEY) {
       try {
-        const falRes = await fetch('https://fal.run/fal-ai/flux/schnell', {
-          method: 'POST',
-          headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: fullPrompt, image_size: aspect_ratio === '9:16' ? 'portrait_16_9' : 'landscape_16_9', num_images: 1 }),
-        });
-
-        if (falRes.ok) {
-          const falData = await falRes.json();
-          imageUrl = falData.images?.[0]?.url;
-          if (imageUrl) console.log(`[image] ✅ fal.ai Flux success`);
+        const enhanced = await falLLM(
+          'You are an expert image prompt engineer. Convert the user prompt into an ultra-detailed, photorealistic image generation prompt in English. Add specific lighting (golden hour, studio lighting, dramatic), camera details (50mm lens, shallow depth of field, bokeh), art style (photorealistic, 8K, ultra detailed, sharp focus), and composition details. Keep the core subject exactly as requested. Output ONLY the optimized prompt, no explanation. Max 200 words.',
+          prompt,
+          [],
+          300
+        );
+        if (enhanced && enhanced.length > 20) {
+          enhancedPrompt = style ? `${enhanced.trim()}, ${style}` : enhanced.trim();
+          console.log(`[image] Enhanced prompt: "${enhancedPrompt.substring(0, 100)}"`);
         }
       } catch (e) {
-        console.log(`[image] fal.ai failed: ${e.message}`);
+        console.log(`[image] Prompt enhancement failed: ${e.message}`);
       }
     }
 
-    // FALLBACK: Replicate
+    const imageSize = aspect_ratio === '9:16' ? 'portrait_4_3' : aspect_ratio === '1:1' ? 'square_hd' : 'landscape_4_3';
+    let imageUrl = null;
+
+    if (FAL_KEY) {
+      // PRIMARY: Flux Pro 1.1 Ultra — best prompt adherence, ultra realistic
+      const imageModels = [
+        {
+          id: 'fal-ai/flux-pro/v1.1-ultra',
+          name: 'Flux Pro 1.1 Ultra',
+          input: { prompt: enhancedPrompt, aspect_ratio: aspect_ratio === '9:16' ? '9:16' : '16:9', num_images: 1, output_format: 'jpeg', safety_tolerance: '5' }
+        },
+        {
+          id: 'fal-ai/flux-pro/v1.1',
+          name: 'Flux Pro 1.1',
+          input: { prompt: enhancedPrompt, image_size: imageSize, num_images: 1, output_format: 'jpeg' }
+        },
+        {
+          id: 'fal-ai/flux/dev',
+          name: 'Flux Dev',
+          input: { prompt: enhancedPrompt, image_size: imageSize, num_inference_steps: 28, guidance_scale: 3.5, num_images: 1, output_format: 'jpeg' }
+        },
+      ];
+
+      for (const model of imageModels) {
+        try {
+          const falRes = await fetch(`https://fal.run/${model.id}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(model.input),
+          });
+
+          if (falRes.ok) {
+            const falData = await falRes.json();
+            imageUrl = falData.images?.[0]?.url || falData.image?.url;
+            if (imageUrl) {
+              console.log(`[image] ✅ ${model.name} success`);
+              break;
+            }
+          } else {
+            const errText = await falRes.text().catch(() => '');
+            console.log(`[image] ${model.name} failed (${falRes.status}): ${errText.substring(0, 100)}`);
+          }
+        } catch (e) {
+          console.log(`[image] ${model.name} error: ${e.message}`);
+        }
+      }
+    }
+
+    // FALLBACK: Replicate Flux Schnell
     if (!imageUrl && REPLICATE_API_TOKEN) {
       const createRes = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input: { prompt: fullPrompt, aspect_ratio, num_outputs: 1 } }),
+        body: JSON.stringify({ input: { prompt: enhancedPrompt, aspect_ratio, num_outputs: 1 } }),
       });
-
-      if (!createRes.ok) throw new Error('Failed to create image prediction');
-      let prediction = await createRes.json();
-
-      const pollUrl = prediction.urls?.get || `https://api.replicate.com/v1/predictions/${prediction.id}`;
-      const maxWait = 60000;
-      const t0 = Date.now();
-      while (prediction.status !== 'succeeded' && prediction.status !== 'failed') {
-        if (Date.now() - t0 > maxWait) throw new Error('Timeout');
-        await new Promise(r => setTimeout(r, 2000));
-        const p = await fetch(pollUrl, { headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}` } });
-        prediction = await p.json();
+      if (createRes.ok) {
+        let prediction = await createRes.json();
+        const pollUrl = prediction.urls?.get || `https://api.replicate.com/v1/predictions/${prediction.id}`;
+        const maxWait = 60000;
+        const t0 = Date.now();
+        while (prediction.status !== 'succeeded' && prediction.status !== 'failed') {
+          if (Date.now() - t0 > maxWait) break;
+          await new Promise(r => setTimeout(r, 2000));
+          const p = await fetch(pollUrl, { headers: { 'Authorization': `Bearer ${REPLICATE_API_TOKEN}` } });
+          prediction = await p.json();
+        }
+        if (prediction.status === 'succeeded') {
+          imageUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+        }
       }
-
-      if (prediction.status !== 'succeeded') throw new Error('Image generation failed');
-      imageUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
     }
 
     if (!imageUrl) throw new Error('Image generation failed - no providers available');
