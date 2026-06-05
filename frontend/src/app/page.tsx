@@ -135,15 +135,16 @@ export default function LandingPage() {
                 </div>
 
                 {/* Text to Music */}
-                <div className="rounded-xl border border-gray-100 p-3 hover:border-violet-200 transition group">
-                  <div className="aspect-square rounded-lg bg-gradient-to-br from-indigo-100 to-blue-50 mb-2 flex items-center justify-center">
-                    <div className="text-center p-2">
-                      <span className="text-2xl">🎵</span>
-                      <p className="text-[8px] text-gray-400 mt-1 italic">&quot;lo-fi chill beat 30s&quot;</p>
+                <div className="rounded-xl border border-gray-100 p-3 hover:border-violet-200 transition group col-span-2 md:col-span-2">
+                  <div className="rounded-lg bg-gradient-to-br from-indigo-100 to-blue-50 mb-2 p-3 relative overflow-hidden">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xl">🎵</span>
+                      <p className="text-[9px] text-gray-500 italic leading-tight">&quot;A hopeful cinematic piano piece that slowly opens into strings and subtle electronic percussion. Smooth, warm, coastal road feeling.&quot;</p>
                     </div>
+                    <audio src="/img/texttoaudio.mp3" controls className="w-full h-8 rounded-lg" preload="metadata" />
                   </div>
                   <p className="text-[10px] font-semibold text-gray-700">Text to Music</p>
-                  <p className="text-[9px] text-gray-400">MiniMax Music 2.0</p>
+                  <p className="text-[9px] text-gray-400">MiniMax Music 2.0 — cinematic & original</p>
                 </div>
 
                 {/* Image to Video */}
