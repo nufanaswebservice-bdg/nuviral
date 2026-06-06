@@ -209,10 +209,13 @@ export default function LandingPage() {
                 <SampleCard
                   title="Text to 3D"
                   subtitle="Hunyuan3D v2"
-                  prompt="Futuristic white sneaker with neon blue accents, minimalist design, high-poly 3D model, studio lighting, clean background"
+                  prompt="A rustic wooden treasure chest with metal bands and ornate lock"
                   media={
-                    <div className="w-full h-full bg-gradient-to-br from-teal-100 to-cyan-50 flex items-center justify-center">
-                      <span className="text-4xl">🧊</span>
+                    <div className="w-full h-full bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 flex flex-col items-center justify-center relative overflow-hidden">
+                      <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(0,128,128,0.3) 1px, transparent 0)', backgroundSize: '16px 16px' }} />
+                      <div className="text-5xl mb-1 animate-bounce" style={{ animationDuration: '3s' }}>🧊</div>
+                      <p className="text-[9px] text-teal-600 font-medium">.OBJ Model</p>
+                      <a href="/img/3d-sample.obj" download className="mt-1 text-[8px] px-2 py-0.5 rounded bg-teal-500/10 text-teal-600 hover:bg-teal-500/20 transition">↓ Download 3D</a>
                     </div>
                   }
                 />
