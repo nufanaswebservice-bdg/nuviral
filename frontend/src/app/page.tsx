@@ -3,7 +3,45 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { Sparkles, Video, TrendingUp, Calendar, Zap, Shield, Check, ChevronDown, ChevronUp, ArrowRight, Play, Image as ImageIcon, MessageSquare, Volume2, Mic, Box } from 'lucide-react';
+import { Sparkles, Video, TrendingUp, Calendar, Zap, Shield, Check, ChevronDown, ChevronUp, ArrowRight, Play, Image as ImageIcon, MessageSquare, Volume2, Mic, Box, Copy } from 'lucide-react';
+
+// Sample Card Component with uniform size and copyable prompt
+function SampleCard({ title, subtitle, prompt, media }: { title: string; subtitle: string; prompt: string; media: React.ReactNode }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(prompt);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <div className="rounded-xl border border-gray-100 hover:border-violet-200 hover:shadow-md transition-all duration-300 overflow-hidden group">
+      {/* Media - fixed height */}
+      <div className="aspect-[4/3] overflow-hidden bg-gray-100">
+        {media}
+      </div>
+      {/* Info */}
+      <div className="p-3">
+        <p className="text-xs font-semibold text-gray-800">{title}</p>
+        <p className="text-[10px] text-gray-400 mb-2">{subtitle}</p>
+        {/* Prompt - copyable */}
+        <div className="relative">
+          <p className="text-[10px] text-gray-500 italic leading-relaxed line-clamp-3 pr-6">&quot;{prompt}&quot;</p>
+          <button
+            onClick={handleCopy}
+            className="absolute top-0 right-0 p-1 rounded hover:bg-gray-100 transition"
+            title="Copy prompt"
+          >
+            {copied ? (
+              <Check className="h-3 w-3 text-emerald-500" />
+            ) : (
+              <Copy className="h-3 w-3 text-gray-400 group-hover:text-violet-500" />
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function LandingPage() {
   return (
@@ -120,73 +158,71 @@ export default function LandingPage() {
                 <div />
               </div>
 
-              {/* Feature Grid */}
-              <div className="p-4 md:p-6 grid grid-cols-2 md:grid-cols-6 gap-3 md:gap-4">
+              {/* Feature Grid - All same size */}
+              <div className="p-4 md:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+
                 {/* Text to Image */}
-                <div className="rounded-xl border border-gray-100 p-3 hover:border-violet-200 transition group col-span-2 md:col-span-2">
-                  <div className="aspect-[16/10] rounded-lg bg-gradient-to-br from-pink-100 to-rose-50 mb-2 overflow-hidden relative">
-                    <img src="/img/textoimage.jpg" alt="Text to Image - Rainforest Infographic" className="w-full h-full object-cover rounded-lg" />
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
-                      <p className="text-[8px] text-white/90 italic leading-tight">&quot;Infographic: The Layers of the Rainforest — vertical cross-section with labeled canopy, understory, forest floor, lush green palette...&quot;</p>
-                    </div>
-                  </div>
-                  <p className="text-[10px] font-semibold text-gray-700">Text to Image</p>
-                  <p className="text-[9px] text-gray-400">Flux Pro Ultra — photorealistic & ultra detailed</p>
-                </div>
+                <SampleCard
+                  title="Text to Image"
+                  subtitle="Flux Pro Ultra"
+                  prompt='Award-winning graphic design, ultra high resolution, crisp vector-clean composition, Infographic: "The Layers of the Rainforest" — vertical cross-section with labeled canopy, understory, forest floor, lush green palette, hand-illustrated wildlife'
+                  media={<img src="/img/textoimage.jpg" alt="Text to Image" className="w-full h-full object-cover" />}
+                />
 
                 {/* Text to Music */}
-                <div className="rounded-xl border border-gray-100 p-3 hover:border-violet-200 transition group col-span-2 md:col-span-2">
-                  <div className="rounded-lg overflow-hidden mb-2 relative">
-                    <img src="/img/cover1.jpg" alt="Text to Music Cover" className="w-full h-32 md:h-40 object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-3">
-                      <p className="text-[9px] text-white/80 italic leading-tight mb-2">&quot;A hopeful cinematic piano piece that slowly opens into strings and subtle electronic percussion. Smooth, warm, coastal road feeling.&quot;</p>
-                      <audio src="/img/texttoaudio.mp3" controls className="w-full h-7 rounded" preload="metadata" />
+                <SampleCard
+                  title="Text to Music"
+                  subtitle="MiniMax Music 2.0"
+                  prompt="A hopeful cinematic piano piece that slowly opens into strings and subtle electronic percussion. Keep the character smooth, warm, and believable. Give it a clear coastal road feeling."
+                  media={
+                    <div className="w-full h-full relative">
+                      <img src="/img/cover1.jpg" alt="Music Cover" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <audio src="/img/texttoaudio.mp3" controls className="w-[90%] h-8" preload="metadata" />
+                      </div>
                     </div>
-                  </div>
-                  <p className="text-[10px] font-semibold text-gray-700">Text to Music</p>
-                  <p className="text-[9px] text-gray-400">MiniMax Music 2.0 — cinematic & original</p>
-                </div>
+                  }
+                />
 
                 {/* Image to Video */}
-                <div className="rounded-xl border border-gray-100 p-3 hover:border-violet-200 transition group col-span-2 md:col-span-2">
-                  <div className="rounded-lg overflow-hidden mb-2 relative">
-                    <video src="/img/sample-img2vid.mp4" className="w-full h-32 md:h-40 object-cover rounded-lg" muted autoPlay loop playsInline />
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
-                      <p className="text-[8px] text-white/90 italic leading-tight">&quot;Portrait: 31-year-old Black British architect in a cream blazer, standing in a brutalist concrete stairwell, soft directional skylight...&quot;</p>
-                    </div>
-                  </div>
-                  <p className="text-[10px] font-semibold text-gray-700">Image to Video</p>
-                  <p className="text-[9px] text-gray-400">Kling 3.0 Pro — cinematic motion from image</p>
-                </div>
+                <SampleCard
+                  title="Image to Video"
+                  subtitle="Kling 3.0 Pro"
+                  prompt="Ultra high-end editorial photography, photorealistic, 8K, Portrait: 31-year-old Black British architect in a cream blazer, standing in a brutalist concrete stairwell, soft directional skylight, magazine cover quality"
+                  media={<video src="/img/sample-img2vid.mp4" className="w-full h-full object-cover" muted autoPlay loop playsInline />}
+                />
 
-                {/* Text to Effects */}
-                <div className="rounded-xl border border-gray-100 p-3 hover:border-violet-200 transition group">
-                  <div className="aspect-square rounded-lg bg-gradient-to-br from-red-100 to-orange-50 mb-2 flex flex-col items-center justify-center p-2 relative overflow-hidden">
-                    <span className="text-2xl mb-1">🔊</span>
-                    <audio src="/img/soundeffect.mp3" controls className="w-full h-7 rounded" preload="metadata" />
-                    <p className="text-[7px] text-gray-400 mt-1 italic text-center">&quot;Spacious braam for movie trailer&quot;</p>
-                  </div>
-                  <p className="text-[10px] font-semibold text-gray-700">Sound Effects</p>
-                  <p className="text-[9px] text-gray-400">ElevenLabs SFX</p>
-                </div>
+                {/* Sound Effects */}
+                <SampleCard
+                  title="Sound Effects"
+                  subtitle="ElevenLabs SFX"
+                  prompt="Spacious braam suitable for high-impact movie trailer moments"
+                  media={
+                    <div className="w-full h-full bg-gradient-to-br from-red-100 to-orange-50 flex flex-col items-center justify-center gap-2">
+                      <span className="text-3xl">🔊</span>
+                      <audio src="/img/soundeffect.mp3" controls className="w-[85%] h-7" preload="metadata" />
+                    </div>
+                  }
+                />
 
                 {/* Text to 3D */}
-                <div className="rounded-xl border border-gray-100 p-3 hover:border-violet-200 transition group">
-                  <div className="aspect-square rounded-lg bg-gradient-to-br from-teal-100 to-cyan-50 mb-2 flex items-center justify-center">
-                    <div className="text-center p-2">
-                      <span className="text-2xl">🧊</span>
-                      <p className="text-[8px] text-gray-400 mt-1 italic">&quot;sneaker futuristik 3D&quot;</p>
+                <SampleCard
+                  title="Text to 3D"
+                  subtitle="Hunyuan3D v2"
+                  prompt="Futuristic white sneaker with neon blue accents, minimalist design, high-poly 3D model, studio lighting, clean background"
+                  media={
+                    <div className="w-full h-full bg-gradient-to-br from-teal-100 to-cyan-50 flex items-center justify-center">
+                      <span className="text-4xl">🧊</span>
                     </div>
-                  </div>
-                  <p className="text-[10px] font-semibold text-gray-700">Text to 3D</p>
-                  <p className="text-[9px] text-gray-400">Hunyuan3D v2</p>
-                </div>
+                  }
+                />
+
               </div>
 
               {/* Bottom bar */}
               <div className="border-t border-gray-100 px-4 py-2 bg-gray-50 flex items-center justify-between">
                 <span className="text-[9px] text-gray-400">Powered by fal.ai • Kling • Flux • MiniMax • ElevenLabs • Hunyuan3D</span>
-                <span className="text-[9px] text-violet-500 font-medium">Coba sekarang →</span>
+                <Link href="/register" className="text-[9px] text-violet-500 font-medium hover:underline">Coba sekarang →</Link>
               </div>
             </div>
             {/* Glow behind */}
