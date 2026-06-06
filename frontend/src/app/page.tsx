@@ -161,11 +161,10 @@ export default function LandingPage() {
 
                 {/* Text to Effects */}
                 <div className="rounded-xl border border-gray-100 p-3 hover:border-violet-200 transition group">
-                  <div className="aspect-square rounded-lg bg-gradient-to-br from-red-100 to-orange-50 mb-2 flex items-center justify-center">
-                    <div className="text-center p-2">
-                      <span className="text-2xl">🔊</span>
-                      <p className="text-[8px] text-gray-400 mt-1 italic">&quot;hujan deras + petir&quot;</p>
-                    </div>
+                  <div className="aspect-square rounded-lg bg-gradient-to-br from-red-100 to-orange-50 mb-2 flex flex-col items-center justify-center p-2 relative overflow-hidden">
+                    <span className="text-2xl mb-1">🔊</span>
+                    <audio src="/img/soundeffect.mp3" controls className="w-full h-7 rounded" preload="metadata" />
+                    <p className="text-[7px] text-gray-400 mt-1 italic text-center">&quot;Spacious braam for movie trailer&quot;</p>
                   </div>
                   <p className="text-[10px] font-semibold text-gray-700">Sound Effects</p>
                   <p className="text-[9px] text-gray-400">ElevenLabs SFX</p>
