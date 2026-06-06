@@ -214,8 +214,8 @@ export default function LandingPage() {
                     <div className="w-full h-full bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 flex flex-col items-center justify-center relative overflow-hidden">
                       <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(0,128,128,0.3) 1px, transparent 0)', backgroundSize: '16px 16px' }} />
                       <div className="text-5xl mb-1 animate-bounce" style={{ animationDuration: '3s' }}>🧊</div>
-                      <p className="text-[9px] text-teal-600 font-medium">.OBJ Model</p>
-                      <button onClick={(e) => { e.stopPropagation(); const a = document.createElement('a'); a.href = '/img/3d-sample.obj'; a.download = '3d-treasure-chest.obj'; document.body.appendChild(a); a.click(); document.body.removeChild(a); }} className="mt-1 text-[8px] px-2 py-0.5 rounded bg-teal-500/10 text-teal-600 hover:bg-teal-500/20 transition cursor-pointer">↓ Download 3D</button>
+                      <p className="text-[9px] text-teal-600 font-medium">.OBJ Model (5.3MB)</p>
+                      <a href="/img/3d-sample.obj" download="3d-treasure-chest.obj" onClick={(e) => e.stopPropagation()} target="_blank" rel="noopener noreferrer" className="mt-1.5 text-[9px] px-3 py-1 rounded-md bg-teal-600 text-white font-medium hover:bg-teal-700 transition cursor-pointer z-10">↓ Download 3D</a>
                     </div>
                   }
                 />
