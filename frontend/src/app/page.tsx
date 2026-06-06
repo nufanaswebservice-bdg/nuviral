@@ -215,7 +215,7 @@ export default function LandingPage() {
                       <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(0,128,128,0.3) 1px, transparent 0)', backgroundSize: '16px 16px' }} />
                       <div className="text-5xl mb-1 animate-bounce" style={{ animationDuration: '3s' }}>🧊</div>
                       <p className="text-[9px] text-teal-600 font-medium">.OBJ Model</p>
-                      <a href="/img/3d-sample.obj" download className="mt-1 text-[8px] px-2 py-0.5 rounded bg-teal-500/10 text-teal-600 hover:bg-teal-500/20 transition">↓ Download 3D</a>
+                      <button onClick={(e) => { e.stopPropagation(); const a = document.createElement('a'); a.href = '/img/3d-sample.obj'; a.download = '3d-treasure-chest.obj'; document.body.appendChild(a); a.click(); document.body.removeChild(a); }} className="mt-1 text-[8px] px-2 py-0.5 rounded bg-teal-500/10 text-teal-600 hover:bg-teal-500/20 transition cursor-pointer">↓ Download 3D</button>
                     </div>
                   }
                 />
