@@ -768,7 +768,48 @@ app.post('/api/v1/ai/chat', requireAuth, async (req, res) => {
     }
 
     if (!reply) throw new Error('AI chat failed - no provider available');
-    res.json({ reply });
+
+    // Generate contextual follow-up suggestions using AI
+    let suggestions = [];
+    try {
+      const sugPrompt = `Based on this conversation:
+User asked: "${message}"
+You replied: "${reply.substring(0, 500)}"
+
+Generate exactly 3 follow-up questions that the user would naturally want to ask next. These should:
+- Be highly relevant to the specific topic discussed
+- Help the user dive deeper or take action
+- Be in the same language as the user's message
+- Be concise (max 15 words each)
+
+Return ONLY a JSON array of 3 strings, nothing else. Example: ["question 1", "question 2", "question 3"]`;
+
+      let sugResult = '';
+      if (FAL_KEY) {
+        try { sugResult = await falLLM('You generate follow-up questions. Return ONLY a JSON array of 3 strings.', sugPrompt, [], 200); } catch {}
+      }
+      if (!sugResult && OPENAI_API_KEY) {
+        const sr = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'user', content: sugPrompt }], max_tokens: 200 }),
+        });
+        if (sr.ok) { const sd = await sr.json(); sugResult = sd.choices?.[0]?.message?.content || ''; }
+      }
+
+      if (sugResult) {
+        // Extract JSON array from response
+        const match = sugResult.match(/\[[\s\S]*?\]/);
+        if (match) {
+          const parsed = JSON.parse(match[0]);
+          if (Array.isArray(parsed)) suggestions = parsed.slice(0, 3);
+        }
+      }
+    } catch (e) {
+      console.log(`[chat] Suggestions generation failed: ${e.message}`);
+    }
+
+    res.json({ reply, suggestions });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

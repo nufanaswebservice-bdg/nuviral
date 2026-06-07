@@ -34,14 +34,8 @@ interface Task {
 }
 
 function generateSuggestions(reply: string, question: string): string[] {
-  const r = reply.toLowerCase();
-  const q = question.toLowerCase();
-  const s: string[] = [];
-  if (q.includes('ide') || r.includes('ide')) { s.push('Buatkan script lengkap untuk ide nomor 1'); s.push('Buatkan caption dan 30 hashtag viral'); }
-  if (q.includes('script') || r.includes('script')) { s.push('Buat versi lebih pendek (30 detik)'); s.push('Tambahkan hook yang lebih kuat'); }
-  if (r.includes('tren') || r.includes('viral')) { s.push('Tren apa yang paling potensial?'); s.push('Buatkan konten mengikuti tren ini'); }
-  if (s.length < 3) { s.push('Jelaskan lebih detail'); s.push('Buatkan template siap pakai'); s.push('Apa langkah pertama sekarang?'); }
-  return s.slice(0, 3);
+  // Tidak dipakai lagi - suggestions akan di-generate oleh AI di server
+  return [];
 }
 
 export default function AIStudioPage() {
@@ -100,7 +94,10 @@ export default function AIStudioPage() {
       const data = await res.json();
       const newMsgs = [...chatMessages, userMsg, { role: 'assistant', content: data.reply }];
       setChatMessages(newMsgs);
-      setSuggestions(generateSuggestions(data.reply, q));
+      // Use AI-generated suggestions from server
+      if (data.suggestions && data.suggestions.length > 0) {
+        setSuggestions(data.suggestions);
+      }
       saveTask(q, newMsgs);
     } catch { setChatMessages(prev => [...prev, { role: 'assistant', content: 'Maaf, terjadi error. Coba lagi.' }]); }
     finally { setIsChatLoading(false); }
