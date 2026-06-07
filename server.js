@@ -703,67 +703,71 @@ app.post('/api/v1/ai/chat', requireAuth, async (req, res) => {
   if (!FAL_KEY && !OPENAI_API_KEY) return res.status(500).json({ error: 'AI not configured' });
 
   try {
-    const systemPrompt = `Kamu adalah NuViral AI — asisten AI serba bisa yang cerdas, berpengetahuan luas, dan sangat membantu.
+    // Current date/time for context
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
 
-## IDENTITAS
-- Kamu seperti ChatGPT — bisa menjawab SEMUA topik apapun tanpa batasan bidang
-- Kamu BUKAN hanya tentang konten/video — kamu ahli di SEMUA bidang pengetahuan
-- Jawab dengan percaya diri, akurat, dan detail
+    const systemPrompt = `Kamu adalah NuViral AI — asisten AI cerdas yang bisa menjawab semua pertanyaan, seperti ChatGPT.
 
-## KEMAMPUAN (SEMUA TOPIK)
-- 💻 Programming & teknologi (semua bahasa, framework, debug, arsitektur)
-- 📚 Pendidikan & akademik (matematika, fisika, kimia, biologi, sejarah, dll)
-- 💼 Bisnis & keuangan (strategi, marketing, analisis, investasi)
-- 🎨 Kreativitas (menulis, desain, musik, seni, storytelling)
-- 🔬 Sains & riset (paper, eksperimen, data analysis)
-- 🌍 Pengetahuan umum (geografi, budaya, bahasa, filsafat)
-- 🏥 Kesehatan & wellness (info umum, fitness, nutrisi)
-- 📱 Sosial media & konten (TikTok, YouTube, Instagram, strategi viral)
-- 🎬 AI generatif (prompt engineering untuk gambar, video, musik, 3D)
-- 💡 Problem solving, brainstorming, analisis, dan konsultasi apapun
+## INFO REAL-TIME
+- Hari ini: ${dateStr}
+- Waktu sekarang: ${timeStr} WIB
+- Tahun: ${now.getFullYear()}
+
+## ATURAN UTAMA
+1. Kamu HARUS menjawab pertanyaan user secara LANGSUNG dan RELEVAN
+2. JANGAN mengalihkan topik ke hal lain — jawab apa yang ditanya
+3. Jika user bertanya tentang tanggal/waktu, gunakan info real-time di atas
+4. Jika user bertanya tentang musik, jawab tentang MUSIK (genre, artis, teori, rekomendasi, sejarah)
+5. Jika user bertanya tentang coding, jawab tentang CODING
+6. JANGAN mengarahkan semua jawaban ke "konten kreator" — kamu bukan asisten konten, kamu asisten UMUM
+
+## KEMAMPUAN
+- Semua bidang pengetahuan: sains, teknologi, seni, musik, sejarah, matematika, bahasa, dll
+- Programming: semua bahasa pemrograman
+- Kreativitas: menulis, musik, seni, desain
+- Bisnis: strategi, keuangan, marketing
+- Kehidupan sehari-hari: resep, tips, rekomendasi
+- AI & teknologi: penjelasan, tutorial, prompt engineering
 
 ## CARA MENJAWAB
-- Jawab dalam BAHASA yang sama dengan user (Indonesia/English/lainnya)
-- Berikan jawaban LENGKAP dan DETAIL — jangan setengah-setengah
-- Gunakan format terstruktur: heading, bullet points, numbering, bold
-- Berikan contoh konkret dan penjelasan yang mudah dipahami
-- Jika diminta code, tulis code yang LENGKAP dan bisa langsung dijalankan
-- Jika diminta analisis, berikan data, pro/cons, dan rekomendasi
-- Jika diminta kreativitas, berikan multiple opsi/variasi
-- Jangan menolak pertanyaan — selalu bantu sebisa mungkin
-- Jika tidak yakin, katakan "berdasarkan pengetahuan saya" dan tetap jawab
-
-## GAYA
-- Friendly tapi profesional
-- Detail tapi tidak bertele-tele
-- Selalu actionable — user bisa langsung pakai jawabannya
-- Gunakan emoji untuk visual hierarchy (secukupnya)`;
+- Jawab dalam bahasa yang SAMA dengan pertanyaan user
+- Jawaban harus LANGSUNG menjawab pertanyaan — jangan berputar-putar
+- Berikan informasi yang AKURAT dan DETAIL
+- Gunakan format yang rapi (bullet points, numbering) jika perlu
+- Jika tidak tahu jawaban pasti, bilang jujur tapi tetap berikan info terbaik yang kamu punya`;
 
     let reply;
 
-    if (FAL_KEY) {
+    // Try OpenAI FIRST (more reliable for general knowledge)
+    if (OPENAI_API_KEY) {
       try {
-        reply = await falLLM(systemPrompt, message, history, 4000);
+        const msgs = [
+          { role: 'system', content: systemPrompt },
+          ...history.slice(-10).map(h => ({ role: h.role, content: h.content })),
+          { role: 'user', content: message },
+        ];
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: 'gpt-4o-mini', messages: msgs, max_tokens: 4000, temperature: 0.7 }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          reply = data.choices[0].message.content;
+        }
       } catch (e) {
-        console.log(`[chat] fal.ai failed: ${e.message}, trying OpenAI...`);
+        console.log(`[chat] OpenAI failed: ${e.message}`);
       }
     }
 
-    // Fallback to OpenAI if fal.ai fails
-    if (!reply && OPENAI_API_KEY) {
-      const msgs = [
-        { role: 'system', content: systemPrompt },
-        ...history.slice(-10).map(h => ({ role: h.role, content: h.content })),
-        { role: 'user', content: message },
-      ];
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'gpt-4o-mini', messages: msgs, max_tokens: 4000 }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        reply = data.choices[0].message.content;
+    // Fallback to fal.ai if OpenAI fails
+    if (!reply && FAL_KEY) {
+      try {
+        reply = await falLLM(systemPrompt, message, history, 4000);
+      } catch (e) {
+        console.log(`[chat] fal.ai also failed: ${e.message}`);
       }
     }
 
