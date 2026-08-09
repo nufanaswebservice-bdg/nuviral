@@ -9,7 +9,7 @@ import {
   Database, Server, Zap, FileVideo, Globe, MessageSquare,
 } from 'lucide-react';
 
-const ADMIN_EMAILS = ['nufanaswebservice@gmail.com', 'baranashira01@gmail.com', 'rufanaswebservice@gmail.com'];
+const ADMIN_EMAILS = ['nufanaswebservice@gmail.com', 'baranashira01@gmail.com', 'rufanaswebservice@gmail.com', 'owner@nuviral.cloud'];
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/admin' },

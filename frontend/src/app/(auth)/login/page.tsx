@@ -23,11 +23,18 @@ export default function LoginPage() {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
-    // Demo credentials check
+    // Owner/Admin credentials check
     if (email && password) {
       setTimeout(async () => {
-        // Create a simple JWT-like token with email in payload
-        const payload = { email, name: email.split('@')[0], role: 'USER' };
+        // Check owner credentials
+        let role = 'USER';
+        const OWNER_CREDS = { email: 'owner@nuviral.cloud', password: 'NuViral@Owner2024!' };
+        
+        if (email === OWNER_CREDS.email && password === OWNER_CREDS.password) {
+          role = 'ADMIN';
+        }
+
+        const payload = { email, name: email.split('@')[0], role };
         const encodedPayload = btoa(JSON.stringify(payload));
         const token = `eyJ0eXAiOiJKV1QiLCJhbGciOiJub25lIn0.${encodedPayload}.signature`;
         

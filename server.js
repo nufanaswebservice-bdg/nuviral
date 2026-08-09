@@ -40,7 +40,7 @@ const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || '';
 const R2_ENDPOINT = `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
 
 // Admin emails (super admin access)
-const ADMIN_EMAILS = ['nufanaswebservice@gmail.com', 'baranashira01@gmail.com', 'rufanaswebservice@gmail.com'];
+const ADMIN_EMAILS = ['nufanaswebservice@gmail.com', 'baranashira01@gmail.com', 'rufanaswebservice@gmail.com', 'owner@nuviral.cloud'];
 
 // ============================================
 // AUTH MIDDLEWARE & HELPERS
@@ -1270,7 +1270,7 @@ app.get('/api/v1/subscription/current', (req, res) => {
   }
 
   // Admin emails get unlimited access
-  const ADMIN_EMAILS = ['nufanaswebservice@gmail.com', 'baranashira01@gmail.com', 'rufanaswebservice@gmail.com'];
+  const ADMIN_EMAILS = ['nufanaswebservice@gmail.com', 'baranashira01@gmail.com', 'rufanaswebservice@gmail.com', 'owner@nuviral.cloud'];
   if (ADMIN_EMAILS.includes(userEmail)) {
     return res.json({
       plan: 'AGENCY',
