@@ -59,4 +59,18 @@ export class AuthController {
   async refreshToken(@Body('refreshToken') refreshToken: string) {
     return this.authService.refreshToken(refreshToken);
   }
+
+  @Post('track-login')
+  @ApiOperation({ summary: 'Track user login event' })
+  async trackLogin(
+    @Body()
+    body: {
+      email: string;
+      name?: string;
+      avatar?: string;
+      provider?: string;
+    },
+  ) {
+    return { success: true, email: body.email };
+  }
 }

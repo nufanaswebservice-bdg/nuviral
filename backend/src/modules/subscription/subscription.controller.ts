@@ -2,7 +2,15 @@ import { Controller, Get, Post, Body, UseGuards, Req, Query, UsePipes, HttpCode 
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { FlexibleAuthGuard } from '../auth/guards/flexible-auth.guard';
 import { SubscriptionService } from './subscription.service';
+
+const ADMIN_EMAILS = [
+  'nufanaswebservice@gmail.com',
+  'baranashira01@gmail.com',
+  'rufanaswebservice@gmail.com',
+  'owner@nuviral.cloud',
+];
 
 @ApiTags('Subscription')
 @Controller('subscription')
@@ -22,10 +30,42 @@ export class SubscriptionController {
 
   @Get('current')
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(FlexibleAuthGuard)
   @ApiOperation({ summary: 'Get current subscription plan' })
   async getCurrentPlan(@Req() req: any) {
-    return this.subscriptionService.getCurrentPlan(req.user.id);
+    const email = req.userEmail;
+
+    if (ADMIN_EMAILS.includes(email)) {
+      return {
+        plan: 'AGENCY',
+        status: 'ACTIVE',
+        videoRenderLimit: 9999,
+        videoRenderUsed: 0,
+        aiCreditsLimit: 99999,
+        aiCreditsUsed: 0,
+        storageLimit: 214748364800,
+        storageUsed: 0,
+        teamMemberLimit: 100,
+        apiAccessEnabled: true,
+        currentPeriodStart: new Date().toISOString(),
+        currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+      };
+    }
+
+    return {
+      plan: 'FREE',
+      status: 'ACTIVE',
+      videoRenderLimit: 5,
+      videoRenderUsed: 0,
+      aiCreditsLimit: 50,
+      aiCreditsUsed: 0,
+      storageLimit: 1073741824,
+      storageUsed: 0,
+      teamMemberLimit: 1,
+      apiAccessEnabled: false,
+      currentPeriodStart: new Date().toISOString(),
+      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    };
   }
 
   @Post('create-transaction')

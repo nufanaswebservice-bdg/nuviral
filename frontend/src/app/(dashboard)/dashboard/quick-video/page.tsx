@@ -12,7 +12,7 @@ import {
   Copy, Check, ListTodo, ArrowRight, Box, Play,
 } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nuviral-production.up.railway.app/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.getlumora.cloud/api/v1';
 
 const voiceOptions = ['nova', 'alloy', 'echo', 'onyx', 'shimmer'];
 const stylePresets = [
@@ -89,9 +89,19 @@ export default function AIStudioPage() {
     const userMsg = { role: 'user', content: q };
     setChatMessages(prev => [...prev, userMsg]); setPrompt(''); setIsChatLoading(true); setSuggestions([]);
     try {
-      const res = await fetch(`${API_URL}/ai/chat`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ message: q, history: chatMessages }) });
-      if (!res.ok) throw new Error('failed');
+      const token = localStorage.getItem('accessToken');
+      if (!token || token === 'null' || token === 'undefined') {
+        throw new Error('Sesi login expired. Silakan login ulang.');
+      }
+      const res = await fetch('/api/ai/chat', { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ message: q, history: chatMessages }) });
+      if (res.status === 401) throw new Error('Sesi login expired. Silakan login ulang.');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || errData.message || `Request gagal (${res.status})`);
+      }
       const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      if (!data.reply) throw new Error('AI tidak memberikan respons. Coba lagi.');
       const newMsgs = [...chatMessages, userMsg, { role: 'assistant', content: data.reply }];
       setChatMessages(newMsgs);
       // Use AI-generated suggestions from server
@@ -99,7 +109,10 @@ export default function AIStudioPage() {
         setSuggestions(data.suggestions);
       }
       saveTask(q, newMsgs);
-    } catch { setChatMessages(prev => [...prev, { role: 'assistant', content: 'Maaf, terjadi error. Coba lagi.' }]); }
+    } catch (e: any) {
+      const msg = e?.message || (typeof e === 'string' ? e : 'Maaf, terjadi error. Coba lagi.');
+      setChatMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${msg}` }]);
+    }
     finally { setIsChatLoading(false); }
   };
 
@@ -125,7 +138,7 @@ export default function AIStudioPage() {
     setIsLoading(true); setProgress(5); setResultUrl(null); setResultType(null);
     const interval = setInterval(() => setProgress(p => p < 80 ? p + 0.5 : p), 2000);
     try {
-      const res = await fetch('https://nuviral-production.up.railway.app/render', { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ title: prompt.trim(), script: '', prompt: prompt.trim(), voice, format, duration, style }) });
+      const res = await fetch(`${API_URL.replace('/api/v1', '')}/render`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ title: prompt.trim(), script: '', prompt: prompt.trim(), voice, format, duration, style }) });
       clearInterval(interval);
       if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || e.detail || 'Failed'); }
       setProgress(95);
