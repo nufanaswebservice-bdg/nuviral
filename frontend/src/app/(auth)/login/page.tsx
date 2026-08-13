@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Sparkles, Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { signInWithPopup } from 'firebase/auth';
-import { auth, googleProvider } from '@/lib/firebase';
+import { loginWithGoogle, completeGoogleLogin, getGoogleAuthErrorMessage } from '@/lib/google-auth';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -82,28 +81,20 @@ export default function LoginPage() {
           {/* Google Login */}
           <button
             onClick={async () => {
+              setIsLoading(true);
+              setError('');
               try {
-                const result = await signInWithPopup(auth, googleProvider);
-                const user = result.user;
-                localStorage.setItem('accessToken', await user.getIdToken());
-                localStorage.setItem('user', JSON.stringify({
-                  email: user.email,
-                  name: user.displayName,
-                  avatar: user.photoURL,
-                  role: 'USER',
-                }));
-                // Track login
-                try {
-                  await fetch('https://api.getlumora.cloud/api/v1/auth/track-login', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: user.email, name: user.displayName, avatar: user.photoURL, provider: 'google' }),
-                  });
-                } catch {}
+                const user = await loginWithGoogle();
+                if (!user) return;
+                await completeGoogleLogin(user);
                 router.push('/dashboard/quick-video');
-              } catch (err: any) {
-                setError(err.message || 'Google login failed');
+              } catch (err: unknown) {
+                setError(getGoogleAuthErrorMessage(err));
+              } finally {
+                setIsLoading(false);
               }
             }}
+            disabled={isLoading}
             className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-border hover:bg-accent transition mb-6"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
