@@ -21,9 +21,9 @@ if [ -f .env ]; then
     echo "OPENAI_API_KEY=${OPENAI_KEY}" >> .env
   fi
   if grep -q "^OPENAI_MODEL=" .env; then
-    sed -i 's|^OPENAI_MODEL=.*|OPENAI_MODEL=gpt-4o-mini|' .env
+    sed -i 's|^OPENAI_MODEL=.*|OPENAI_MODEL=gpt-4o|' .env
   else
-    echo "OPENAI_MODEL=gpt-4o-mini" >> .env
+    echo "OPENAI_MODEL=gpt-4o" >> .env
   fi
 fi
 
@@ -34,7 +34,7 @@ NEXT_PUBLIC_APP_URL=https://getlumora.cloud
 NEXT_PUBLIC_MIDTRANS_CLIENT_KEY=Mid-client-CvuXZtiBb_TVQtGc
 NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION=true
 OPENAI_API_KEY=${OPENAI_KEY}
-OPENAI_MODEL=gpt-4o-mini
+OPENAI_MODEL=gpt-4o
 EOF
 
 echo "=== Install & build backend ==="

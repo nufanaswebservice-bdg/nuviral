@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { BillingPopup } from '@/components/billing-popup';
+import { ChatMarkdown } from '@/components/chat-markdown';
 import {
   Video, Download, Loader2, Sparkles, RotateCcw, Mic,
   Smartphone, Monitor, Clock, Zap, Volume2, Send,
@@ -391,7 +392,11 @@ export default function AIStudioPage() {
                 {chatMessages.map((msg, i) => (
                   <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[90%] md:max-w-[85%] p-3 md:p-4 rounded-2xl ${msg.role === 'user' ? 'bg-primary text-white rounded-br-sm' : 'bg-card border border-border rounded-bl-sm'}`}>
-                      <p className="text-sm whitespace-pre-wrap leading-relaxed break-words">{msg.content}</p>
+                      {msg.role === 'assistant' ? (
+                        <ChatMarkdown content={msg.content.replace(/^⚠️\s*/, '')} />
+                      ) : (
+                        <p className="text-sm whitespace-pre-wrap leading-relaxed break-words">{msg.content}</p>
+                      )}
                       {msg.role === 'assistant' && (
                         <button onClick={() => handleCopy(msg.content, i)} className="mt-2 text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1">
                           {copied === i ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />} Copy

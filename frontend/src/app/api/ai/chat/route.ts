@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { buildChatSystemPrompt, CHAT_OPENAI_PARAMS } from '@/lib/chat-prompt';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || process.env.OPENAI_KEY || '';
-const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o';
 
 function extractEmail(req: NextRequest): string | null {
   const auth = req.headers.get('authorization');
@@ -18,7 +19,7 @@ function extractEmail(req: NextRequest): string | null {
   }
 }
 
-async function openaiChat(messages: { role: string; content: string }[], maxTokens = 4000) {
+async function openaiChat(messages: { role: string; content: string }[], maxTokens = CHAT_OPENAI_PARAMS.max_tokens) {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -29,7 +30,10 @@ async function openaiChat(messages: { role: string; content: string }[], maxToke
       model: OPENAI_MODEL,
       messages,
       max_tokens: maxTokens,
-      temperature: 0.7,
+      temperature: CHAT_OPENAI_PARAMS.temperature,
+      top_p: CHAT_OPENAI_PARAMS.top_p,
+      presence_penalty: 0.1,
+      frequency_penalty: 0.1,
     }),
   });
 
@@ -58,34 +62,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'message required' }, { status: 400 });
     }
 
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('id-ID', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-    const timeStr = now.toLocaleTimeString('id-ID', {
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'Asia/Jakarta',
-    });
-
-    const systemPrompt = `Kamu adalah Lumora AI — asisten AI cerdas yang bisa menjawab semua pertanyaan, seperti ChatGPT.
-
-## INFO REAL-TIME
-- Hari ini: ${dateStr}
-- Waktu sekarang: ${timeStr} WIB
-- Tahun: ${now.getFullYear()}
-
-## ATURAN
-1. Jawab pertanyaan user secara LANGSUNG dan RELEVAN
-2. Jawab dalam bahasa yang SAMA dengan pertanyaan user
-3. Berikan informasi yang AKURAT dan DETAIL`;
+    const systemPrompt = buildChatSystemPrompt();
 
     const reply = await openaiChat([
       { role: 'system', content: systemPrompt },
-      ...history.slice(-10).map((h: { role: string; content: string }) => ({
+      ...history.slice(-12).map((h: { role: string; content: string }) => ({
         role: h.role,
         content: h.content,
       })),
@@ -100,13 +81,14 @@ export async function POST(req: NextRequest) {
     try {
       const sugText = await openaiChat([{
         role: 'user',
-        content: `Based on this conversation:
-User asked: "${message}"
-You replied: "${reply.substring(0, 500)}"
+        content: `Berdasarkan percakapan ini:
+User: "${message}"
+AI: "${reply.substring(0, 400)}"
 
-Generate exactly 3 follow-up questions in the same language as the user.
-Return ONLY a JSON array of 3 strings.`,
-      }], 200);
+Buat 3 pertanyaan lanjutan yang relevan dan spesifik (bukan generic).
+Bahasa sama dengan user. Max 12 kata per pertanyaan.
+Return ONLY JSON array: ["q1","q2","q3"]`,
+      }], 250);
 
       if (sugText) {
         const match = sugText.match(/\[[\s\S]*?\]/);
