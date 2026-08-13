@@ -39,8 +39,9 @@ EOF
 
 echo "=== Install & build backend ==="
 cd backend
+npm install @aws-sdk/client-s3 @aws-sdk/s3-request-presigner @types/uuid 2>/dev/null || true
 npm install
-npx nest build || { echo "Backend build failed - trying with continue-on-error"; npx nest build 2>&1 | tail -20; }
+npx nest build
 
 echo "=== Install & build frontend ==="
 cd ../frontend

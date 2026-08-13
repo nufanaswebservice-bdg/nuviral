@@ -267,7 +267,7 @@ export class SubscriptionService {
     await this.prisma.subscription.update({
       where: { userId },
       data: {
-        plan: String(planKey),
+        plan: planKey as any,
         status: 'ACTIVE',
         pendingPlan: null,
         pendingOrderId: null,
