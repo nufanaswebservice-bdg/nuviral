@@ -19,7 +19,7 @@ export default function AccountsPage() {
     setConnecting(platform);
     // Redirect to OAuth flow
     if (platform === 'YouTube') {
-      window.location.href = 'https://nuviral-production.up.railway.app/auth/youtube';
+      window.location.href = 'https://api.getlumora.cloud/auth/youtube';
     } else {
       // Placeholder for other platforms
       setTimeout(() => {

@@ -28,7 +28,7 @@ export default function MediaPage() {
     // Load video samples from server API
     const fetchSamples = async () => {
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nuviral-production.up.railway.app/api/v1';
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.getlumora.cloud/api/v1';
         const res = await fetch(`${API_URL}/video-samples`);
         if (res.ok) {
           const data = await res.json();
@@ -59,7 +59,7 @@ export default function MediaPage() {
           <Image className="h-5 w-5 md:h-6 md:w-6 text-primary flex-shrink-0" />
           Media Library
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">Video AI showcase — dibuat dengan NuViral</p>
+        <p className="text-sm text-muted-foreground mt-1">Video AI showcase — dibuat dengan Lumora</p>
       </div>
 
       {/* Filters */}

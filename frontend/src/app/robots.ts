@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/dashboard/', '/admin/'],
       },
     ],
-    sitemap: 'https://nuviral.cloud/sitemap.xml',
+    sitemap: 'https://Lumora.cloud/sitemap.xml',
   };
 }

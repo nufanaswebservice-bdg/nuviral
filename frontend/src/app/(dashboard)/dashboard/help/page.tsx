@@ -26,11 +26,11 @@ const helpCategories: HelpCategory[] = [
     id: 'getting-started',
     icon: BookOpen,
     title: 'Memulai',
-    description: 'Panduan dasar menggunakan NuViral',
+    description: 'Panduan dasar menggunakan Lumora',
     faqs: [
       {
-        question: 'Apa itu NuViral?',
-        answer: 'NuViral adalah platform AI SaaS untuk content creator. Kamu bisa generate video, gambar, script, dan brainstorm ide konten viral menggunakan AI — semua dalam Bahasa Indonesia. Platform ini mendukung TikTok, YouTube Shorts, Instagram Reels, dan Facebook Reels.',
+        question: 'Apa itu Lumora?',
+        answer: 'Lumora adalah platform AI SaaS untuk content creator. Kamu bisa generate video, gambar, script, dan brainstorm ide konten viral menggunakan AI — semua dalam Bahasa Indonesia. Platform ini mendukung TikTok, YouTube Shorts, Instagram Reels, dan Facebook Reels.',
       },
       {
         question: 'Bagaimana cara membuat video pertama?',
@@ -42,7 +42,7 @@ const helpCategories: HelpCategory[] = [
       },
       {
         question: 'Format video apa yang didukung?',
-        answer: 'NuViral mendukung format Portrait (9:16) untuk TikTok/Reels/Shorts dan Landscape (16:9) untuk YouTube. Kamu bisa memilih format saat membuat video di AI Studio.',
+        answer: 'Lumora mendukung format Portrait (9:16) untuk TikTok/Reels/Shorts dan Landscape (16:9) untuk YouTube. Kamu bisa memilih format saat membuat video di AI Studio.',
       },
       {
         question: 'Berapa lama proses generate video?',
@@ -58,7 +58,7 @@ const helpCategories: HelpCategory[] = [
     faqs: [
       {
         question: 'Paket apa saja yang tersedia?',
-        answer: 'NuViral menyediakan 4 paket:\n• Pemula (Rp 45.000/bln) — 5 video, 50 AI credits\n• Starter (Rp 225.000/bln) — 21 video, 210 AI credits\n• Pro (Rp 449.000/bln) — 42 video, 420 AI credits\n• Agency (Rp 1.225.000/bln) — 115 video, 1150 AI credits',
+        answer: 'Lumora menyediakan 4 paket:\n• Pemula (Rp 45.000/bln) — 5 video, 50 AI credits\n• Starter (Rp 225.000/bln) — 21 video, 210 AI credits\n• Pro (Rp 449.000/bln) — 42 video, 420 AI credits\n• Agency (Rp 1.225.000/bln) — 115 video, 1150 AI credits',
       },
       {
         question: 'Metode pembayaran apa yang diterima?',
@@ -126,7 +126,7 @@ const helpCategories: HelpCategory[] = [
       },
       {
         question: 'Apa itu Media Library?',
-        answer: 'Media Library adalah showcase video AI yang dibuat oleh tim NuViral sebagai contoh dan inspirasi. Kamu bisa melihat berbagai style dan prompt yang menghasilkan video berkualitas tinggi.',
+        answer: 'Media Library adalah showcase video AI yang dibuat oleh tim Lumora sebagai contoh dan inspirasi. Kamu bisa melihat berbagai style dan prompt yang menghasilkan video berkualitas tinggi.',
       },
       {
         question: 'Apakah video bisa langsung diupload ke sosial media?',
@@ -142,7 +142,7 @@ const helpCategories: HelpCategory[] = [
     faqs: [
       {
         question: 'Bagaimana cara login?',
-        answer: 'NuViral menggunakan Google Login. Klik "Get Started" atau "Log in", lalu pilih akun Google kamu. Tidak perlu membuat password terpisah.',
+        answer: 'Lumora menggunakan Google Login. Klik "Get Started" atau "Log in", lalu pilih akun Google kamu. Tidak perlu membuat password terpisah.',
       },
       {
         question: 'Bagaimana cara ganti tema (dark/light)?',

@@ -8,7 +8,7 @@ import {
   Clock, CheckCircle, AlertCircle, Zap, Copy,
 } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nuviral-production.up.railway.app/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.getlumora.cloud/api/v1';
 
 interface SupportTicket {
   id: string;
@@ -24,7 +24,7 @@ const TEMPLATE_REPLIES = [
   {
     category: '👋 Greeting',
     templates: [
-      { label: 'Salam pembuka', text: 'Halo! Terima kasih sudah menghubungi NuViral Support. Ada yang bisa kami bantu?' },
+      { label: 'Salam pembuka', text: 'Halo! Terima kasih sudah menghubungi Lumora Support. Ada yang bisa kami bantu?' },
       { label: 'Terima kasih', text: 'Terima kasih atas pertanyaannya! Berikut penjelasan dari kami:' },
     ],
   },
@@ -33,7 +33,7 @@ const TEMPLATE_REPLIES = [
     templates: [
       { label: 'Paket aktif', text: 'Paket kamu sudah aktif! Silakan refresh halaman Billing atau logout dan login ulang untuk melihat perubahan. Jika masih bermasalah, kirim screenshot bukti pembayaran ya.' },
       { label: 'Cara upgrade', text: 'Untuk upgrade paket:\n1. Buka menu Billing di sidebar\n2. Pilih paket yang diinginkan\n3. Klik "Pilih Paket"\n4. Selesaikan pembayaran via Midtrans\n\nPaket langsung aktif setelah pembayaran berhasil!' },
-      { label: 'Refund', text: 'Untuk proses refund, kami butuh informasi berikut:\n1. Email akun NuViral\n2. Nomor order/transaksi\n3. Alasan refund\n\nRefund akan diproses dalam 3-7 hari kerja setelah disetujui.' },
+      { label: 'Refund', text: 'Untuk proses refund, kami butuh informasi berikut:\n1. Email akun Lumora\n2. Nomor order/transaksi\n3. Alasan refund\n\nRefund akan diproses dalam 3-7 hari kerja setelah disetujui.' },
       { label: 'Kuota habis', text: 'Kuota video/AI credits kamu akan di-reset otomatis di awal bulan berikutnya (sesuai tanggal berlangganan). Jika butuh lebih banyak kuota sekarang, kamu bisa upgrade ke paket yang lebih tinggi di menu Billing.' },
     ],
   },
@@ -50,7 +50,7 @@ const TEMPLATE_REPLIES = [
     templates: [
       { label: 'Clear cache', text: 'Coba langkah berikut:\n1. Clear cache browser: Ctrl+Shift+Delete\n2. Pilih "Cached images and files"\n3. Klik Clear/Hapus\n4. Refresh halaman\n\nAtau coba buka di mode Incognito (Ctrl+Shift+N).' },
       { label: 'Login error', text: 'Untuk masalah login:\n1. Pastikan menggunakan akun Google yang benar\n2. Coba clear cookies browser\n3. Matikan VPN jika aktif\n4. Coba browser lain (Chrome recommended)\n\nJika masih bermasalah, kirim screenshot error-nya.' },
-      { label: 'Mobile issue', text: 'Untuk masalah di HP:\n1. Pastikan browser ter-update (Chrome/Safari terbaru)\n2. Coba tutup dan buka ulang browser\n3. Clear cache browser\n4. Pastikan koneksi internet stabil\n\nNuViral dioptimalkan untuk Chrome mobile.' },
+      { label: 'Mobile issue', text: 'Untuk masalah di HP:\n1. Pastikan browser ter-update (Chrome/Safari terbaru)\n2. Coba tutup dan buka ulang browser\n3. Clear cache browser\n4. Pastikan koneksi internet stabil\n\nLumora dioptimalkan untuk Chrome mobile.' },
     ],
   },
   {

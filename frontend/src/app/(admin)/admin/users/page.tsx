@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { Users, Search, Shield, Ban, Trash2, RefreshCw, Crown, User } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nuviral-production.up.railway.app/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.getlumora.cloud/api/v1';
 
 interface UserData {
   id: string;
@@ -156,7 +156,7 @@ export default function AdminUsersPage() {
         <div className="flex flex-col items-center justify-center py-16 rounded-2xl border border-dashed border-white/10">
           <Users className="h-12 w-12 text-gray-600 mb-3" />
           <p className="text-gray-400">{search ? 'User tidak ditemukan' : 'Belum ada user terdaftar'}</p>
-          <p className="text-gray-500 text-xs mt-1">User akan muncul setelah mereka login ke nuviral.cloud</p>
+          <p className="text-gray-500 text-xs mt-1">User akan muncul setelah mereka login ke Lumora.cloud</p>
         </div>
       ) : (
         <div className="space-y-2">

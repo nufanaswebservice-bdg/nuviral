@@ -26,7 +26,7 @@ interface VideoSample {
 const CATEGORIES = ['Cinematic', 'Nature', 'Food', 'Motivasi', 'Tech', 'Anime', 'Dark/Horror', 'Product', 'Lifestyle', 'Business'];
 const STYLES = ['🎬 Cinematic', '🌿 Nature', '🍜 Food', '💪 Motivasi', '💜 Neon/Cyberpunk', '🎌 Anime', '🌑 Dark', '📦 Product'];
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nuviral-production.up.railway.app/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.getlumora.cloud/api/v1';
 
 // Helper: Generate thumbnail from video file using canvas
 function generateThumbnailFromFile(file: File): Promise<string> {

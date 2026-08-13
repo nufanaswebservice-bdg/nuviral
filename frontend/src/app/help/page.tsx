@@ -15,13 +15,13 @@ const helpCategories: HelpCategory[] = [
   {
     id: 'getting-started',
     icon: BookOpen,
-    title: 'Memulai NuViral',
+    title: 'Memulai Lumora',
     description: 'Panduan dasar untuk pemula',
     faqs: [
-      { question: 'Apa itu NuNuViral Video Generator?', answer: 'NuViral adalah platform AI SaaS buatan Indonesia untuk content creator. Dengan NuViral, kamu bisa generate video pendek, gambar, script, dan brainstorm ide konten viral menggunakan kecerdasan buatan. Platform ini mendukung pembuatan konten untuk TikTok, YouTube Shorts, Instagram Reels, dan Facebook Reels secara otomatis.' },
-      { question: 'Bagaimana cara membuat video AI pertama di NuViral?', answer: 'Langkah-langkahnya sangat mudah: 1) Daftar/login dengan akun Google di nuviral.cloud, 2) Pilih paket berlangganan (mulai Rp 45.000/bulan), 3) Buka menu AI Studio, 4) Pilih tab Video, 5) Ketik deskripsi video yang kamu inginkan dalam Bahasa Indonesia, 6) Pilih style (Cinematic, Anime, dll) dan durasi, 7) Tekan Enter dan tunggu 2-5 menit. Video siap download!' },
-      { question: 'Apakah NuViral bisa generate video dalam Bahasa Indonesia?', answer: 'Ya! NuViral sepenuhnya mendukung Bahasa Indonesia. Kamu bisa mengetik prompt dalam Bahasa Indonesia dan AI akan otomatis menerjemahkan serta mengoptimalkan untuk menghasilkan video berkualitas tinggi. Narasi/voiceover juga tersedia dalam Bahasa Indonesia.' },
-      { question: 'Format dan durasi video apa yang didukung NuViral?', answer: 'NuViral mendukung: Portrait 9:16 (untuk TikTok, Reels, Shorts) dan Landscape 16:9 (untuk YouTube). Durasi yang tersedia: Short (5 detik), Medium (10 detik), dan Long (20 detik). Resolusi output hingga 1080p.' },
+      { question: 'Apa itu Lumora Video Generator?', answer: 'Lumora adalah platform AI SaaS buatan Indonesia untuk content creator. Dengan Lumora, kamu bisa generate video pendek, gambar, script, dan brainstorm ide konten viral menggunakan kecerdasan buatan. Platform ini mendukung pembuatan konten untuk TikTok, YouTube Shorts, Instagram Reels, dan Facebook Reels secara otomatis.' },
+      { question: 'Bagaimana cara membuat video AI pertama di Lumora?', answer: 'Langkah-langkahnya sangat mudah: 1) Daftar/login dengan akun Google di Lumora.cloud, 2) Pilih paket berlangganan (mulai Rp 45.000/bulan), 3) Buka menu AI Studio, 4) Pilih tab Video, 5) Ketik deskripsi video yang kamu inginkan dalam Bahasa Indonesia, 6) Pilih style (Cinematic, Anime, dll) dan durasi, 7) Tekan Enter dan tunggu 2-5 menit. Video siap download!' },
+      { question: 'Apakah Lumora bisa generate video dalam Bahasa Indonesia?', answer: 'Ya! Lumora sepenuhnya mendukung Bahasa Indonesia. Kamu bisa mengetik prompt dalam Bahasa Indonesia dan AI akan otomatis menerjemahkan serta mengoptimalkan untuk menghasilkan video berkualitas tinggi. Narasi/voiceover juga tersedia dalam Bahasa Indonesia.' },
+      { question: 'Format dan durasi video apa yang didukung Lumora?', answer: 'Lumora mendukung: Portrait 9:16 (untuk TikTok, Reels, Shorts) dan Landscape 16:9 (untuk YouTube). Durasi yang tersedia: Short (5 detik), Medium (10 detik), dan Long (20 detik). Resolusi output hingga 1080p.' },
       { question: 'Berapa lama proses generate video AI?', answer: 'Rata-rata 2-5 menit untuk video 5-10 detik. Proses meliputi: optimasi prompt oleh AI, generate visual dengan model Kling 2.5, penambahan voiceover (opsional), dan rendering final. Kamu bisa melihat progress bar real-time selama proses.' },
     ],
   },
@@ -31,9 +31,9 @@ const helpCategories: HelpCategory[] = [
     title: 'Harga & Pembayaran',
     description: 'Paket berlangganan dan metode bayar',
     faqs: [
-      { question: 'Berapa harga berlangganan NuViral?', answer: 'NuViral menyediakan 4 paket:\n• Pemula: Rp 45.000/bulan — 5 video, 50 AI credits, 2GB storage\n• Starter: Rp 225.000/bulan — 21 video, 210 AI credits, 10GB storage\n• Pro: Rp 449.000/bulan — 42 video, 420 AI credits, 50GB storage\n• Agency: Rp 1.225.000/bulan — 115 video, 1150 AI credits, 200GB storage\n\nSemua paket termasuk tanpa watermark dan akses Chat AI unlimited.' },
-      { question: 'Metode pembayaran apa yang diterima NuViral?', answer: 'NuViral menggunakan Midtrans sebagai payment gateway resmi. Metode yang didukung: Transfer Bank (BCA, BNI, BRI, Mandiri, Permata, dll), E-Wallet (GoPay, OVO, Dana, ShopeePay, LinkAja), Kartu Kredit/Debit (Visa, Mastercard, JCB), Virtual Account, dan Alfamart/Indomaret.' },
-      { question: 'Apakah ada trial gratis NuViral?', answer: 'Saat ini NuViral tidak menyediakan free trial, namun paket Pemula seharga Rp 45.000/bulan adalah opsi termurah untuk mencoba platform. Kami juga menyediakan garansi 14 hari uang kembali — jika tidak puas, hubungi support untuk refund penuh.' },
+      { question: 'Berapa harga berlangganan Lumora?', answer: 'Lumora menyediakan 4 paket:\n• Pemula: Rp 45.000/bulan — 5 video, 50 AI credits, 2GB storage\n• Starter: Rp 225.000/bulan — 21 video, 210 AI credits, 10GB storage\n• Pro: Rp 449.000/bulan — 42 video, 420 AI credits, 50GB storage\n• Agency: Rp 1.225.000/bulan — 115 video, 1150 AI credits, 200GB storage\n\nSemua paket termasuk tanpa watermark dan akses Chat AI unlimited.' },
+      { question: 'Metode pembayaran apa yang diterima Lumora?', answer: 'Lumora menggunakan Midtrans sebagai payment gateway resmi. Metode yang didukung: Transfer Bank (BCA, BNI, BRI, Mandiri, Permata, dll), E-Wallet (GoPay, OVO, Dana, ShopeePay, LinkAja), Kartu Kredit/Debit (Visa, Mastercard, JCB), Virtual Account, dan Alfamart/Indomaret.' },
+      { question: 'Apakah ada trial gratis Lumora?', answer: 'Saat ini Lumora tidak menyediakan free trial, namun paket Pemula seharga Rp 45.000/bulan adalah opsi termurah untuk mencoba platform. Kami juga menyediakan garansi 14 hari uang kembali — jika tidak puas, hubungi support untuk refund penuh.' },
       { question: 'Bagaimana cara upgrade atau cancel paket?', answer: 'Upgrade: Buka menu Billing > pilih paket baru > bayar. Paket langsung aktif. Cancel: Hubungi support via email atau WhatsApp. Paket tetap aktif sampai akhir periode billing. Tidak ada biaya cancel.' },
       { question: 'Apa yang terjadi jika kuota video habis?', answer: 'Jika kuota habis, kamu tidak bisa generate video/gambar baru sampai: 1) Kuota di-reset otomatis di awal bulan berikutnya (sesuai tanggal berlangganan), atau 2) Kamu upgrade ke paket yang lebih tinggi. Chat AI tetap bisa digunakan.' },
     ],
@@ -44,11 +44,11 @@ const helpCategories: HelpCategory[] = [
     title: 'Fitur AI Studio',
     description: 'Video, gambar, chat, dan tools AI',
     faqs: [
-      { question: 'Apa saja fitur AI di NuViral?', answer: 'NuViral memiliki 3 fitur utama di AI Studio:\n• Chat AI — Brainstorm ide konten, tulis script viral, tanya strategi marketing\n• Generate Gambar — Buat thumbnail, poster, cover dari teks (menggunakan Flux AI)\n• Generate Video — Buat video pendek 5-20 detik dari deskripsi teks (menggunakan Kling 2.5)\n\nSemua fitur mendukung input Bahasa Indonesia.' },
+      { question: 'Apa saja fitur AI di Lumora?', answer: 'Lumora memiliki 3 fitur utama di AI Studio:\n• Chat AI — Brainstorm ide konten, tulis script viral, tanya strategi marketing\n• Generate Gambar — Buat thumbnail, poster, cover dari teks (menggunakan Flux AI)\n• Generate Video — Buat video pendek 5-20 detik dari deskripsi teks (menggunakan Kling 2.5)\n\nSemua fitur mendukung input Bahasa Indonesia.' },
       { question: 'Tips menulis prompt video AI yang bagus?', answer: 'Tips untuk hasil terbaik:\n1. Deskripsikan subjek utama dengan detail (siapa/apa yang ada di video)\n2. Sebutkan gaya visual: cinematic, anime, realistic, neon, dark\n3. Tambahkan pencahayaan: golden hour, dramatic lighting, neon lights\n4. Sebutkan gerakan kamera: drone shot, close-up, tracking shot, orbit\n5. Gunakan 50-100 kata untuk detail optimal\n6. Contoh: "Cinematic drone shot, kucing lucu bermain di taman bunga sakura, golden hour lighting, shallow depth of field, 4K quality"' },
-      { question: 'Apa perbedaan style preset di NuViral?', answer: 'NuViral menyediakan 8 style preset:\n• 🎬 Cinematic — Film grain, dramatic lighting, movie-like\n• 🎌 Anime — Vibrant colors, Japanese animation style\n• 📷 Realistic — Photorealistic, natural lighting, 8K\n• 🌑 Dark — Moody, suspense, dark atmosphere\n• 💜 Neon — Cyberpunk, futuristic, neon lights\n• 🌿 Nature — Landscape, golden hour, peaceful\n• 🍜 Food — Food photography, appetizing, close-up\n• 📦 Product — Product showcase, clean background' },
+      { question: 'Apa perbedaan style preset di Lumora?', answer: 'Lumora menyediakan 8 style preset:\n• 🎬 Cinematic — Film grain, dramatic lighting, movie-like\n• 🎌 Anime — Vibrant colors, Japanese animation style\n• 📷 Realistic — Photorealistic, natural lighting, 8K\n• 🌑 Dark — Moody, suspense, dark atmosphere\n• 💜 Neon — Cyberpunk, futuristic, neon lights\n• 🌿 Nature — Landscape, golden hour, peaceful\n• 🍜 Food — Food photography, appetizing, close-up\n• 📦 Product — Product showcase, clean background' },
       { question: 'Bagaimana cara menambahkan narasi/voiceover ke video?', answer: 'Di AI Studio tab Video: 1) Klik icon mikrofon (🎤) di toolbar bawah, 2) Tulis teks narasi dalam Bahasa Indonesia, 3) Pilih voice: nova (wanita), alloy (netral), echo (pria), onyx (pria dalam), shimmer (wanita lembut), 4) Generate video. AI akan membuat voiceover yang disinkronkan dengan visual.' },
-      { question: 'Apakah video NuViral ada watermark?', answer: 'Tidak! Semua paket berbayar (Pemula, Starter, Pro, Agency) menghasilkan video tanpa watermark. Video bisa langsung diupload ke sosial media tanpa editing tambahan.' },
+      { question: 'Apakah video Lumora ada watermark?', answer: 'Tidak! Semua paket berbayar (Pemula, Starter, Pro, Agency) menghasilkan video tanpa watermark. Video bisa langsung diupload ke sosial media tanpa editing tambahan.' },
     ],
   },
   {
@@ -58,7 +58,7 @@ const helpCategories: HelpCategory[] = [
     description: 'Solusi masalah umum',
     faqs: [
       { question: 'Video gagal di-generate, apa solusinya?', answer: 'Coba langkah berikut:\n1. Pastikan kuota belum habis (cek di Billing)\n2. Persingkat prompt (maks 200 kata)\n3. Hindari konten NSFW/kekerasan (akan ditolak AI)\n4. Coba style preset yang berbeda\n5. Tunggu 1-2 menit lalu coba lagi (server mungkin sibuk)\n6. Jika masih gagal, hubungi support dengan screenshot error' },
-      { question: 'Halaman NuViral loading terus atau blank putih', answer: 'Solusi:\n1. Clear cache browser: Ctrl+Shift+Delete > pilih "Cached images and files" > Clear\n2. Coba browser lain (Chrome direkomendasikan)\n3. Matikan VPN/proxy jika aktif\n4. Coba mode Incognito (Ctrl+Shift+N)\n5. Logout lalu login ulang\n6. Jika pakai HP, coba tutup dan buka ulang browser' },
+      { question: 'Halaman Lumora loading terus atau blank putih', answer: 'Solusi:\n1. Clear cache browser: Ctrl+Shift+Delete > pilih "Cached images and files" > Clear\n2. Coba browser lain (Chrome direkomendasikan)\n3. Matikan VPN/proxy jika aktif\n4. Coba mode Incognito (Ctrl+Shift+N)\n5. Logout lalu login ulang\n6. Jika pakai HP, coba tutup dan buka ulang browser' },
       { question: 'Pembayaran berhasil tapi paket belum aktif', answer: 'Biasanya paket aktif dalam 1-5 menit. Jika lebih dari 10 menit:\n1. Refresh halaman Billing (tarik ke bawah di HP)\n2. Logout dan login ulang\n3. Cek email untuk konfirmasi pembayaran dari Midtrans\n4. Jika masih belum aktif, hubungi support via WhatsApp dengan bukti pembayaran (screenshot/nomor order)' },
       { question: 'Error "Belum berlangganan" padahal sudah bayar', answer: 'Kemungkinan penyebab:\n1. Pembayaran masih pending — cek status di email/SMS dari Midtrans\n2. Session expired — logout dan login ulang\n3. Akun berbeda — pastikan login dengan email yang sama saat bayar\n4. Hubungi support jika masalah berlanjut' },
       { question: 'Video tidak bisa didownload', answer: 'Coba:\n1. Tunggu sampai progress 100% dan muncul tombol Download\n2. Jika tombol tidak muncul, refresh halaman dan cek di menu "Videos"\n3. Pastikan storage HP/laptop tidak penuh\n4. Coba browser lain (Chrome/Firefox)\n5. Jika di HP, coba "Open in new tab" lalu save video' },
@@ -95,8 +95,8 @@ function BreadcrumbStructuredData() {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://nuviral.cloud' },
-      { '@type': 'ListItem', position: 2, name: 'Help Center', item: 'https://nuviral.cloud/help' },
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://Lumora.cloud' },
+      { '@type': 'ListItem', position: 2, name: 'Help Center', item: 'https://Lumora.cloud/help' },
     ],
   };
   return (
@@ -136,7 +136,7 @@ export default function PublicHelpPage() {
           <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-violet-600" />
-              <span className="font-bold text-gray-900 dark:text-white">NuViral</span>
+              <span className="font-bold text-gray-900 dark:text-white">Lumora</span>
             </Link>
             <div className="flex items-center gap-3">
               <Link href="/login" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition">
@@ -156,7 +156,7 @@ export default function PublicHelpPage() {
               Help Center
             </h1>
             <p className="text-base md:text-lg text-gray-500 dark:text-gray-400 mb-8">
-              Panduan lengkap menggunakan NuNuViral Video Generator
+              Panduan lengkap menggunakan Lumora Video Generator
             </p>
 
             {/* Search */}
@@ -323,15 +323,15 @@ export default function PublicHelpPage() {
 
           {/* SEO Content */}
           <section className="mt-12 prose prose-sm dark:prose-invert max-w-none">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Tentang NuNuViral Video Generator</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Tentang Lumora Video Generator</h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-              NuViral adalah platform AI video generator pertama di Indonesia yang memungkinkan content creator membuat video viral secara otomatis. 
-              Dengan teknologi AI terdepan (Kling 2.5, Flux, GPT-4), NuViral mengubah teks menjadi video berkualitas tinggi dalam hitungan menit. 
+              Lumora adalah platform AI video generator pertama di Indonesia yang memungkinkan content creator membuat video viral secara otomatis. 
+              Dengan teknologi AI terdepan (Kling 2.5, Flux, GPT-4), Lumora mengubah teks menjadi video berkualitas tinggi dalam hitungan menit. 
               Platform ini dirancang khusus untuk kreator konten TikTok, YouTube Shorts, Instagram Reels, dan Facebook Reels yang ingin 
               meningkatkan produktivitas tanpa perlu skill editing video.
             </p>
             <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-              Fitur unggulan NuViral meliputi: AI Video Generation dengan 8 style preset, AI Image Generation untuk thumbnail dan poster, 
+              Fitur unggulan Lumora meliputi: AI Video Generation dengan 8 style preset, AI Image Generation untuk thumbnail dan poster, 
               Chat AI untuk brainstorm ide konten, voiceover Bahasa Indonesia, scheduling otomatis, dan analytics performa konten. 
               Mulai dari Rp 45.000/bulan dengan paket Pemula.
             </p>
@@ -343,7 +343,7 @@ export default function PublicHelpPage() {
           <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-violet-600" />
-              <span className="text-sm font-medium text-gray-900 dark:text-white">NuViral</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">Lumora</span>
               <span className="text-xs text-gray-400">© 2024</span>
             </div>
             <div className="flex items-center gap-4 text-xs text-gray-500">

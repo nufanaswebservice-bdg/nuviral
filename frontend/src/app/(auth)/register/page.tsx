@@ -32,7 +32,7 @@ export default function RegisterPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2">
             <Sparkles className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold gradient-text">NuViral</span>
+            <span className="text-2xl font-bold gradient-text">Lumora</span>
           </Link>
           <h1 className="text-2xl font-bold mt-6 mb-2">Create your account</h1>
           <p className="text-muted-foreground">Start creating viral content in minutes</p>

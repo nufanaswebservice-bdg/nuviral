@@ -4,15 +4,15 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Settings, Globe, Mail, CreditCard, Zap, Palette, Save, Eye, EyeOff } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nuviral-production.up.railway.app/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.getlumora.cloud/api/v1';
 
 export default function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState<'website' | 'smtp' | 'payment' | 'ai' | 'branding'>('website');
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [settings, setSettings] = useState({
     website: {
-      siteName: 'NuViral',
-      siteUrl: 'https://nuviral.cloud',
+      siteName: 'Lumora',
+      siteUrl: 'https://Lumora.cloud',
       siteDescription: 'AI Video Generator Platform - Buat video viral otomatis',
       siteKeywords: 'AI video, video generator, TikTok, Reels, Shorts, content creator',
       googleAnalyticsId: '',
@@ -24,8 +24,8 @@ export default function AdminSettingsPage() {
       port: '587',
       user: '',
       password: '',
-      fromName: 'NuViral',
-      fromEmail: 'noreply@nuviral.cloud',
+      fromName: 'Lumora',
+      fromEmail: 'noreply@Lumora.cloud',
     },
     payment: {
       midtransServerKey: process.env.MIDTRANS_SERVER_KEY ? '••••••••' : '',
@@ -46,7 +46,7 @@ export default function AdminSettingsPage() {
       primaryColor: '#8B5CF6',
       logoUrl: '',
       faviconUrl: '',
-      footerText: '© 2026 NuViral. All rights reserved.',
+      footerText: '© 2026 Lumora. All rights reserved.',
     },
   });
 

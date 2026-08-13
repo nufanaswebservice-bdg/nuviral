@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { Shield, Ban, Globe, Activity, AlertTriangle, CheckCircle, Plus, Trash2, RefreshCw } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nuviral-production.up.railway.app/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.getlumora.cloud/api/v1';
 
 export default function AdminSecurityPage() {
   const [blockedIPs, setBlockedIPs] = useState<string[]>([]);

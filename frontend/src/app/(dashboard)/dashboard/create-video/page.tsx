@@ -60,7 +60,7 @@ function VideoPlayer({ scriptData, onNeedUpgrade }: { scriptData: any; onNeedUpg
     setError('');
     try {
       const authToken = localStorage.getItem('accessToken') || '';
-      const response = await fetch('https://nuviral-production.up.railway.app/render', {
+      const response = await fetch('https://api.getlumora.cloud/render', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
         body: JSON.stringify({
@@ -118,7 +118,7 @@ function VideoPlayer({ scriptData, onNeedUpgrade }: { scriptData: any; onNeedUpg
   );
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nuviral-production.up.railway.app/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.getlumora.cloud/api/v1';
 
 export default function CreateVideoPage() {
   const router = useRouter();
@@ -135,7 +135,7 @@ export default function CreateVideoPage() {
 
   useEffect(() => {
     // Load script data from localStorage (passed from AI Generator)
-    const saved = localStorage.getItem('NuViral-script-data');
+    const saved = localStorage.getItem('nuviral-script-data');
     if (saved) {
       setScriptData(JSON.parse(saved));
     }
@@ -254,12 +254,12 @@ export default function CreateVideoPage() {
                 if (btn) { btn.textContent = '⏳ Rendering...'; btn.disabled = true; }
 
                 try {
-                  const response = await fetch('https://nuviral-production.up.railway.app/render', {
+                  const response = await fetch('https://api.getlumora.cloud/render', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                      title: scriptData?.title || 'NuViral Video',
-                      script: scriptData?.script || 'Welcome to NuNuViral. Create viral videos automatically.',
+                      title: scriptData?.title || 'Lumora Video',
+                      script: scriptData?.script || 'Welcome to Lumora. Create viral videos automatically.',
                       duration: 15,
                       voice: 'nova',
                     }),
@@ -273,7 +273,7 @@ export default function CreateVideoPage() {
                   const url = URL.createObjectURL(blob);
                   const link = document.createElement('a');
                   link.href = url;
-                  link.download = `NuViral-video-${Date.now()}.mp4`;
+                  link.download = `nuviral-video-${Date.now()}.mp4`;
                   document.body.appendChild(link);
                   link.click();
                   document.body.removeChild(link);

@@ -98,7 +98,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Zap className="h-4 w-4 text-white" />
             </div>
             <div>
-              <p className="text-sm font-bold">NuViral</p>
+              <p className="text-sm font-bold">Lumora</p>
               <p className="text-[10px] text-gray-400">Super Admin</p>
             </div>
           </div>

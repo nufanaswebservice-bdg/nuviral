@@ -33,9 +33,9 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('profile');
   const [profile, setProfile] = useState({
     name: 'Demo User',
-    email: 'demo@NuViral.com',
+    email: 'demo@getlumora.cloud',
     bio: 'Content creator using AI to go viral 🚀',
-    website: 'https://NuViral.com',
+    website: 'https://getlumora.cloud',
   });
   const [notifications, setNotifications] = useState({
     renderComplete: true,
@@ -465,7 +465,7 @@ export default function SettingsPage() {
               <div className="p-6 rounded-2xl border border-border bg-card space-y-6">
                 <h2 className="text-lg font-semibold">API Access</h2>
                 <p className="text-sm text-muted-foreground">
-                  Use your API key to integrate NuViral with external tools and services.
+                  Use your API key to integrate Lumora with external tools and services.
                   Available on Pro and Agency plans.
                 </p>
 

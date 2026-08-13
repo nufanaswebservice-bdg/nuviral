@@ -25,7 +25,7 @@ import { AdvancedSettings, type AdvancedVideoSettings } from '@/components/ai-ge
 import { BillingPopup } from '@/components/billing-popup';
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nuviral-production.up.railway.app/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.getlumora.cloud/api/v1';
 
 const niches = [
   'Business', 'Motivation', 'Anime', 'Gaming', 'Crypto',
@@ -298,7 +298,7 @@ export default function AiGeneratorPage() {
 
   const handleCreateVideo = () => {
     // Save script data to localStorage for the Create Video page
-    localStorage.setItem('NuViral-script-data', JSON.stringify(result));
+    localStorage.setItem('nuviral-script-data', JSON.stringify(result));
     toast.success('Script loaded! Redirecting to Video Creator...');
     setTimeout(() => {
       router.push('/dashboard/create-video');

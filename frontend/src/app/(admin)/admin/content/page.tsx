@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { Globe, Save, Plus, Trash2, Edit, X, MessageSquare, Star } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nuviral-production.up.railway.app/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.getlumora.cloud/api/v1';
 
 interface FAQ { id: string; question: string; answer: string; }
 interface Testimonial { id: string; name: string; role: string; text: string; rating: number; }
@@ -20,13 +20,13 @@ export default function AdminContentPage() {
     bannerEnabled: true,
   });
   const [faqs, setFaqs] = useState<FAQ[]>([
-    { id: '1', question: 'Apa itu NuViral?', answer: 'NuViral adalah platform AI video generator yang membantu Anda membuat konten video viral secara otomatis.' },
+    { id: '1', question: 'Apa itu Lumora?', answer: 'Lumora adalah platform AI video generator yang membantu Anda membuat konten video viral secara otomatis.' },
     { id: '2', question: 'Berapa harga berlangganan?', answer: 'Mulai dari Rp 225.000/bulan untuk paket Starter. Lihat halaman Billing untuk detail.' },
     { id: '3', question: 'Apakah video bisa digunakan untuk komersial?', answer: 'Ya, semua video yang dihasilkan bisa digunakan untuk keperluan komersial tanpa batasan.' },
   ]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([
-    { id: '1', name: 'Andi Pratama', role: 'Content Creator', text: 'NuViral mengubah cara saya membuat konten. Sekarang bisa upload 5 video sehari!', rating: 5 },
-    { id: '2', name: 'Sari Dewi', role: 'Digital Marketer', text: 'ROI naik 300% sejak pakai NuViral untuk klien-klien saya.', rating: 5 },
+    { id: '1', name: 'Andi Pratama', role: 'Content Creator', text: 'Lumora mengubah cara saya membuat konten. Sekarang bisa upload 5 video sehari!', rating: 5 },
+    { id: '2', name: 'Sari Dewi', role: 'Digital Marketer', text: 'ROI naik 300% sejak pakai Lumora untuk klien-klien saya.', rating: 5 },
   ]);
   const [editingFaq, setEditingFaq] = useState<FAQ | null>(null);
   const [editingTestimonial, setEditingTestimonial] = useState<Testimonial | null>(null);

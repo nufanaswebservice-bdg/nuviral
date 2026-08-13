@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Zap, RefreshCw } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nuviral-production.up.railway.app/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.getlumora.cloud/api/v1';
 
 export default function AdminAISystemPage() {
   const [config, setConfig] = useState<any>(null);

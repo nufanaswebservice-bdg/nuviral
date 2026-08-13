@@ -42,7 +42,7 @@ export default function LoginPage() {
         localStorage.setItem('user', JSON.stringify(payload));
         // Track login
         try {
-          await fetch('https://nuviral-production.up.railway.app/api/v1/auth/track-login', {
+          await fetch('https://api.getlumora.cloud/api/v1/auth/track-login', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, name: email.split('@')[0], provider: 'email' }),
           });
@@ -71,7 +71,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2">
             <Sparkles className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold gradient-text">NuViral</span>
+            <span className="text-2xl font-bold gradient-text">Lumora</span>
           </Link>
           <h1 className="text-2xl font-bold mt-6 mb-2">Welcome back</h1>
           <p className="text-muted-foreground">Sign in to your account to continue</p>
@@ -94,7 +94,7 @@ export default function LoginPage() {
                 }));
                 // Track login
                 try {
-                  await fetch('https://nuviral-production.up.railway.app/api/v1/auth/track-login', {
+                  await fetch('https://api.getlumora.cloud/api/v1/auth/track-login', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: user.email, name: user.displayName, avatar: user.photoURL, provider: 'google' }),
                   });

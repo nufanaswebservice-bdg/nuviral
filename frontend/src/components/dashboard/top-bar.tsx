@@ -6,7 +6,7 @@ import { Bell, Search, Menu, Plus, X, Video, Sparkles, LogOut, Settings, User, C
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nuviral-production.up.railway.app/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.getlumora.cloud/api/v1';
 
 interface TopBarProps {
   onMenuToggle: () => void;
@@ -58,7 +58,7 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       const userName = user.name || user.email?.split('@')[0] || 'User';
       setNotifications([
-        { id: 1, title: 'Selamat datang!', message: `Halo ${userName}, akun NuViral kamu sudah aktif`, time: 'Baru saja', read: false },
+        { id: 1, title: 'Selamat datang!', message: `Halo ${userName}, akun Lumora kamu sudah aktif`, time: 'Baru saja', read: false },
       ]);
     } catch {
       setNotifications([]);
@@ -85,7 +85,7 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
         </button>
 
         {/* Mobile Logo */}
-        <span className="text-sm font-bold gradient-text md:hidden truncate">NuViral</span>
+        <span className="text-sm font-bold gradient-text md:hidden truncate">Lumora</span>
 
         {/* Search - Desktop only */}
         <div className="relative hidden md:block">

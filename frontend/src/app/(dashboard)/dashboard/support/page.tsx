@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { MessageSquare, Send, Loader2, Bot, User, ImageIcon, X } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nuviral-production.up.railway.app/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.getlumora.cloud/api/v1';
 
 interface ChatMessage {
   id: string;
@@ -53,14 +53,14 @@ export default function SupportPage() {
       } else {
         setMessages([{
           id: 'welcome', role: 'system',
-          content: 'Selamat datang di NuViral Support! 👋\nKetik pertanyaan atau kirim screenshot error kamu.',
+          content: 'Selamat datang di Lumora Support! 👋\nKetik pertanyaan atau kirim screenshot error kamu.',
           timestamp: new Date().toISOString(),
         }]);
       }
     } catch {
       setMessages([{
         id: 'welcome', role: 'system',
-        content: 'Selamat datang di NuViral Support! 👋\nKetik pertanyaan atau kirim screenshot error kamu.',
+        content: 'Selamat datang di Lumora Support! 👋\nKetik pertanyaan atau kirim screenshot error kamu.',
         timestamp: new Date().toISOString(),
       }]);
     }
@@ -131,7 +131,7 @@ export default function SupportPage() {
           <MessageSquare className="h-5 w-5 text-white" />
         </div>
         <div>
-          <h1 className="text-lg font-bold">NuViral Support</h1>
+          <h1 className="text-lg font-bold">Lumora Support</h1>
           <p className="text-xs text-muted-foreground">Biasanya membalas dalam 1-24 jam</p>
         </div>
       </div>
@@ -155,7 +155,7 @@ export default function SupportPage() {
               {msg.role === 'admin' && (
                 <div className="flex items-center gap-1.5 mb-1">
                   <Bot className="h-3 w-3 text-primary" />
-                  <span className="text-[10px] font-medium text-primary">NuViral Team</span>
+                  <span className="text-[10px] font-medium text-primary">Lumora Team</span>
                 </div>
               )}
               {msg.imageUrl && (

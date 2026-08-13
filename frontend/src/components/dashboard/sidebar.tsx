@@ -52,7 +52,7 @@ export function Sidebar({ isOpen, onToggle, onClose }: SidebarProps) {
       <div className="h-14 md:h-16 flex items-center justify-between px-4 border-b border-border flex-shrink-0">
         <Link href="/dashboard" className="flex items-center gap-2" onClick={onClose}>
           <Sparkles className="h-6 w-6 text-primary flex-shrink-0" />
-          <span className="text-lg font-bold gradient-text">NuViral</span>
+          <span className="text-lg font-bold gradient-text">Lumora</span>
         </Link>
         <button
           onClick={onClose}
@@ -93,7 +93,7 @@ export function Sidebar({ isOpen, onToggle, onClose }: SidebarProps) {
       {/* Footer */}
       <div className="p-3 border-t border-border flex-shrink-0">
         <div className="px-3 py-2">
-          <p className="text-[10px] text-muted-foreground text-center">NuNuViral © 2024</p>
+          <p className="text-[10px] text-muted-foreground text-center">Lumora © 2024</p>
         </div>
       </div>
     </aside>
