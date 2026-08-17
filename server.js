@@ -1194,7 +1194,10 @@ app.post('/api/v1/ai/voice-clone', requireAuth, async (req, res) => {
       const audioKey = `temp/${Date.now()}-voice-sample.wav`;
       let audioUrl;
       try { audioUrl = await uploadToR2(audioBuffer, audioKey, 'audio/wav'); }
-      catch { return res.status(500).json({ error: 'Failed to upload audio sample' }); }
+      catch (e) {
+        console.log(`[voice-clone] Upload failed (${e.message}), using data URI`);
+        audioUrl = `data:audio/wav;base64,${audioBase64}`;
+      }
 
       // Use fal.ai Zonos voice clone
       const falRes = await fetch('https://fal.run/fal-ai/zonos', {
@@ -1297,12 +1300,16 @@ app.post('/api/v1/ai/image-to-video', requireAuth, async (req, res) => {
       }
     }
 
-    // Upload image to get URL
+    // Upload image to get URL (or use data URI)
     const imgBuffer = Buffer.from(imageBase64, 'base64');
     const imgKey = `temp/${Date.now()}-input.jpg`;
     let imageUrl;
     try { imageUrl = await uploadToR2(imgBuffer, imgKey, 'image/jpeg'); }
-    catch { return res.status(500).json({ error: 'Failed to upload image' }); }
+    catch (e) {
+      // If all upload methods fail, use data URI directly
+      console.log(`[img2vid] Upload failed (${e.message}), using data URI`);
+      imageUrl = `data:image/jpeg;base64,${imageBase64}`;
+    }
 
     let videoUrl = null;
 
@@ -1477,7 +1484,12 @@ app.post('/api/v1/ai/generate-3d', requireAuth, async (req, res) => {
     if (imageBase64) {
       const imgBuffer = Buffer.from(imageBase64, 'base64');
       const imgKey = `temp/${Date.now()}-3d-input.jpg`;
-      const imageUrl = await uploadToR2(imgBuffer, imgKey, 'image/jpeg');
+      let imageUrl;
+      try { imageUrl = await uploadToR2(imgBuffer, imgKey, 'image/jpeg'); }
+      catch (e) {
+        console.log(`[3d] Upload failed (${e.message}), using data URI`);
+        imageUrl = `data:image/jpeg;base64,${imageBase64}`;
+      }
       input = { image_url: imageUrl };
     } else {
       // Enhance prompt with OpenAI
@@ -2112,72 +2124,123 @@ function saveSamplesToDisk(samples) {
 
 let videoSamplesCache = loadSamplesFromDisk();
 
-// Helper: Upload buffer to R2 using S3-compatible basic auth
+// Helper: Upload buffer to get a public URL (try R2, fallback to fal.ai CDN or data URI)
 async function uploadToR2(buffer, key, contentType) {
-  if (!R2_ACCESS_KEY_ID || !R2_ACCOUNT_ID) {
-    throw new Error('R2 not configured: missing R2_ACCESS_KEY_ID or R2_ACCOUNT_ID');
+  // Try R2 first if configured
+  if (R2_ACCESS_KEY_ID && R2_ACCOUNT_ID) {
+    const { createHash, createHmac } = require('crypto');
+
+    const method = 'PUT';
+    const host = `${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
+    const amzDate = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
+    const dateStamp = amzDate.substring(0, 8);
+    const region = 'auto';
+    const service = 's3';
+    const canonicalUri = `/${R2_BUCKET_NAME}/${key}`;
+
+    const payloadHash = createHash('sha256').update(buffer).digest('hex');
+
+    const canonicalHeaders = [
+      `content-type:${contentType}`,
+      `host:${host}`,
+      `x-amz-content-sha256:${payloadHash}`,
+      `x-amz-date:${amzDate}`,
+    ].join('\n') + '\n';
+
+    const signedHeaders = 'content-type;host;x-amz-content-sha256;x-amz-date';
+
+    const canonicalRequest = [method, canonicalUri, '', canonicalHeaders, signedHeaders, payloadHash].join('\n');
+
+    const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
+    const stringToSign = [
+      'AWS4-HMAC-SHA256',
+      amzDate,
+      credentialScope,
+      createHash('sha256').update(canonicalRequest).digest('hex'),
+    ].join('\n');
+
+    const kDate = createHmac('sha256', `AWS4${R2_SECRET_ACCESS_KEY}`).update(dateStamp).digest();
+    const kRegion = createHmac('sha256', kDate).update(region).digest();
+    const kService = createHmac('sha256', kRegion).update(service).digest();
+    const signingKey = createHmac('sha256', kService).update('aws4_request').digest();
+    const signature = createHmac('sha256', signingKey).update(stringToSign).digest('hex');
+
+    const authHeader = `AWS4-HMAC-SHA256 Credential=${R2_ACCESS_KEY_ID}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+
+    const response = await fetch(`https://${host}${canonicalUri}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': contentType,
+        'Host': host,
+        'x-amz-content-sha256': payloadHash,
+        'x-amz-date': amzDate,
+        'Authorization': authHeader,
+        'Content-Length': buffer.length.toString(),
+      },
+      body: buffer,
+    });
+
+    if (response.ok) {
+      const publicUrl = R2_PUBLIC_URL ? `${R2_PUBLIC_URL}/${key}` : `https://${host}/${R2_BUCKET_NAME}/${key}`;
+      return publicUrl;
+    }
+    console.log(`[R2] Upload failed (${response.status}), trying fal.ai CDN...`);
   }
 
-  const { createHash, createHmac } = require('crypto');
+  // Fallback: Upload to fal.ai CDN (free file hosting for fal.ai users)
+  if (FAL_KEY) {
+    try {
+      const uploadRes = await fetch('https://fal.run/fal-ai/any-llm/storage/upload', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Key ${FAL_KEY}`,
+          'Content-Type': contentType,
+        },
+        body: buffer,
+      });
+      if (uploadRes.ok) {
+        const data = await uploadRes.json();
+        if (data.url) {
+          console.log(`[upload] ✅ fal.ai CDN upload success`);
+          return data.url;
+        }
+      }
+    } catch (e) {
+      console.log(`[upload] fal.ai CDN failed: ${e.message}`);
+    }
 
-  const method = 'PUT';
-  const host = `${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
-  const amzDate = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
-  const dateStamp = amzDate.substring(0, 8);
-  const region = 'auto';
-  const service = 's3';
-  const canonicalUri = `/${R2_BUCKET_NAME}/${key}`;
-
-  const payloadHash = createHash('sha256').update(buffer).digest('hex');
-
-  const canonicalHeaders = [
-    `content-type:${contentType}`,
-    `host:${host}`,
-    `x-amz-content-sha256:${payloadHash}`,
-    `x-amz-date:${amzDate}`,
-  ].join('\n') + '\n';
-
-  const signedHeaders = 'content-type;host;x-amz-content-sha256;x-amz-date';
-
-  const canonicalRequest = [method, canonicalUri, '', canonicalHeaders, signedHeaders, payloadHash].join('\n');
-
-  const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
-  const stringToSign = [
-    'AWS4-HMAC-SHA256',
-    amzDate,
-    credentialScope,
-    createHash('sha256').update(canonicalRequest).digest('hex'),
-  ].join('\n');
-
-  const kDate = createHmac('sha256', `AWS4${R2_SECRET_ACCESS_KEY}`).update(dateStamp).digest();
-  const kRegion = createHmac('sha256', kDate).update(region).digest();
-  const kService = createHmac('sha256', kRegion).update(service).digest();
-  const signingKey = createHmac('sha256', kService).update('aws4_request').digest();
-  const signature = createHmac('sha256', signingKey).update(stringToSign).digest('hex');
-
-  const authHeader = `AWS4-HMAC-SHA256 Credential=${R2_ACCESS_KEY_ID}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
-
-  const response = await fetch(`https://${host}${canonicalUri}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': contentType,
-      'Host': host,
-      'x-amz-content-sha256': payloadHash,
-      'x-amz-date': amzDate,
-      'Authorization': authHeader,
-      'Content-Length': buffer.length.toString(),
-    },
-    body: buffer,
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    console.error(`[R2] Upload failed (${response.status}):`, errText.substring(0, 300));
-    throw new Error(`R2 upload failed (${response.status})`);
+    // Alternative fal.ai upload endpoint
+    try {
+      const FormData = require('form-data') || null;
+      const blob = new Blob([buffer], { type: contentType });
+      const formData = new FormData();
+      formData.append('file', blob, key.split('/').pop());
+      
+      const uploadRes = await fetch('https://fal.run/fal-ai/file-upload', {
+        method: 'POST',
+        headers: { 'Authorization': `Key ${FAL_KEY}` },
+        body: formData,
+      });
+      if (uploadRes.ok) {
+        const data = await uploadRes.json();
+        if (data.url || data.file_url) {
+          console.log(`[upload] ✅ fal.ai file-upload success`);
+          return data.url || data.file_url;
+        }
+      }
+    } catch (e) {
+      console.log(`[upload] fal.ai file-upload failed: ${e.message}`);
+    }
   }
 
-  const publicUrl = R2_PUBLIC_URL ? `${R2_PUBLIC_URL}/${key}` : `https://${host}/${R2_BUCKET_NAME}/${key}`;
-  return publicUrl;
+  // Final fallback: Use data URI (works for some APIs, limited size)
+  const dataUri = `data:${contentType};base64,${buffer.toString('base64')}`;
+  if (buffer.length < 5 * 1024 * 1024) { // Only for files < 5MB
+    console.log(`[upload] Using data URI fallback (${(buffer.length / 1024).toFixed(0)}KB)`);
+    return dataUri;
+  }
+
+  throw new Error('File upload failed: R2 not configured and file too large for data URI');
 }
 
 // Upload video sample (admin only)
