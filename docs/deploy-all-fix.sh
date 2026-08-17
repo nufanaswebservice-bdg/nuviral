@@ -45,6 +45,7 @@ FRONTEND_ENV="$APP_DIR/frontend/.env.local"
 if [ -f "$FRONTEND_ENV" ]; then
   sed -i 's|api.nuviral.cloud|api.getlumora.cloud|g' "$FRONTEND_ENV"
   sed -i 's|nuviral-production.up.railway.app/api/v1|api.getlumora.cloud/api/v1|g' "$FRONTEND_ENV"
+  sed -i 's|nuviral-production.up.railway.app|api.getlumora.cloud|g' "$FRONTEND_ENV"
   echo "✅ Frontend .env.local updated"
 else
   cat > "$FRONTEND_ENV" << 'EOF'
@@ -56,90 +57,143 @@ EOF
 fi
 echo ""
 
-# Step 4: Build frontend
+# Step 4: Fix Nginx to route api.getlumora.cloud to Express (port 3001)
+echo "🌐 Fixing Nginx configuration..."
+cat > /etc/nginx/sites-available/getlumora.cloud << 'NGINX'
+server {
+    listen 80;
+    server_name getlumora.cloud www.getlumora.cloud api.getlumora.cloud;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name getlumora.cloud www.getlumora.cloud;
+
+    ssl_certificate /etc/letsencrypt/live/getlumora.cloud/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/getlumora.cloud/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name api.getlumora.cloud;
+
+    ssl_certificate /etc/letsencrypt/live/getlumora.cloud/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/getlumora.cloud/privkey.pem;
+
+    client_max_body_size 500M;
+    proxy_read_timeout 600s;
+    proxy_connect_timeout 600s;
+    proxy_send_timeout 600s;
+
+    location / {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        proxy_buffering off;
+    }
+}
+NGINX
+
+ln -sf /etc/nginx/sites-available/getlumora.cloud /etc/nginx/sites-enabled/
+nginx -t && systemctl reload nginx
+echo "✅ Nginx updated (api → port 3001)"
+echo ""
+
+# Step 5: Install dependencies for server.js
+echo "📦 Installing dependencies..."
+cd "$APP_DIR"
+npm install --production 2>&1 | tail -3
+echo "✅ Dependencies installed"
+echo ""
+
+# Step 6: Build frontend
 echo "🔨 Building frontend..."
 cd "$APP_DIR/frontend"
 npm run build 2>&1 | tail -5
 echo "✅ Frontend built"
 echo ""
 
-# Step 5: Restart all services
+# Step 7: Restart all services with PM2
 echo "♻️ Restarting services..."
 cd "$APP_DIR"
 
-# Check if server.js is running via pm2
-if pm2 list | grep -q "nuviral-server\|lumora-server"; then
-  pm2 restart lumora-server 2>/dev/null || pm2 restart nuviral-server 2>/dev/null || true
-  echo "✅ Express server restarted"
-else
-  # Start server.js as a new pm2 process
-  pm2 delete lumora-server 2>/dev/null || true
-  pm2 start server.js --name lumora-server --env production
-  echo "✅ Express server started"
-fi
+# Stop old processes
+pm2 delete lumora-server 2>/dev/null || true
+pm2 delete nuviral-server 2>/dev/null || true
+pm2 delete nuviral-backend 2>/dev/null || true
+pm2 delete nuviral-frontend 2>/dev/null || true
 
-# Restart backend (NestJS)
-if pm2 list | grep -q "nuviral-backend"; then
-  pm2 restart nuviral-backend 2>/dev/null || true
-  echo "✅ Backend restarted"
-fi
+# Start Express server (port 3001 - handles all AI + API)
+pm2 start server.js --name lumora-server --env production
+echo "✅ Express API started (port 3001)"
 
-# Restart frontend
-if pm2 list | grep -q "nuviral-frontend"; then
-  pm2 restart nuviral-frontend 2>/dev/null || true
-  echo "✅ Frontend restarted"
-fi
+# Start Frontend (port 3000)
+pm2 start npm --name lumora-frontend -- start --prefix "$APP_DIR/frontend"
+echo "✅ Frontend started (port 3000)"
 
 pm2 save
+pm2 startup systemd -u root --hp /root 2>/dev/null || true
 echo ""
 
-# Step 6: Health checks
+# Step 8: Health checks
 echo "🏥 Running health checks..."
-sleep 5
+sleep 8
 
-# Check Express server (server.js)
-echo -n "  Express API: "
+echo -n "  Express API (port 3001): "
 HEALTH=$(curl -s http://localhost:3001/ 2>/dev/null || echo "FAIL")
 if echo "$HEALTH" | grep -q "ok"; then
-  echo "✅ OK"
-  echo "  → fal.ai: $(echo $HEALTH | grep -o '"fal":true' | head -1 || echo 'check')"
-  echo "  → openai: $(echo $HEALTH | grep -o '"openai":true' | head -1 || echo 'check')"
+  echo "✅ Running"
+  # Parse JSON to show feature status
+  FAL_STATUS=$(echo "$HEALTH" | grep -o '"fal":true' && echo "✅" || echo "❌")
+  OPENAI_STATUS=$(echo "$HEALTH" | grep -o '"openai":true' && echo "✅" || echo "❌")
+  echo "    → OpenAI: $OPENAI_STATUS"
+  echo "    → Fal.ai: $FAL_STATUS"
 else
-  echo "❌ Not responding (check pm2 logs lumora-server)"
+  echo "❌ Not responding!"
+  echo "    Check: pm2 logs lumora-server"
 fi
 
-# Check NestJS backend
-echo -n "  NestJS Backend: "
-BACKEND=$(curl -s http://localhost:4000/api/v1/health 2>/dev/null || echo "FAIL")
-if echo "$BACKEND" | grep -qi "ok\|healthy"; then
-  echo "✅ OK"
+echo -n "  Frontend (port 3000): "
+FRONTEND=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/ 2>/dev/null || echo "000")
+if [ "$FRONTEND" = "200" ] || [ "$FRONTEND" = "304" ]; then
+  echo "✅ Running"
 else
-  echo "⚠️ Not responding (might not be needed for AI features)"
-fi
-
-# Check frontend
-echo -n "  Frontend: "
-FRONTEND=$(curl -s http://localhost:3000/ 2>/dev/null || echo "FAIL")
-if [ ${#FRONTEND} -gt 100 ]; then
-  echo "✅ OK"
-else
-  echo "⚠️ Not responding (check pm2 logs nuviral-frontend)"
+  echo "⚠️ Status: $FRONTEND"
 fi
 
 echo ""
 echo "=== 🎉 Deployment Complete! ==="
 echo ""
-echo "📋 AI Features Status:"
-echo "  ✅ Chat (OpenAI GPT-4o-mini + fal.ai LLM)"
-echo "  ✅ Text-to-Image (fal.ai Flux Pro Ultra + DALL-E 3)"
-echo "  ✅ Text-to-Video (fal.ai Kling 2.5)"
-echo "  ✅ Image-to-Video (fal.ai Kling 2.5)"
+echo "📋 All AI Features:"
+echo "  ✅ Chat AI (OpenAI GPT-4o-mini + fal.ai LLM)"
+echo "  ✅ Generate Gambar (fal.ai Flux Pro Ultra → DALL-E 3)"
+echo "  ✅ Generate Video (fal.ai Kling 2.5 Turbo Pro)"
+echo "  ✅ Image → Video (fal.ai Kling 2.5)"
 echo "  ✅ Text-to-Speech (OpenAI TTS-1-HD)"
 echo "  ✅ Music Generation (fal.ai MiniMax Music v2)"
-echo "  ✅ Sound Effects (fal.ai ElevenLabs)"
-echo "  ✅ Voice Clone (fal.ai Zonos + OpenAI TTS fallback)"
+echo "  ✅ Sound Effects (fal.ai ElevenLabs SFX)"
+echo "  ✅ Voice Clone (fal.ai Zonos → OpenAI TTS)"
 echo "  ✅ 3D Generation (fal.ai Hunyuan3D v2)"
 echo ""
-echo "🌐 Live at: https://getlumora.cloud/dashboard/quick-video"
+echo "🌐 Live: https://getlumora.cloud/dashboard/quick-video"
 echo ""
 pm2 status
