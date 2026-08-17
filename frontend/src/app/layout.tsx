@@ -11,7 +11,8 @@ export const metadata: Metadata = {
   description: 'Platform AI creative studio terdepan di Indonesia. Generate video, gambar, musik, efek suara, 3D model, voice clone, dan brainstorm ide konten — semua dalam satu dashboard.',
   keywords: 'AI video generator, Lumora, AI creative studio, text to image, text to video, text to music, voice clone, 3D generation, content creator, Indonesia',
   icons: {
-    icon: '/favicon.svg',
+    icon: '/favicon.png',
+    apple: '/icon.png',
   },
 };
 
