@@ -1857,6 +1857,100 @@ app.get('/api/v1/subscription/status', async (req, res) => {
 });
 
 // ============================================
+// DUITKU PAYMENT CALLBACK
+// ============================================
+
+// Duitku callback URL: https://getlumora.cloud/callback
+// Set this in Duitku dashboard as "Callback URL"
+app.post('/callback', (req, res) => {
+  const notification = req.body;
+  console.log(`[duitku] Callback received:`, JSON.stringify(notification));
+
+  try {
+    const {
+      merchantCode,
+      amount,
+      merchantOrderId,
+      productDetail,
+      additionalParam,
+      paymentCode,
+      resultCode,
+      merchantUserId,
+      reference,
+      signature,
+      publisherOrderId,
+      spUserHash,
+    } = notification;
+
+    // Verify signature: MD5(merchantCode + amount + merchantOrderId + merchantKey)
+    const DUITKU_MERCHANT_CODE = process.env.DUITKU_MERCHANT_CODE || '';
+    const DUITKU_MERCHANT_KEY = process.env.DUITKU_MERCHANT_KEY || '';
+
+    if (DUITKU_MERCHANT_KEY) {
+      const expectedSignature = crypto
+        .createHash('md5')
+        .update(`${merchantCode}${amount}${merchantOrderId}${DUITKU_MERCHANT_KEY}`)
+        .digest('hex');
+
+      if (signature && signature !== expectedSignature) {
+        console.warn(`[duitku] ❌ Invalid signature for order: ${merchantOrderId}`);
+        return res.status(400).json({ error: 'Invalid signature' });
+      }
+    }
+
+    // resultCode: "00" = success, "01" = pending, "02" = failed/expired
+    if (resultCode === '00') {
+      // Payment SUCCESS
+      console.log(`[duitku] ✅ Payment SUCCESS: ${merchantOrderId} - Rp${amount}`);
+
+      // Extract plan and email from merchantOrderId or additionalParam
+      // Format: LUMORA-PLANNAME-TIMESTAMP or custom format
+      const parts = (merchantOrderId || '').split('-');
+      const planKey = parts[1] || additionalParam || '';
+      const customerEmail = merchantUserId || '';
+
+      if (planKey && PLANS[planKey.toUpperCase()]) {
+        const plan = planKey.toUpperCase();
+        const usage = getUserUsage(customerEmail);
+        usage.plan = plan;
+        usage.videosUsed = 0;
+        usage.aiCreditsUsed = 0;
+        usage.periodStart = new Date().toISOString();
+        usage.periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        saveUsage(userUsage);
+        console.log(`[duitku] ✅ Plan ${plan} activated for ${customerEmail} (30 days)`);
+      } else {
+        console.log(`[duitku] ✅ Payment OK but plan not matched: orderID=${merchantOrderId}, param=${additionalParam}`);
+      }
+    } else if (resultCode === '01') {
+      console.log(`[duitku] ⏳ Payment PENDING: ${merchantOrderId}`);
+    } else {
+      console.log(`[duitku] ❌ Payment FAILED/EXPIRED: ${merchantOrderId} (code: ${resultCode})`);
+    }
+
+    // Duitku expects HTTP 200 response
+    res.status(200).json({ status: 'ok', message: 'callback received' });
+  } catch (error) {
+    console.error(`[duitku] Callback error:`, error.message);
+    res.status(200).json({ status: 'ok', message: 'callback processed with error' });
+  }
+});
+
+// Duitku return URL (redirect user after payment)
+app.get('/callback', (req, res) => {
+  const { merchantOrderId, resultCode, reference } = req.query;
+  console.log(`[duitku] Return redirect: order=${merchantOrderId}, result=${resultCode}`);
+
+  if (resultCode === '00') {
+    res.redirect('https://getlumora.cloud/dashboard/billing?payment=success');
+  } else if (resultCode === '01') {
+    res.redirect('https://getlumora.cloud/dashboard/billing?payment=pending');
+  } else {
+    res.redirect('https://getlumora.cloud/dashboard/billing?payment=failed');
+  }
+});
+
+// ============================================
 // USER MANAGEMENT (Admin)
 // ============================================
 
