@@ -1696,10 +1696,10 @@ app.get('/api/v1/subscription/current', (req, res) => {
 // Create Midtrans Snap transaction
 app.post('/api/v1/subscription/create-transaction', async (req, res) => {
   try {
-    const { plan, userId, email, name } = req.body;
+    const { plan, userId, email, name, gateway } = req.body;
 
     // Get email from Authorization header token if available (decode JWT payload)
-    let userEmail = email || 'customer@nuviral.cloud';
+    let userEmail = email || 'customer@getlumora.cloud';
     let userName = name || 'Customer';
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -1712,68 +1712,123 @@ app.post('/api/v1/subscription/create-transaction', async (req, res) => {
     }
 
     if (!plan) return res.status(400).json({ error: 'Plan is required' });
-    if (!MIDTRANS_SERVER_KEY) {
-      console.error('[midtrans] MIDTRANS_SERVER_KEY is not set!');
-      return res.status(500).json({ error: 'Payment system not configured. Contact admin.' });
-    }
 
     const planKey = plan.toUpperCase();
     const planConfig = PLANS[planKey];
     if (!planConfig) return res.status(400).json({ error: `Invalid plan: ${planKey}` });
 
-    const orderId = `NUVIRAL-${planKey}-${Date.now()}`;
-    const authString = Buffer.from(MIDTRANS_SERVER_KEY + ':').toString('base64');
+    const orderId = `LUMORA-${planKey}-${Date.now()}`;
 
-    const parameter = {
-      transaction_details: {
-        order_id: orderId,
-        gross_amount: planConfig.price,
-      },
-      item_details: [{
-        id: planKey.toLowerCase(),
-        price: planConfig.price,
-        quantity: 1,
-        name: `NuViral ${planConfig.name} Plan - Monthly`,
-      }],
-      customer_details: {
-        first_name: userName,
-        email: userEmail,
-      },
-      callbacks: {
-        finish: 'https://getlumora.cloud/dashboard/billing?payment=success',
-        error: 'https://getlumora.cloud/dashboard/billing?payment=error',
-        pending: 'https://getlumora.cloud/dashboard/billing?payment=pending',
-      },
-    };
+    // ===== DUITKU PAYMENT GATEWAY =====
+    const DUITKU_MERCHANT_CODE = process.env.DUITKU_MERCHANT_CODE || 'DS34265';
+    const DUITKU_API_KEY = process.env.DUITKU_MERCHANT_KEY || process.env.DUITKU_API_KEY || 'f41752cb38ff3e0b4e3f52b631c506cc';
+    const DUITKU_BASE_URL = (process.env.DUITKU_IS_PRODUCTION === 'true' || process.env.NODE_ENV === 'production')
+      ? 'https://passport.duitku.com/webapi/api/merchant'
+      : 'https://sandbox.duitku.com/webapi/api/merchant';
 
-    console.log(`[midtrans] Creating transaction: ${orderId} - ${planConfig.name} - Rp${planConfig.price} - ${userEmail}`);
-
-    const response = await fetch(`${MIDTRANS_BASE_URL}/transactions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': `Basic ${authString}`,
-      },
-      body: JSON.stringify(parameter),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error(`[midtrans] API Error (${response.status}): ${JSON.stringify(data)}`);
-      return res.status(500).json({ error: 'Failed to create transaction', detail: data });
+    if (gateway === 'midtrans' && MIDTRANS_SERVER_KEY) {
+      // Use Midtrans if explicitly requested and configured
+      const authString = Buffer.from(MIDTRANS_SERVER_KEY + ':').toString('base64');
+      const parameter = {
+        transaction_details: { order_id: orderId, gross_amount: planConfig.price },
+        item_details: [{ id: planKey.toLowerCase(), price: planConfig.price, quantity: 1, name: `Lumora ${planConfig.name} Plan - Monthly` }],
+        customer_details: { first_name: userName, email: userEmail },
+        callbacks: {
+          finish: 'https://getlumora.cloud/dashboard/billing?payment=success',
+          error: 'https://getlumora.cloud/dashboard/billing?payment=error',
+          pending: 'https://getlumora.cloud/dashboard/billing?payment=pending',
+        },
+      };
+      console.log(`[midtrans] Creating transaction: ${orderId} - ${planConfig.name} - Rp${planConfig.price} - ${userEmail}`);
+      const response = await fetch(`${MIDTRANS_BASE_URL}/transactions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': `Basic ${authString}` },
+        body: JSON.stringify(parameter),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        console.error(`[midtrans] API Error (${response.status}): ${JSON.stringify(data)}`);
+        return res.status(500).json({ error: 'Failed to create transaction', detail: data });
+      }
+      console.log(`[midtrans] ✅ Transaction created: ${orderId}`);
+      return res.json({ token: data.token, redirectUrl: data.redirect_url, orderId, gateway: 'midtrans' });
     }
 
-    console.log(`[midtrans] ✅ Transaction created: ${orderId}, token: ${data.token ? 'received' : 'EMPTY'}`);
+    // DEFAULT: Use Duitku
+    const timestamp = Math.round(Date.now() / 1000);
+    const signature = crypto
+      .createHash('md5')
+      .update(`${DUITKU_MERCHANT_CODE}${planConfig.price}${orderId}${DUITKU_API_KEY}`)
+      .digest('hex');
+
+    const duitkuPayload = {
+      merchantCode: DUITKU_MERCHANT_CODE,
+      paymentAmount: planConfig.price,
+      merchantOrderId: orderId,
+      productDetails: `Lumora ${planConfig.name} Plan - Monthly`,
+      additionalParam: planKey,
+      merchantUserInfo: userEmail,
+      customerVaName: userName,
+      email: userEmail,
+      itemDetails: [{
+        name: `Lumora ${planConfig.name} Plan`,
+        price: planConfig.price,
+        quantity: 1,
+      }],
+      callbackUrl: 'https://api.getlumora.cloud/callback',
+      returnUrl: 'https://getlumora.cloud/dashboard/billing?payment=success',
+      expiryPeriod: 1440, // 24 hours
+      signature: signature,
+    };
+
+    console.log(`[duitku] Creating transaction: ${orderId} - ${planConfig.name} - Rp${planConfig.price} - ${userEmail}`);
+
+    const duitkuRes = await fetch(`${DUITKU_BASE_URL}/v2/inquiry`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(duitkuPayload),
+    });
+
+    const duitkuData = await duitkuRes.json();
+
+    if (!duitkuRes.ok || duitkuData.statusCode !== '00') {
+      console.error(`[duitku] API Error (${duitkuRes.status}):`, JSON.stringify(duitkuData));
+      
+      // Fallback to Midtrans if Duitku fails
+      if (MIDTRANS_SERVER_KEY) {
+        console.log('[duitku] Falling back to Midtrans...');
+        const authString = Buffer.from(MIDTRANS_SERVER_KEY + ':').toString('base64');
+        const parameter = {
+          transaction_details: { order_id: orderId, gross_amount: planConfig.price },
+          item_details: [{ id: planKey.toLowerCase(), price: planConfig.price, quantity: 1, name: `Lumora ${planConfig.name} Plan - Monthly` }],
+          customer_details: { first_name: userName, email: userEmail },
+          callbacks: { finish: 'https://getlumora.cloud/dashboard/billing?payment=success', error: 'https://getlumora.cloud/dashboard/billing?payment=error', pending: 'https://getlumora.cloud/dashboard/billing?payment=pending' },
+        };
+        const response = await fetch(`${MIDTRANS_BASE_URL}/transactions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': `Basic ${authString}` },
+          body: JSON.stringify(parameter),
+        });
+        const data = await response.json();
+        if (response.ok) {
+          return res.json({ token: data.token, redirectUrl: data.redirect_url, orderId, gateway: 'midtrans' });
+        }
+      }
+      return res.status(500).json({ error: 'Failed to create transaction', detail: duitkuData.statusMessage || duitkuData });
+    }
+
+    console.log(`[duitku] ✅ Transaction created: ${orderId}, ref: ${duitkuData.reference}`);
 
     res.json({
-      token: data.token,
-      redirectUrl: data.redirect_url,
+      redirectUrl: duitkuData.paymentUrl,
+      reference: duitkuData.reference,
       orderId,
+      gateway: 'duitku',
+      vaNumber: duitkuData.vaNumber,
+      amount: duitkuData.amount,
     });
   } catch (error) {
-    console.error('[midtrans] Error:', error.message);
+    console.error('[payment] Error:', error.message);
     res.status(500).json({ error: 'Failed to create transaction', detail: error.message });
   }
 });
@@ -1883,8 +1938,8 @@ app.post('/callback', (req, res) => {
     } = notification;
 
     // Verify signature: MD5(merchantCode + amount + merchantOrderId + merchantKey)
-    const DUITKU_MERCHANT_CODE = process.env.DUITKU_MERCHANT_CODE || '';
-    const DUITKU_MERCHANT_KEY = process.env.DUITKU_MERCHANT_KEY || '';
+    const DUITKU_MERCHANT_CODE = process.env.DUITKU_MERCHANT_CODE || 'DS34265';
+    const DUITKU_MERCHANT_KEY = process.env.DUITKU_MERCHANT_KEY || 'f41752cb38ff3e0b4e3f52b631c506cc';
 
     if (DUITKU_MERCHANT_KEY) {
       const expectedSignature = crypto

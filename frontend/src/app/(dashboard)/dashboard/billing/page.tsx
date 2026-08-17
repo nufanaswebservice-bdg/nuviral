@@ -173,34 +173,42 @@ export default function BillingPage() {
         { headers: { Authorization: `Bearer ${token}` } },
       );
 
-      const { token: snapToken } = response.data;
+      const { token: snapToken, redirectUrl, gateway } = response.data;
 
-      if (!window.snap) {
-        toast.error('Payment system is loading, please try again in a moment.');
-        setProcessingPlan(null);
+      // Duitku: redirect to payment page
+      if (gateway === 'duitku' && redirectUrl) {
+        window.location.href = redirectUrl;
         return;
       }
 
-      // Open Midtrans Snap payment popup
-      window.snap.pay(snapToken, {
-        onSuccess: (result: any) => {
-          toast.success('Payment successful! Your plan has been upgraded.');
-          fetchCurrentPlan();
-          setProcessingPlan(null);
-        },
-        onPending: (result: any) => {
-          toast.info('Payment is pending. We will notify you once confirmed.');
-          setProcessingPlan(null);
-        },
-        onError: (result: any) => {
-          toast.error('Payment failed. Please try again.');
-          setProcessingPlan(null);
-        },
-        onClose: () => {
-          toast.info('Payment window closed.');
-          setProcessingPlan(null);
-        },
-      });
+      // Midtrans: open Snap popup
+      if (snapToken && window.snap) {
+        window.snap.pay(snapToken, {
+          onSuccess: (result: any) => {
+            toast.success('Payment successful! Your plan has been upgraded.');
+            fetchCurrentPlan();
+            setProcessingPlan(null);
+          },
+          onPending: (result: any) => {
+            toast.info('Payment is pending. We will notify you once confirmed.');
+            setProcessingPlan(null);
+          },
+          onError: (result: any) => {
+            toast.error('Payment failed. Please try again.');
+            setProcessingPlan(null);
+          },
+          onClose: () => {
+            toast.info('Payment window closed.');
+            setProcessingPlan(null);
+          },
+        });
+      } else if (redirectUrl) {
+        // Fallback: redirect to payment URL
+        window.location.href = redirectUrl;
+      } else {
+        toast.error('Payment system is loading, please try again in a moment.');
+        setProcessingPlan(null);
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to create transaction');
       setProcessingPlan(null);
