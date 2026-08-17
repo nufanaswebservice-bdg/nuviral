@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { buildChatSystemPrompt, CHAT_OPENAI_PARAMS } from '@/lib/chat-prompt';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || process.env.OPENAI_KEY || '';
-const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o';
+const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
 function extractEmail(req: NextRequest): string | null {
   const auth = req.headers.get('authorization');
@@ -19,7 +19,7 @@ function extractEmail(req: NextRequest): string | null {
   }
 }
 
-async function openaiChat(messages: { role: string; content: string }[], maxTokens = CHAT_OPENAI_PARAMS.max_tokens) {
+async function openaiChat(messages: any[], maxTokens = CHAT_OPENAI_PARAMS.max_tokens, model?: string) {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -27,7 +27,7 @@ async function openaiChat(messages: { role: string; content: string }[], maxToke
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: OPENAI_MODEL,
+      model: model || OPENAI_MODEL,
       messages,
       max_tokens: maxTokens,
       temperature: CHAT_OPENAI_PARAMS.temperature,
@@ -57,47 +57,69 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { message, history = [] } = await req.json();
-    if (!message?.trim()) {
-      return NextResponse.json({ error: 'message required' }, { status: 400 });
+    const { message, history = [], imageBase64 } = await req.json();
+    if (!message?.trim() && !imageBase64) {
+      return NextResponse.json({ error: 'message or image required' }, { status: 400 });
     }
 
     const systemPrompt = buildChatSystemPrompt();
 
-    const reply = await openaiChat([
-      { role: 'system', content: systemPrompt },
-      ...history.slice(-12).map((h: { role: string; content: string }) => ({
-        role: h.role,
-        content: h.content,
-      })),
-      { role: 'user', content: message },
-    ]);
+    // Build messages array
+    const chatHistory = history.slice(-12).map((h: { role: string; content: string }) => ({
+      role: h.role,
+      content: h.content,
+    }));
 
-    if (!reply) {
-      return NextResponse.json({ error: 'OpenAI tidak memberikan respons' }, { status: 500 });
+    let userContent: any;
+    let modelToUse = OPENAI_MODEL;
+
+    if (imageBase64) {
+      // Use GPT-4o for vision (image analysis) - it supports images
+      modelToUse = 'gpt-4o';
+      userContent = [
+        { type: 'text', text: message || 'Analisis gambar ini secara detail.' },
+        { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}`, detail: 'high' } },
+      ];
+    } else {
+      userContent = message;
     }
 
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...chatHistory,
+      { role: 'user', content: userContent },
+    ];
+
+    const reply = await openaiChat(messages, CHAT_OPENAI_PARAMS.max_tokens, modelToUse);
+
+    if (!reply) {
+      return NextResponse.json({ error: 'AI tidak memberikan respons' }, { status: 500 });
+    }
+
+    // Generate suggestions (skip for image analysis to keep response fast)
     let suggestions: string[] = [];
-    try {
-      const sugText = await openaiChat([{
-        role: 'user',
-        content: `Berdasarkan percakapan ini:
+    if (!imageBase64) {
+      try {
+        const sugText = await openaiChat([{
+          role: 'user',
+          content: `Berdasarkan percakapan ini:
 User: "${message}"
 AI: "${reply.substring(0, 400)}"
 
 Buat 3 pertanyaan lanjutan yang relevan dan spesifik (bukan generic).
 Bahasa sama dengan user. Max 12 kata per pertanyaan.
 Return ONLY JSON array: ["q1","q2","q3"]`,
-      }], 250);
+        }], 250);
 
-      if (sugText) {
-        const match = sugText.match(/\[[\s\S]*?\]/);
-        if (match) {
-          const parsed = JSON.parse(match[0]);
-          if (Array.isArray(parsed)) suggestions = parsed.slice(0, 3);
+        if (sugText) {
+          const match = sugText.match(/\[[\s\S]*?\]/);
+          if (match) {
+            const parsed = JSON.parse(match[0]);
+            if (Array.isArray(parsed)) suggestions = parsed.slice(0, 3);
+          }
         }
-      }
-    } catch {}
+      } catch {}
+    }
 
     return NextResponse.json({ reply, suggestions });
   } catch (error: any) {

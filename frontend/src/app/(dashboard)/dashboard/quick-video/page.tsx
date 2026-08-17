@@ -84,17 +84,36 @@ export default function AIStudioPage() {
   const getAuthHeaders = () => ({ 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken') || ''}` });
 
   // === CHAT ===
+  const [chatImageFile, setChatImageFile] = useState<File | null>(null);
+  const [chatImagePreview, setChatImagePreview] = useState<string | null>(null);
+  const chatFileRef = useRef<HTMLInputElement>(null);
+
   const handleChat = async () => {
-    if (!prompt.trim()) return;
+    if (!prompt.trim() && !chatImageFile) return;
     const q = prompt.trim();
-    const userMsg = { role: 'user', content: q };
+    const userMsg = { role: 'user', content: chatImageFile ? `📎 [Gambar] ${q || '(analisis gambar ini)'}` : q };
     setChatMessages(prev => [...prev, userMsg]); setPrompt(''); setIsChatLoading(true); setSuggestions([]);
+    
+    // Convert image to base64 if attached
+    let imageBase64: string | null = null;
+    if (chatImageFile) {
+      imageBase64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.readAsDataURL(chatImageFile);
+      });
+    }
+    setChatImageFile(null); setChatImagePreview(null);
+    
     try {
       const token = localStorage.getItem('accessToken');
       if (!token || token === 'null' || token === 'undefined') {
         throw new Error('Sesi login expired. Silakan login ulang.');
       }
-      const res = await fetch('/api/ai/chat', { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ message: q, history: chatMessages }) });
+      const body: any = { message: q || 'Analisis gambar ini', history: chatMessages };
+      if (imageBase64) body.imageBase64 = imageBase64;
+      
+      const res = await fetch('/api/ai/chat', { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body) });
       if (res.status === 401) throw new Error('Sesi login expired. Silakan login ulang.');
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
@@ -109,7 +128,7 @@ export default function AIStudioPage() {
       if (data.suggestions && data.suggestions.length > 0) {
         setSuggestions(data.suggestions);
       }
-      saveTask(q, newMsgs);
+      saveTask(q || 'Image analysis', newMsgs);
     } catch (e: any) {
       const msg = e?.message || (typeof e === 'string' ? e : 'Maaf, terjadi error. Coba lagi.');
       setChatMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${msg}` }]);
@@ -429,6 +448,15 @@ export default function AIStudioPage() {
       {!resultUrl && !isLoading && (
         <div className="flex-shrink-0 px-2 md:px-4 pb-3 pt-3 border-t border-border bg-background">
           <div className="max-w-3xl mx-auto">
+            {/* Image Upload Preview (for chat) */}
+            {activeTab === 'chat' && chatImagePreview && (
+              <div className="mb-2 flex items-center gap-2 p-2 rounded-lg border border-border bg-muted/20">
+                <img src={chatImagePreview} alt="Upload" className="h-12 rounded-lg border border-border" />
+                <span className="text-xs text-muted-foreground">Gambar terlampir</span>
+                <button onClick={() => { setChatImageFile(null); setChatImagePreview(null); }} className="text-xs text-destructive hover:underline ml-auto">Hapus</button>
+              </div>
+            )}
+
             {/* Image Upload Preview (for img2vid & 3d & clone) */}
             {(activeTab === 'img2vid' || activeTab === '3d' || activeTab === 'clone') && imagePreview && (
               <div className="mb-2 flex items-center gap-2 p-2 rounded-lg border border-border bg-muted/20">
@@ -464,6 +492,15 @@ export default function AIStudioPage() {
               />
               <div className="flex items-center justify-between px-3 pb-2.5">
                 <div className="flex items-center gap-1 flex-wrap">
+                  {/* Upload button for chat (image analysis with GPT-4o vision) */}
+                  {activeTab === 'chat' && (
+                    <>
+                      <button onClick={() => chatFileRef.current?.click()} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] hover:bg-accent text-muted-foreground border border-border hover:border-primary/20 transition">
+                        <ImageIcon className="h-3 w-3" /> Gambar
+                      </button>
+                      <input ref={chatFileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setChatImageFile(f); setChatImagePreview(URL.createObjectURL(f)); } e.target.value = ''; }} />
+                    </>
+                  )}
                   {/* Upload button for img2vid / 3d / clone */}
                   {(activeTab === 'img2vid' || activeTab === '3d') && (
                     <button onClick={() => fileRef.current?.click()} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] hover:bg-accent text-muted-foreground border border-border hover:border-primary/20 transition">
@@ -502,7 +539,7 @@ export default function AIStudioPage() {
                     </button>
                   )}
                 </div>
-                <button onClick={handleSubmit} disabled={!prompt.trim() && activeTab !== 'img2vid'} className="p-2 rounded-xl gradient-primary text-white disabled:opacity-30 hover:opacity-90 transition">
+                <button onClick={handleSubmit} disabled={!prompt.trim() && !chatImageFile && activeTab !== 'img2vid'} className="p-2 rounded-xl gradient-primary text-white disabled:opacity-30 hover:opacity-90 transition">
                   <Send className="h-4 w-4" />
                 </button>
               </div>
